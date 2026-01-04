@@ -2,6 +2,15 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
+## [1.1.0] - 2026-01-05 - ☁️ CLOUD COMPATIBILITY UPDATE
+
+### Fixed
+- **Google Colab Compatibility**: 
+  - Fixed `chronos-forecasting` package installation to use the official Amazon Science GitHub repository instead of PyPI (resolving API mismatch).
+  - Patched `chronos_colab.ipynb` to use correct `predict()` method signature (positional arguments) and NumPy-based quantile calculation, aligning it with the local `src/ai_forecaster.py`.
+  - Added robust error logging in the notebook to expose silent failures during batch prediction.
+- **Empty Output Issue**: Resolved the issue where `predictions.parquet` was generated as an empty file (135 bytes) due to swallowed exceptions.
+
 ## [1.0.0] - 2026-01-05 - 🚀 THE CHRONOS-X LAUNCH
 
 **"Predicting the Future of Digital Identity"**
