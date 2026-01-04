@@ -5,6 +5,9 @@ All notable changes to the Chronos-X UIDAI Project will be documented in this fi
 ## [0.2.0] - 2026-01-05
 
 ### Added
+- **Strategic Narrative (README.md)** - Updated the README to include a high-level strategic overview ("The Weather Forecast for Aadhaar") designed for UIDAI officials, explaining the core concepts of "Pulse Vectors" and "Time Machine Logic".
+
+### Added (Previous)
 
 #### AI Forecasting Module (`src/ai_forecaster.py`)
 - **`AIForecaster` class** - Zero-shot time-series forecasting using:
@@ -22,6 +25,17 @@ All notable changes to the Chronos-X UIDAI Project will be documented in this fi
   - Configurable weighting (default 50/50).
   - Weighted averaging based on similarity scores.
 
+- **`requirements.txt`** - Project dependencies:
+  - `polars>=0.20.0` - Fast DataFrame processing
+  - `numpy>=1.24.0` - Numerical operations
+  - `chronos-forecasting>=1.0.0` - Amazon Chronos foundation model
+  - `torch>=2.0.0` - PyTorch for ML inference
+  - `ollama>=0.1.0` - Local LLM for attestation
+
+### Fixed
+- **Column Name Mismatch** - Updated `ai_forecaster.py` to use correct column names (`growth_norm`, `flow_norm`, `labor_norm`) matching `pulse_vectors.parquet` schema.
+- **Date Type Mismatch** - Added `_parse_date()` helper to convert string dates to proper `date` objects for Polars filtering.
+
 ### Changed
 - **Codebase Organization** - Major refactor for cleanliness:
   - `src/` - Core application code (`data_pipeline.py`, `ai_forecaster.py`).
@@ -29,6 +43,12 @@ All notable changes to the Chronos-X UIDAI Project will be documented in this fi
   - `scripts/` - Utility and analysis scripts (`analyze_*.py`, `scan_metadata.py`).
   - `docs/` - Documentation, plans, and logs.
 - **Path Updates** - All scripts updated to reference the new `data/` directory structure.
+
+### Tested
+- **AI Forecaster** - Successfully ran with real data from `pulse_vectors.parquet`:
+  - Model: Amazon Chronos T5-Base (806MB)
+  - Sample: PIN 638055 (Tamil Nadu)
+  - Prediction method: Spatial parallels (cross-state matching)
 
 ## [0.1.0] - 2026-01-05
 

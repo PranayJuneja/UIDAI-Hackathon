@@ -13,8 +13,18 @@ Date: January 2026
 
 import polars as pl
 import numpy as np
-from typing import Optional
+from typing import Optional, Union
 from pathlib import Path
+from datetime import date, datetime
+
+
+def _parse_date(date_input: Union[str, date]) -> date:
+    """Convert string or date to date object for column filtering."""
+    if isinstance(date_input, date):
+        return date_input
+    # Parse string formats like "2025-11-01"
+    return datetime.strptime(date_input, "%Y-%m-%d").date()
+
 
 # Lazy imports for heavy dependencies
 _chronos_pipeline = None
@@ -109,19 +119,20 @@ class AIForecaster:
         # Convert to tensor - Chronos expects this format
         context = torch.tensor(pin_history, dtype=torch.float32)
         
-        # Generate probabilistic forecast
-        forecast = self.pipeline.predict(
-            context=context,
-            prediction_length=horizon,
-            num_samples=num_samples
-        )
+        # Generate probabilistic forecast (positional args per official API)
+        # Returns shape [num_series, num_samples, prediction_length]
+        forecast = self.pipeline.predict(context, horizon, num_samples=num_samples)
         
-        # Extract quantiles for uncertainty bounds
+        # Extract quantiles for uncertainty bounds (using numpy as per official docs)
+        import numpy as np
+        forecast_np = forecast[0].numpy()  # [num_samples, prediction_length]
+        low, median, high = np.quantile(forecast_np, [0.1, 0.5, 0.9], axis=0)
+        
         return {
-            "median": forecast.median(dim=0).values.tolist(),
-            "lower_bound": forecast.quantile(0.1, dim=0).tolist(),
-            "upper_bound": forecast.quantile(0.9, dim=0).tolist(),
-            "samples": forecast.numpy().tolist()
+            "median": median.tolist(),
+            "lower_bound": low.tolist(),
+            "upper_bound": high.tolist(),
+            "samples": forecast_np.tolist()
         }
     
     def forecast_pulse_vector(
@@ -156,7 +167,7 @@ class AIForecaster:
         
         # Forecast each component of the Pulse Vector
         for component in ["growth", "flow", "labor"]:
-            history = pin_data[f"pulse_{component}"].to_list()
+            history = pin_data[f"{component}_norm"].to_list()
             
             if len(history) >= 1:  # Chronos can work with even 1 data point
                 results[f"{component}_forecast"] = self.forecast_pin(
@@ -240,16 +251,16 @@ def get_pulse_vector(
     """
     row = pulse_table.filter(
         (pl.col("pincode") == pincode) & 
-        (pl.col("month") == month)
+        (pl.col("month") == _parse_date(month))
     )
     
     if len(row) == 0:
         return None
     
     return np.array([
-        row["pulse_growth"][0],
-        row["pulse_flow"][0],
-        row["pulse_labor"][0]
+        row["growth_norm"][0],
+        row["flow_norm"][0],
+        row["labor_norm"][0]
     ])
 
 
@@ -295,7 +306,7 @@ def find_spatial_parallels(
     
     # Get all candidates from the target month
     candidates = pulse_table.filter(
-        (pl.col("month") == target_month) &
+        (pl.col("month") == _parse_date(target_month)) &
         (pl.col("pincode") != target_pin)  # Exclude self
     )
     
@@ -307,9 +318,9 @@ def find_spatial_parallels(
     similarities = []
     for row in candidates.iter_rows(named=True):
         candidate_vec = np.array([
-            row["pulse_growth"],
-            row["pulse_flow"],
-            row["pulse_labor"]
+            row["growth_norm"],
+            row["flow_norm"],
+            row["labor_norm"]
         ])
         sim = compute_cosine_similarity(target_vector, candidate_vec)
         similarities.append(sim)
@@ -356,7 +367,7 @@ def predict_from_parallels(
         # Get parallel's actual future data
         future_data = pulse_table.filter(
             (pl.col("pincode") == parallel_pin) &
-            (pl.col("month") == future_month)
+            (pl.col("month") == _parse_date(future_month))
         )
         
         if len(future_data) > 0:
@@ -364,9 +375,9 @@ def predict_from_parallels(
                 "pincode": parallel_pin,
                 "state": row["state"],
                 "similarity": similarity,
-                "growth": future_data["pulse_growth"][0],
-                "flow": future_data["pulse_flow"][0],
-                "labor": future_data["pulse_labor"][0]
+                "growth": future_data["growth_norm"][0],
+                "flow": future_data["flow_norm"][0],
+                "labor": future_data["labor_norm"][0]
             })
             weights.append(similarity)
     
