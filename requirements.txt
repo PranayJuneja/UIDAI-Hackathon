@@ -1,0 +1,17 @@
+# Chronos-X Dependencies
+# ======================
+
+# Core Data Processing
+polars>=0.20.0
+numpy>=1.24.0
+
+# AI Forecasting (Amazon Chronos)
+chronos-forecasting>=1.0.0
+torch>=2.0.0
+
+# LLM Attestation (Local)
+ollama>=0.1.0
+
+# Visualization (Future)
+# streamlit>=1.30.0
+# plotly>=5.18.0

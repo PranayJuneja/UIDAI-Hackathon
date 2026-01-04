@@ -5,12 +5,12 @@ import os
 
 base_dir = r"d:\Antigravity Projects\UIDAI Project"
 dirs = {
-    "Bio": os.path.join(base_dir, "api_data_aadhar_biometric"),
-    "Demo": os.path.join(base_dir, "api_data_aadhar_demographic"),
-    "Enrol": os.path.join(base_dir, "api_data_aadhar_enrolment")
+    "Bio": os.path.join(base_dir, "data", "api_data_aadhar_biometric"),
+    "Demo": os.path.join(base_dir, "data", "api_data_aadhar_demographic"),
+    "Enrol": os.path.join(base_dir, "data", "api_data_aadhar_enrolment")
 }
 
-output_file = "metadata_fixed.log"
+output_file = "docs/logs/metadata_fixed.log"
 with open(output_file, "w", encoding="utf-8") as f_out:
     header = f"{'Category':<10} | {'Filename':<55} | {'Min Date':<10} | {'Max Date':<10} | {'Min Pin':<7} | {'Max Pin':<7}\n"
     f_out.write(header)

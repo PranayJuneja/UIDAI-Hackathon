@@ -8,9 +8,9 @@ def analyze():
     
     # Paths (using glob patterns)
     path_patterns = {
-        "Biometric": os.path.join(base_dir, "api_data_aadhar_biometric", "*.csv"),
-        "Demographic": os.path.join(base_dir, "api_data_aadhar_demographic", "*.csv"),
-        "Enrolment": os.path.join(base_dir, "api_data_aadhar_enrolment", "*.csv")
+        "Biometric": os.path.join(base_dir, "data", "api_data_aadhar_biometric", "*.csv"),
+        "Demographic": os.path.join(base_dir, "data", "api_data_aadhar_demographic", "*.csv"),
+        "Enrolment": os.path.join(base_dir, "data", "api_data_aadhar_enrolment", "*.csv")
     }
 
     dfs = {}

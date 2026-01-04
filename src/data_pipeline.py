@@ -15,12 +15,12 @@ from pathlib import Path
 
 # Configuration
 BASE_DIR = Path(r"D:\Antigravity Projects\UIDAI Project")
-OUTPUT_DIR = BASE_DIR / "output"
+OUTPUT_DIR = BASE_DIR / "data/output"
 
 DATA_PATHS = {
-    "biometric": BASE_DIR / "api_data_aadhar_biometric",
-    "demographic": BASE_DIR / "api_data_aadhar_demographic", 
-    "enrolment": BASE_DIR / "api_data_aadhar_enrolment",
+    "biometric": BASE_DIR / "data/api_data_aadhar_biometric",
+    "demographic": BASE_DIR / "data/api_data_aadhar_demographic", 
+    "enrolment": BASE_DIR / "data/api_data_aadhar_enrolment",
 }
 
 # Column mappings for each dataset type

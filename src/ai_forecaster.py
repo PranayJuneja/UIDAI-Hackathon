@@ -419,7 +419,7 @@ class HybridPredictor:
         self.ai_forecaster = AIForecaster(model_name)
         self._pulse_table = None
     
-    def load_pulse_table(self, path: str = "pulse_vectors.parquet"):
+    def load_pulse_table(self, path: str = "data/output/pulse_vectors.parquet"):
         """Load the Master Pulse Table."""
         self._pulse_table = pl.read_parquet(path)
         return self
@@ -646,9 +646,9 @@ if __name__ == "__main__":
     print("=" * 70)
     
     # Check if pulse table exists
-    pulse_path = Path("pulse_vectors.parquet")
+    pulse_path = Path("data/output/pulse_vectors.parquet")
     if not pulse_path.exists():
-        print("\n⚠️  pulse_vectors.parquet not found!")
+        print(f"\n⚠️  {pulse_path} not found!")
         print("   Run data_pipeline.py first to generate the Pulse Table.")
         exit(1)
     

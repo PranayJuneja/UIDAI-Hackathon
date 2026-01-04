@@ -3,7 +3,7 @@ import os
 
 import sys
 
-files = sys.argv[1:] if len(sys.argv) > 1 else ["analysis_log.txt", "metadata.log"]
+files = sys.argv[1:] if len(sys.argv) > 1 else ["docs/logs/analysis_log.txt", "docs/logs/metadata.log"]
 for filename in files:
     if os.path.exists(filename):
         print(f"--- CONTENT OF {filename} ---")
