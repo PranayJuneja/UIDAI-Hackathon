@@ -32,6 +32,12 @@ All notable changes to the Chronos-X UIDAI Project will be documented in this fi
   - `torch>=2.0.0` - PyTorch for ML inference
   - `ollama>=0.1.0` - Local LLM for attestation
 
+- **Batch Prediction Script (`scripts/batch_predict.py`)**:
+  - Automates 6-month forecasting for all 19,000+ PIN codes.
+  - Generates `predictions.parquet` with strictly structured output.
+  - Uses **Hybrid Ensemble** (AI + Spatial Parallels) for next-month prediction.
+  - Includes confidence scores and top-3 parallel state matches.
+
 ### Fixed
 - **Column Name Mismatch** - Updated `ai_forecaster.py` to use correct column names (`growth_norm`, `flow_norm`, `labor_norm`) matching `pulse_vectors.parquet` schema.
 - **Date Type Mismatch** - Added `_parse_date()` helper to convert string dates to proper `date` objects for Polars filtering.

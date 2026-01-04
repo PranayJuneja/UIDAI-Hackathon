@@ -17,82 +17,117 @@ Build a functional prototype of "Chronos-X" that:
 ## Proposed Changes
 
 ### 1. Data Pipeline (`src/data_pipeline.py`)
-> [NEW]
+> [COMPLETE ✅]
 - **`load_and_fuse_data()`**: Polars-based function to:
-    - Load all 3 CSV types
+    - Load all 3 CSV types (Biometric, Demographic, Enrolment)
     - Normalize dates to Month-Start
     - Aggregate by (Pincode, Month)
     - Inner Join → `Master_Pulse_Table`
-    - Export to `pulse_vectors.parquet`
+    - Export to `pulse_vectors.parquet` (74,829 rows)
 
 ---
 
 ### 2. AI Forecasting Module (`src/ai_forecaster.py`)
-> [NEW] **AI-Powered Component**
+> [COMPLETE ✅] **AI-Powered Component**
 
 #### 2.1 Zero-Shot Forecasting with Amazon Chronos
-```python
-# pip install chronos-forecasting torch
-from chronos import ChronosPipeline
-import torch
+**Status:** Implemented with `amazon/chronos-t5-base` model.
 
-class AIForecaster:
-    def __init__(self):
-        # Pre-trained on millions of time series - works with just 2 data points!
-        self.pipeline = ChronosPipeline.from_pretrained("amazon/chronos-t5-base")
-    
-    def forecast_pin(self, pin_history: list[float], horizon: int = 6):
-        """
-        Zero-shot forecast using foundation model.
-        Works even with just 2 months of data!
-        """
-        context = torch.tensor(pin_history)
-        forecast = self.pipeline.predict(context, prediction_length=horizon)
-        return {
-            "median": forecast.median(dim=0).values.tolist(),
-            "lower_bound": forecast.quantile(0.1, dim=0).tolist(),
-            "upper_bound": forecast.quantile(0.9, dim=0).tolist()
-        }
-```
+**Classes Implemented:**
+- **`AIForecaster`**: Zero-shot time-series forecaster using Chronos foundation model
+  - `forecast_pin()`: Single PIN prediction with confidence bounds
+  - `forecast_pulse_vector()`: Full 3-component (growth/flow/labor) forecast
+  - `batch_forecast()`: Efficient batch processing for multiple PINs
+  
+- **`HybridPredictor`**: Combines AI + Spatial parallel search
+  - `predict()`: Weighted ensemble of AI forecast + spatial parallel outcomes
+  - Configurable AI weight (default: 0.5 for 50/50 blend)
 
 #### 2.2 Spatial Parallel Search (Adapted for Limited Data)
-```python
-def find_spatial_parallels(target_pin: str, target_month: str, 
-                           pulse_table: pl.DataFrame, k: int = 5):
-    """
-    With limited temporal data, search ACROSS REGIONS instead of ACROSS TIME.
-    
-    Logic: Find PINs in OTHER states with similar Nov patterns,
-    then look at their Dec patterns to predict target's Dec.
-    """
-    target_vector = get_vector(target_pin, "2025-11")
-    
-    # Exclude same-state PINs (want cross-regional learning)
-    target_state = pulse_table.filter(pl.col("pincode") == target_pin)["state"][0]
-    candidates = pulse_table.filter(
-        (pl.col("month") == "2025-11") & 
-        (pl.col("state") != target_state)
-    )
-    
-    # Find most similar PINs from OTHER states
-    similarities = compute_similarity(target_vector, candidates)
-    return candidates.sort(similarities, descending=True).head(k)
+**Status:** Implemented as `find_spatial_parallels()` function.
+
+**Features:**
+- Cross-state pattern matching (excludes same-state PINs)
+- Cosine similarity-based vector comparison
+- `predict_from_parallels()`: Uses parallel PINs' actual outcomes for prediction
+
+#### 2.3 Batch Prediction Script (`scripts/batch_predict.py`)
+> [NEW] **Pre-computation for Production Use**
+
+**Purpose:** Generate predictions for ALL 19,079 PIN codes to enable instant responses in production.
+
+**Usage:**
+```bash
+python scripts/batch_predict.py
 ```
+
+**Output:** `data/output/predictions.parquet` containing:
+| Field | Description |
+|:---|:---|
+| `pincode`, `state` | PIN code and state identifier |
+| `current_growth/flow/labor` | November 2025 Pulse Vector values |
+| `next_growth/flow/labor` | Ensemble prediction for December 2025 |
+| `forecast_growth/flow/labor` | 6-month AI forecast (JSON arrays) |
+| `confidence` | Spatial parallel similarity confidence |
+| `parallel_states` | Top 3 matched states |
+| `top_parallel_1/2/3` | Top 3 matched PIN codes |
+| `ensemble_method` | "hybrid" (AI + Spatial blend) |
 
 ---
 
 ### 3. The "Time Machine" Engine (`src/chronos_engine.py`)
-> [NEW] Updated with AI integration
+> [COMPLETE ✅] **Unified API Layer**
 
-- **`class ChronosX`**:
-    - **`index_history()`**: Load & normalize Pulse Vectors
-    - **`find_parallel_universe()`**: 
-        - Mode 1: **Temporal** (if full history available)
-        - Mode 2: **Spatial** (with 2-month data - find cross-state parallels)
-    - **`predict_future()`**: Hybrid prediction combining:
-        1. Spatial parallels (what happened to similar PINs in Dec)
-        2. AI forecast (Chronos foundation model prediction)
-    - **`generate_attestation()`**: LLM-powered explanation
+**Purpose:** Consolidate all prediction logic into a clean, user-facing API.
+
+```python
+class ChronosX:
+    """
+    The "Parallel-Future Engine" - unified interface for predictions.
+    Wraps AI Forecaster + Spatial Search + pre-computed batch results.
+    """
+    
+    def __init__(self, predictions_path: str = "data/output/predictions.parquet"):
+        """Load pre-computed predictions for instant lookup."""
+        self.predictions = pl.read_parquet(predictions_path)
+        self.hybrid = HybridPredictor()  # For on-demand predictions
+    
+    def lookup(self, pincode: str) -> dict:
+        """
+        Instant lookup from pre-computed predictions.
+        Returns complete prediction with parallels and forecasts.
+        """
+        pass
+    
+    def find_parallel_universe(self, pincode: str, mode: str = "spatial") -> list:
+        """
+        Find similar patterns:
+        - mode="spatial": Cross-state parallels (for 2-month data)
+        - mode="temporal": Time-based parallels (for 5+ year data)
+        """
+        pass
+    
+    def predict_future(self, pincode: str, horizon: int = 6) -> dict:
+        """
+        Get future prediction (from cache or compute on-demand).
+        Returns median, lower_bound, upper_bound for each component.
+        """
+        pass
+    
+    def get_attestation_context(self, pincode: str) -> dict:
+        """
+        Prepare context for LLM attestation (Step 4).
+        Returns current values, parallels, and predictions.
+        """
+        pass
+```
+
+**Implementation Tasks:**
+1. [ ] Create `src/chronos_engine.py`
+2. [ ] Implement `ChronosX.lookup()` - instant retrieval from parquet
+3. [ ] Implement `ChronosX.find_parallel_universe()` - wrapper for spatial/temporal
+4. [ ] Implement `ChronosX.predict_future()` - cache-first, fallback to on-demand
+5. [ ] Implement `ChronosX.get_attestation_context()` - prepare for LLM
 
 ---
 

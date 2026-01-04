@@ -432,7 +432,9 @@ class HybridPredictor:
     
     def load_pulse_table(self, path: str = "data/output/pulse_vectors.parquet"):
         """Load the Master Pulse Table."""
-        self._pulse_table = pl.read_parquet(path)
+        self._pulse_table = pl.read_parquet(path).with_columns(
+            pl.col("pincode").cast(pl.Utf8)
+        )
         return self
     
     @property
