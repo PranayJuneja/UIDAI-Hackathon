@@ -1,0 +1,13 @@
+Category   | Filename                                                | Min Date   | Max Date   | Min Pin | Max Pin
+------------------------------------------------------------------------------------------------------------------------
+Bio        | api_data_aadhar_biometric_1000000_1500000.csv           | 2025-11-07 | 2025-12-08 | 110001  | 855456 
+Bio        | api_data_aadhar_biometric_1500000_1861108.csv           | 2025-12-08 | 2025-12-29 | 110001  | 855456 
+Bio        | api_data_aadhar_biometric_500000_1000000.csv            | 2025-09-19 | 2025-11-07 | 110001  | 855456 
+Demo       | api_data_aadhar_demographic_0_500000.csv                | 2025-03-01 | 2025-12-29 | 110001  | 855456 
+Demo       | api_data_aadhar_demographic_1000000_1500000.csv         | 2025-03-01 | 2025-12-29 | 110001  | 855456 
+Demo       | api_data_aadhar_demographic_1500000_2000000.csv         | 2025-03-01 | 2025-12-29 | 110001  | 855456 
+Demo       | api_data_aadhar_demographic_2000000_2071700.csv         | 2025-11-25 | 2025-12-29 | 100000  | 855456 
+Demo       | api_data_aadhar_demographic_500000_1000000.csv          | 2025-03-01 | 2025-12-29 | 100000  | 855456 
+Enrol      | api_data_aadhar_enrolment_0_500000.csv                  | 2025-03-02 | 2025-10-26 | 100000  | 855456 
+Enrol      | api_data_aadhar_enrolment_1000000_1006029.csv           | 2025-12-31 | 2025-12-31 | 110003  | 855116 
+Enrol      | api_data_aadhar_enrolment_500000_1000000.csv            | 2025-10-26 | 2025-12-31 | 100000  | 855456 

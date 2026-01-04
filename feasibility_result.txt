@@ -1,0 +1,13 @@
+Loading Biometric from api_data_aadhar_biometric_1000000_1500000.csv...
+  Rows: 38839
+Loading Enrolment from api_data_aadhar_enrolment_500000_1000000.csv...
+  Rows: 55838
+Loading Demographic from api_data_aadhar_demographic_0_500000.csv...
+  Rows: 83588
+------------------------------
+Join Bio + Enrol: 37826 rows
+Join Bio + Enrol + Demo: 36994 rows
+
+SUCCESS: Feasibility Confirmed.
+Common Pincodes: 19058
+Date Range: 2025-11-01 to 2025-12-01
