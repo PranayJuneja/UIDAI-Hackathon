@@ -53,6 +53,9 @@ class Style:
 # Ensure src is in path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+# Security Constants
+MAX_INPUT_LENGTH = 1000
+
 # Load environment variables from local.env
 def load_env(filename="local.env"):
     path = Path(__file__).parent / filename
@@ -269,6 +272,10 @@ class ChronosChatbot:
         2. If PIN found → Load FRESH context for that specific PIN
         3. Generate AI response with the CORRECT, fresh data
         """
+        # Security: Prevent DoS/Resource Exhaustion
+        if len(user_input) > MAX_INPUT_LENGTH:
+            return f"Error: Input too long. Please limit your query to {MAX_INPUT_LENGTH} characters."
+
         # ═══════════════════════════════════════════════════════════════════
         # STEP 1: Parse query to extract structured intent
         # ═══════════════════════════════════════════════════════════════════
@@ -403,7 +410,9 @@ class ChronosChatbot:
                 print(f"\n\n{Fore.CYAN}👋 Interrupted. Goodbye!{Style.RESET_ALL}\n")
                 break
             except Exception as e:
-                print(f"\n{Fore.RED}⚠ Error: {str(e)}{Style.RESET_ALL}")
+                # Security: Don't expose raw stack traces or internal errors to user
+                logging.error(f"Error processing query: {str(e)}")
+                print(f"\n{Fore.RED}⚠ An error occurred. Please try again.{Style.RESET_ALL}")
                 print(f"{Style.DIM}Try again or type 'exit' to quit.{Style.RESET_ALL}\n")
 
 
