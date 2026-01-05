@@ -314,16 +314,25 @@ def find_spatial_parallels(
     if exclude_same_state:
         candidates = candidates.filter(pl.col("state") != target_state)
     
-    # Compute similarity for each candidate
-    similarities = []
-    for row in candidates.iter_rows(named=True):
-        candidate_vec = np.array([
-            row["growth_norm"],
-            row["flow_norm"],
-            row["labor_norm"]
-        ])
-        sim = compute_cosine_similarity(target_vector, candidate_vec)
-        similarities.append(sim)
+    # Compute similarity for each candidate using vectorized operations
+    if len(candidates) > 0:
+        candidate_matrix = candidates.select(
+            ["growth_norm", "flow_norm", "labor_norm"]
+        ).to_numpy()
+
+        # Cosine Similarity: (A . B) / (|A| * |B|)
+        dot_product = np.dot(candidate_matrix, target_vector)
+        target_norm = np.linalg.norm(target_vector)
+        candidate_norms = np.linalg.norm(candidate_matrix, axis=1)
+
+        # Handle zero norms to avoid division by zero
+        denom = target_norm * candidate_norms
+        valid_mask = denom > 0
+
+        similarities = np.zeros(len(candidates))
+        similarities[valid_mask] = dot_product[valid_mask] / denom[valid_mask]
+    else:
+        similarities = []
     
     # Add similarity column and sort
     candidates = candidates.with_columns(
