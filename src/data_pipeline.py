@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 # Configuration
-BASE_DIR = Path(r"D:\Antigravity Projects\UIDAI Project")
+BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = BASE_DIR / "data/output"
 
 DATA_PATHS = {
