@@ -144,9 +144,12 @@ def main():
              pct_change = ((growth - curr_growth) / curr_growth) * 100
              direction = "↑" if pct_change >= 0 else "↓"
              color = Fore.GREEN if pct_change >= 0 else Fore.RED
-             print(f"  Dec 2025: Enrolment {color}{direction} {abs(pct_change):.1f}%{Style.RESET_ALL} (Confidence: {Fore.YELLOW}85%{Style.RESET_ALL})") # Hardcoded confidence for AI part if not available
+
+             confidence = ai_data.get("confidence", 0.0)
+             print(f"  Dec 2025: Enrolment {color}{direction} {abs(pct_change):.1f}%{Style.RESET_ALL} (Confidence: {Fore.YELLOW}{confidence:.0f}%{Style.RESET_ALL})")
         else:
-             print(f"  Dec 2025: Enrolment {Fore.YELLOW}Stable{Style.RESET_ALL} (Confidence: 85%)")
+             confidence = ai_data.get("confidence", 0.0)
+             print(f"  Dec 2025: Enrolment {Fore.YELLOW}Stable{Style.RESET_ALL} (Confidence: {Fore.YELLOW}{confidence:.0f}%{Style.RESET_ALL})")
     else:
         print("  Forecast unavailable.")
 

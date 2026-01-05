@@ -548,6 +548,19 @@ class HybridPredictor:
                     ] if ai_forecast.get("growth_forecast") else None
                 }
             }
+
+            # Calculate confidence from uncertainty width for growth
+            # Assuming normalized data [0, 1]. Narrower width = Higher confidence.
+            confidence = 0.0
+            if result["ai_forecast"]["uncertainty"] and result["ai_forecast"]["uncertainty"].get("growth_range"):
+                lower = result["ai_forecast"]["uncertainty"]["growth_range"][0]
+                upper = result["ai_forecast"]["uncertainty"]["growth_range"][1]
+                width = upper - lower
+                # Heuristic: 1.0 width = 0% confidence, 0.0 width = 100% confidence
+                confidence = max(0.0, min(100.0, (1.0 - width) * 100.0))
+
+            result["ai_forecast"]["confidence"] = confidence
+
         except Exception as e:
             result["ai_forecast"] = {"error": str(e)}
         
