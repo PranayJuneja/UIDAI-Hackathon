@@ -135,12 +135,18 @@ class ChronosX:
 > [NEW] **Explainability Layer**
 
 ```python
-# pip install ollama (for local LLM) or use OpenAI API
-from ollama import Client
+# pip install openai
+from openai import OpenAI
+import os
 
 class Attestor:
     def __init__(self):
-        self.client = Client()
+        # Using Vercel AI Gateway (OpenAI-compatible)
+        self.client = OpenAI(
+            base_url=os.environ.get("AI_GATEWAY_BASE_URL"),
+            api_key=os.environ.get("AI_GATEWAY_API_KEY")
+        )
+        self.model = os.environ.get("AI_MODEL", "minimax/minimax-m2.1")
     
     def explain_prediction(self, target_pin, parallels, prediction):
         prompt = f"""
@@ -159,7 +165,11 @@ class Attestor:
         
         Write a 3-sentence explanation of what to expect and why.
         """
-        return self.client.generate(model="llama3", prompt=prompt)
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.choices[0].message.content
 ```
 
 ---
@@ -197,7 +207,7 @@ python chronos_cli.py --pincode 110001
 | **Data Processing** | `Polars` | Fast CSV fusion for 2GB+ data |
 | **AI Forecasting** | `Amazon Chronos` | Zero-shot time-series prediction |
 | **Parallel Search** | `NumPy` / `Faiss` | Vector similarity search |
-| **Attestation** | `Ollama` + `Llama3` | Local LLM for explainability |
+| **Attestation** | `Vercel AI Gateway` | LLM for explainability (Minimax/OpenAI compatible) |
 | **Visualization** | `Streamlit` | Interactive dashboard |
 
 ---

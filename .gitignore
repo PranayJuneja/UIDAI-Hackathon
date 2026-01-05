@@ -1,0 +1,25 @@
+# Environment Variables
+.env
+local.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Specific
+# data/output/predictions.parquet # Maybe we keep this for now as cache? 
+# But usually we ignore large data. User didn't specify, but safer to ignore large generated files if they are huge.
+# For now, I'll stick to user request: .env files.

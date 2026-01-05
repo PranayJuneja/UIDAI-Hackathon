@@ -10,7 +10,7 @@ chronos-forecasting>=1.0.0
 torch>=2.0.0
 
 # LLM Attestation (Local)
-ollama>=0.1.0
+openai>=1.0.0
 
 # Visualization (Future)
 # streamlit>=1.30.0

@@ -1,268 +1,336 @@
 """
 Chronos-X Engine ("The Time Machine")
 =====================================
-Unified API layer for the Chronos-X system.
-Integrates:
-1. Pre-computed Batch Predictions (Instant Response)
-2. Spatial Parallel Search (Cross-State)
-3. AI Forecasting (Amazon Chronos)
-4. Attestation Context Generation
+Unified interface for the Time Machine feature.
+Consolidates fast lookups (pre-computed) with on-demand AI forecasting.
 
-Author: Chronos-X Team
-Date: January 2026
+This is the user-facing API that the dashboard/UI will talk to.
 """
 
 import polars as pl
-import numpy as np
 import json
-from pathlib import Path
-from typing import Optional, Dict, List, Any
 import logging
+from pathlib import Path
+from typing import Optional, List, Dict, Any
+from datetime import datetime, date
 
-# Configure logging
+# Import core AI module
+# Adjust path if needed based on project structure
+try:
+    from src.ai_forecaster import HybridPredictor
+except ImportError:
+    # Fallback for when running from root
+    from ai_forecaster import HybridPredictor
+
+# Setup logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-from ai_forecaster import HybridPredictor, find_spatial_parallels
+logger = logging.getLogger("ChronosX")
 
 class ChronosX:
     """
-    The "Parallel-Future Engine" - main entry point for the application.
+    The "Parallel-Future Engine" - unified interface for predictions.
+    Wraps AI Forecaster + Spatial Search + pre-computed batch results.
     """
     
-    def __init__(self, 
-                 predictions_path: str = "data/output/predictions.parquet",
-                 pulse_table_path: str = "data/output/pulse_vectors.parquet"):
+    def __init__(self, predictions_path: str = "data/output/predictions.parquet"):
         """
-        Initialize the engine by loading pre-computed data.
+        Initialize the Chronos Engine.
         
         Args:
-            predictions_path: Path to batch predictions parquet file
-            pulse_table_path: Path to master pulse table (for on-demand fallback)
+            predictions_path: Path to pre-computed predictions parquet file.
+                              If file doesn't exist, engine falls back to real-time mode.
         """
         self.predictions_path = Path(predictions_path)
-        self.pulse_table_path = Path(pulse_table_path)
+        self.predictions = None
+        self.hybrid = HybridPredictor()
         
-        # 1. Load Pre-computed Predictions (Fast Layer)
+        # Load cached predictions if available
+        self._load_cache()
+    
+    def _load_cache(self):
+        """Attempt to load pre-computed predictions."""
         if self.predictions_path.exists():
-            logger.info(f"Loading predictions from {self.predictions_path}...")
-            self.predictions = pl.read_parquet(self.predictions_path)
-            self.has_predictions = True
-            logger.info(f"Loaded {len(self.predictions)} predictions")
+            try:
+                self.predictions = pl.read_parquet(self.predictions_path)
+                logger.info(f"Loaded {len(self.predictions)} cached predictions from {self.predictions_path}")
+            except Exception as e:
+                logger.error(f"Failed to load predictions cache: {e}")
+                self.predictions = None
         else:
-            logger.warning(f"Predictions file not found at {self.predictions_path}")
+            logger.warning(f"Cache file {self.predictions_path} not found. Running in On-Demand Mode.")
             self.predictions = None
-            self.has_predictions = False
-            
-        # 2. Initialize Fallback Predictor (Slow Layer)
-        # We load this lazily or if predictions are missing
-        self._hybrid_predictor = None
-        
-    @property
-    def hybrid_predictor(self):
-        """Lazy loader for the HybridPredictor."""
-        if self._hybrid_predictor is None:
-            if self.pulse_table_path.exists():
-                logger.info("Initializing HybridPredictor for on-demand compute...")
-                self._hybrid_predictor = HybridPredictor()
-                self._hybrid_predictor.load_pulse_table(str(self.pulse_table_path))
-            else:
-                logger.error("Pulse table not found! Cannot initialize HybridPredictor.")
-        return self._hybrid_predictor
 
-    def lookup(self, pincode: str) -> Dict[str, Any]:
+    def lookup(self, pincode: str) -> Optional[Dict[str, Any]]:
         """
-        Instant lookup of a PIN code's prediction.
+        Instant lookup from pre-computed predictions.
         
+        Args:
+            pincode: 6-digit PIN code string
+            
         Returns:
-            Dictionary containing current values, forecasts, parallels, and attestation data.
-            Returns None if PIN not found.
+            Dictionary with complete prediction context or None if not found in cache.
         """
-        if not self.has_predictions:
-            return self._compute_on_demand(pincode)
+        if self.predictions is None:
+            return None
             
         # Fast filter
         row = self.predictions.filter(pl.col("pincode") == pincode)
         
-        if row.height == 0:
-            logger.info(f"PIN {pincode} not found in pre-computed set. Trying on-demand...")
-            return self._compute_on_demand(pincode)
+        if len(row) == 0:
+            return None
             
-        # Unpack the row
+        # Convert single row to dict
         data = row.to_dicts()[0]
         
-        # Deserialize JSON fields
+        # Decode JSON fields (forecasts are stored as JSON strings in parquet)
         try:
-            forecast_growth = json.loads(data["forecast_growth"])
-            forecast_flow = json.loads(data["forecast_flow"])
-            forecast_labor = json.loads(data["forecast_labor"])
+            if "forecast_growth" in data and isinstance(data["forecast_growth"], str):
+                data["forecast_growth"] = json.loads(data["forecast_growth"])
+                data["forecast_growth_lower"] = json.loads(data["forecast_growth_lower"])
+                data["forecast_growth_upper"] = json.loads(data["forecast_growth_upper"])
+                
+            if "forecast_flow" in data and isinstance(data["forecast_flow"], str):
+                data["forecast_flow"] = json.loads(data["forecast_flow"])
+                data["forecast_flow_lower"] = json.loads(data["forecast_flow_lower"])
+                data["forecast_flow_upper"] = json.loads(data["forecast_flow_upper"])
+                
+            if "forecast_labor" in data and isinstance(data["forecast_labor"], str):
+                data["forecast_labor"] = json.loads(data["forecast_labor"])
+                data["forecast_labor_lower"] = json.loads(data["forecast_labor_lower"])
+                data["forecast_labor_upper"] = json.loads(data["forecast_labor_upper"])
+        except json.JSONDecodeError:
+            logger.warning(f"Failed to decode JSON forecasts for PIN {pincode}")
             
-            # Bounds
-            forecast_growth_low = json.loads(data["forecast_growth_lower"])
-            forecast_growth_high = json.loads(data["forecast_growth_upper"])
+        return data
+
+    def find_parallel_universe(self, pincode: str, mode: str = "spatial") -> List[Dict[str, Any]]:
+        """
+        Find similar patterns for a given PIN code.
+        
+        Args:
+            pincode: Target PIN
+            mode: "spatial" (cross-state) or "temporal" (time-travel)
             
-            forecast_flow_low = json.loads(data["forecast_flow_lower"])
-            forecast_flow_high = json.loads(data["forecast_flow_upper"])
+        Returns:
+            List of similar PIN contexts (parallels)
+        """
+        # For now, we mainly support spatial parallels as defined in v1
+        if mode == "spatial":
+            # Check cache first
+            data = self.lookup(pincode)
+            if data and data.get("top_parallel_1"):
+                # Construct parallel objects from cached simple fields
+                parallels = []
+                for i in range(1, 4):
+                    p_pin = data.get(f"top_parallel_1") if i==1 else data.get(f"top_parallel_2") if i==2 else data.get(f"top_parallel_3")
+                    if p_pin:
+                        parallels.append({
+                            "pincode": p_pin,
+                            "type": "spatial",
+                            "rank": i
+                        })
+                return parallels
             
-            forecast_labor_low = json.loads(data["forecast_labor_lower"])
-            forecast_labor_high = json.loads(data["forecast_labor_upper"])
+            # Fallback to on-demand computation
+            # We need the pulse table loaded in hybrid predictor
+            if self.hybrid._pulse_table is None:
+                # Try to load default pulse table
+                 try:
+                    self.hybrid.load_pulse_table()
+                 except Exception:
+                     logger.error("Pulse table not available for on-demand spatial search")
+                     return []
+
+            result = self.hybrid.predict(pincode, num_parallels=3)
+            if "spatial_parallels" in result and "parallels" in result["spatial_parallels"]:
+                return result["spatial_parallels"]["parallels"]
+                
+        return []
+
+    def predict_by_date(self, pincode: str, target_date: str) -> Dict[str, Any]:
+        """
+        Get prediction for a specific future date.
+        Automatically calculates the horizon from the reference date (claimed as Nov 2025).
+        
+        Args:
+            pincode: Target PIN
+            target_date: Target date string (YYYY-MM-DD)
+            
+        Returns:
+            Prediction dictionary for that specific target horizon.
+        """
+        # Hardcoded reference for this hackathon version - ideally from data
+        # "Today" / Latest Data = Nov 1, 2025
+        reference_date = date(2025, 11, 1)
+        
+        try:
+            target = datetime.strptime(target_date, "%Y-%m-%d").date()
+        except ValueError:
+            return {"error": "Invalid date format. Use YYYY-MM-DD"}
+            
+        # Calculate monthly horizon
+        # diff in years * 12 + diff in months
+        horizon = (target.year - reference_date.year) * 12 + (target.month - reference_date.month)
+        
+        if horizon <= 0:
+            return {"error": "Target date must be in the future (after Nov 2025)"}
+            
+        logger.info(f"Predicting for {target_date} (Horizon: {horizon} months)")
+        
+        return self.predict_future(pincode, horizon=horizon)
+
+    def predict_future(self, pincode: str, horizon: int = 6) -> Dict[str, Any]:
+        """
+        Get future prediction.
+        Cache-First Strategy:
+          1. Try to get from parquet cache.
+          2. If invalid (missing or horizon too long), run on-demand.
+          
+        Args:
+            pincode: Target PIN
+            horizon: 1-6 months supported by cache. >6 triggers on-demand.
+            
+        Returns:
+            Prediction dictionary with forecasts and bounds.
+        """
+        # 1. Try Cache
+        cached_data = self.lookup(pincode)
+        
+        # Check if cache is sufficient
+        cache_hit = False
+        if cached_data:
+            # Check if we have enough forecast points for the requested horizon
+            # Assuming standard cache is 6 months
+            cached_horizon = len(cached_data.get("forecast_growth", []))
+            if cached_horizon >= horizon:
+                cache_hit = True
+                # Slice to requested horizon
+                return {
+                    "source": "cache",
+                    "pincode": pincode,
+                    "growth": {
+                        "median": cached_data["forecast_growth"][:horizon],
+                        "lower": cached_data["forecast_growth_lower"][:horizon],
+                        "upper": cached_data["forecast_growth_upper"][:horizon]
+                    },
+                    "flow": {
+                        "median": cached_data["forecast_flow"][:horizon],
+                        "lower": cached_data["forecast_flow_lower"][:horizon],
+                        "upper": cached_data["forecast_flow_upper"][:horizon]
+                    },
+                    "labor": {
+                        "median": cached_data["forecast_labor"][:horizon],
+                        "lower": cached_data["forecast_labor_lower"][:horizon],
+                        "upper": cached_data["forecast_labor_upper"][:horizon]
+                    },
+                    "confidence": cached_data.get("confidence", 0.0)
+                }
+        
+        # 2. On-Demand Fallback
+        logger.info(f"Cache miss or insufficient horizon for PIN {pincode}. Running On-Demand.")
+        
+        # Ensure data is loaded
+        if self.hybrid._pulse_table is None:
+            try:
+                self.hybrid.load_pulse_table()
+            except Exception as e:
+                return {"error": f"Failed to load data for on-demand prediction: {e}"}
+        
+        # Run hybrid prediction (defaults to 1 month usually, need to force horizon)
+        # Note: HybridPredictor.predict is optimized for next-month. 
+        # We need to access the internal ai_forecaster for multi-step if needed,
+        # or just accept that Hybrid gives next-month + context.
+        
+        # Let's use the internal AI forecaster for raw multi-step
+        try:
+            forecasts = self.hybrid.ai_forecaster.forecast_pulse_vector(
+                self.hybrid.pulse_table, 
+                pincode, 
+                horizon=horizon
+            )
+            
+            # Format similar to cache structure
+            return {
+                "source": "on-demand",
+                "pincode": pincode,
+                "growth": {
+                    "median": forecasts["growth_forecast"]["median"],
+                    "lower": forecasts["growth_forecast"]["lower_bound"],
+                    "upper": forecasts["growth_forecast"]["upper_bound"]
+                } if forecasts.get("growth_forecast") else None,
+                "flow": {
+                    "median": forecasts["flow_forecast"]["median"],
+                    "lower": forecasts["flow_forecast"]["lower_bound"],
+                    "upper": forecasts["flow_forecast"]["upper_bound"]
+                } if forecasts.get("flow_forecast") else None,
+                "labor": {
+                    "median": forecasts["labor_forecast"]["median"],
+                    "lower": forecasts["labor_forecast"]["lower_bound"],
+                    "upper": forecasts["labor_forecast"]["upper_bound"]
+                } if forecasts.get("labor_forecast") else None
+            }
             
         except Exception as e:
-            logger.error(f"Error deserializing JSON for {pincode}: {e}")
-            return self._compute_on_demand(pincode)
+            return {"error": f"On-demand prediction failed: {e}"}
+
+    def get_attestation_context(self, pincode: str) -> Dict[str, Any]:
+        """
+        Prepare context for LLM attestation (Step 4).
+        Aggregates all known info about the PIN to feed into the LLM.
+        """
+        # Get basic info
+        data = self.lookup(pincode)
+        
+        if not data:
+            # Try on-demand simple fetch
+            # Ensure table is loaded
+            if self.hybrid._pulse_table is None:
+                try: 
+                    self.hybrid.load_pulse_table()
+                except:
+                    pass
             
-        # Structure the response
-        response = {
-            "pincode": data["pincode"],
-            "state": data["state"],
+            # Basic lookup from pulse table if cache missing
+            if self.hybrid._pulse_table is not None:
+                try:
+                    row = self.hybrid.pulse_table.filter(pl.col("pincode") == pincode)
+                    # We might have multiple rows (months), get the latest reference month
+                    # Assuming batch_predict uses 2025-11-01 as reference
+                    row = row.filter(pl.col("month") == date(2025, 11, 1))
+                    
+                    if len(row) > 0:
+                        data = {
+                            "pincode": pincode,
+                            "state": row["state"][0],
+                            "current_growth": row["growth_norm"][0],
+                            "current_flow": row["flow_norm"][0],
+                            "current_labor": row["labor_norm"][0]
+                        }
+                except Exception as e:
+                    logger.warning(f"On-demand lookup failed: {e}")
+        
+        if not data:
+            return {"error": "PIN not found"}
             
-            # Current State (Nov 2025)
+        return {
+            "pincode": pincode,
+            "state": data.get("state", "Unknown"),
             "current": {
-                "growth": data["current_growth"],
-                "flow": data["current_flow"],
-                "labor": data["current_labor"]
+                "growth": data.get("current_growth", 0),
+                "flow": data.get("current_flow", 0),
+                "labor": data.get("current_labor", 0)
             },
-            
-            # Immediate Destination (Dec 2025 - Predicted)
-            "next_month": {
-                "growth": data["next_growth"],
-                "flow": data["next_flow"],
-                "labor": data["next_labor"]
+            "risk_factors": {
+                "high_growth": data.get("current_growth", 0) > 0.8,
+                "high_flow": data.get("current_flow", 0) > 0.8,
+                "anomalous_labor": data.get("current_labor", 0) < 0.2
             },
-            
-            # 6-Month AI Forecast
-            "forecast": {
-                "growth": {
-                    "median": forecast_growth,
-                    "lower": forecast_growth_low,
-                    "upper": forecast_growth_high
-                },
-                "flow": {
-                    "median": forecast_flow,
-                    "lower": forecast_flow_low,
-                    "upper": forecast_flow_high
-                },
-                "labor": {
-                    "median": forecast_labor,
-                    "lower": forecast_labor_low,
-                    "upper": forecast_labor_high
-                }
-            },
-            
-            # Evidence
-            "evidence": {
-                "confidence": data["confidence"],
-                "parallels": [
-                    p for p in [data["top_parallel_1"], data["top_parallel_2"], data["top_parallel_3"]]
-                    if p is not None
-                ],
-                "parallel_states": data["parallel_states"]
+            "parallels": [
+                data.get("top_parallel_1"),
+                data.get("top_parallel_2")
+            ],
+            "forecast_summary": {
+                "next_month_growth": data.get("next_growth"),
+                "confidence": data.get("confidence")
             }
         }
-        
-        return response
-
-    def _compute_on_demand(self, pincode: str) -> Dict[str, Any]:
-        """
-        Fallback: Compute prediction on the fly if not in batch file.
-        """
-        if self.hybrid_predictor is None:
-            return {"error": "Predictor not initialized and data missing"}
-            
-        logger.info(f"Computing on-demand prediction for {pincode}...")
-        
-        try:
-            # 1. Hybrid Prediction (Next Month)
-            hybrid_res = self.hybrid_predictor.predict(pincode)
-            
-            if not hybrid_res:
-                return {"error": f"No data found for PIN {pincode}"}
-
-            # 2. AI Forecast (6 Months) - we need to instantiate AIForecaster separately
-            # or add a method to HybridPredictor. For now, let's keep it simple:
-            # We will just use the next month prediction extended flat if we can't run the full model,
-            # OR ideally, HybridPredictor should expose the full forecast.
-            
-            # For this prototype, we'll return what we have from hybrid_res
-            # and mock the 6-month forecast using the current trend
-            
-            current = hybrid_res["current"]
-            next_val = hybrid_res["ensemble"] or current
-            
-            # Mock projection for on-demand (expensive to run full Chronos T5 inference here if not optimized)
-            # But HybridPredictor uses Chronos T5, so it might be slow.
-            
-            response = {
-                "pincode": pincode,
-                "state": hybrid_res.get("state", "Unknown"),
-                "current": current,
-                "next_month": next_val,
-                "forecast": {
-                    # Simple linear projection for fallback
-                    "growth": {"median": [next_val["growth"]] * 6, "lower": [], "upper": []},
-                    "flow": {"median": [next_val["flow"]] * 6, "lower": [], "upper": []},
-                    "labor": {"median": [next_val["labor"]] * 6, "lower": [], "upper": []}
-                },
-                "evidence": {
-                    "confidence": hybrid_res["spatial_parallels"]["confidence"],
-                    "parallels": [p["pincode"] for p in hybrid_res["spatial_parallels"]["parallels"]],
-                    "parallel_states": ", ".join({p["state"] for p in hybrid_res["spatial_parallels"]["parallels"]})
-                }
-            }
-            return response
-            
-        except Exception as e:
-            logger.error(f"On-demand computation failed: {e}")
-            return {"error": str(e)}
-
-    def find_parallel_universe(self, pincode: str) -> List[Dict]:
-        """
-        Get detailed parallel universe data for visualization.
-        """
-        # We can implement a more detailed search here if needed,
-        # or extract just the parallel details from the lookup.
-        data = self.lookup(pincode)
-        if "error" in data:
-            return []
-            
-        # If we have the parallels list, we might want to fetch their full details
-        # This would require querying the pulse table for those PINs.
-        return data.get("evidence", {}).get("parallels", [])
-
-    def get_attestation_context(self, pincode: str) -> str:
-        """
-        Generate a text context for the LLM to explain the prediction.
-        """
-        data = self.lookup(pincode)
-        if "error" in data:
-            return "No data available."
-            
-        context = f"""
-        Analysis for PIN {pincode} ({data['state']}):
-        
-        1. Current Status (Nov 2025):
-           - Enrolment Growth: {data['current']['growth']:.2f}
-           - Population Flow: {data['current']['flow']:.2f}
-           - Biometric Updates: {data['current']['labor']:.2f}
-           
-        2. Prediction (Dec 2025):
-           - The system predicts a move to:
-             Growth: {data['next_month']['growth']:.2f}
-             Flow: {data['next_month']['flow']:.2f}
-             Labor: {data['next_month']['labor']:.2f}
-             
-        3. Comparable Regions (Spatial Parallels):
-           - We found similar patterns in: {data['evidence']['parallel_states']}
-           - Top matching PINs: {', '.join(data['evidence']['parallels'])}
-           - Confidence Score: {data['evidence']['confidence']:.2f}
-           
-        4. Forecast Trend (6 Months):
-           - Enrolment is expected to average {np.mean(data['forecast']['growth']['median']):.2f}
-        """
-        return context
-
-# Simple test
-if __name__ == "__main__":
-    engine = ChronosX()
-    # Test with a known PIN (Delhi GPO)
-    print(json.dumps(engine.lookup("110001"), indent=2))

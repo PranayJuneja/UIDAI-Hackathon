@@ -2,6 +2,35 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
+## [1.5.0] - 2026-01-05 - 🖥️ CLI & ATTESTATION RELEASE
+
+### Added
+- **Chronos-X CLI (`chronos_cli.py`)**:
+  - Unified command-line interface for "Time Machine" lookups.
+  - Usage: `python chronos_cli.py --pincode <PIN>`
+  - Visual output with ANSI colors (Windows-compatible).
+  - Displays:
+    - **Prediction**: Growth, Migration, Labor trends.
+    - **Parallel Matches**: Top 3 similar PINs across India with similarity %.
+    - **AI Forecast**: Next-month trends from Amazon Chronos.
+    - **Attestation**: Generative AI explanation of *why* the prediction was made.
+
+- **Attestation Module (`src/attestation.py`)**:
+  - LLM integration using Vercel AI Gateway (OpenAI-compatible).
+  - Generates human-readable, authoritative explanations for UIDAI officials.
+  - Context-aware prompting: Feeds current stats, parallels, and forecasts to the LLM.
+  - **Robust Error Handling**: Added connection checks and graceful degradation.
+
+- **Chronos Engine (`src/chronos_engine.py`)**:
+  - `ChronosX` class: The "Brain" that orchestrates data fetching, AI prediction, and attestation context.
+  - **On-Demand Hybrid Mode**: If cache is missing, automatically generates predictions using the Hybrid (AI + Spatial) engine.
+  - Exposed `current` stats (Growth/Flow/Labor) for Attestation context.
+
+### Fixed
+- **Windows Encoding**: Resolved Unicode errors in CLI output (`═` -> `=`).
+- **Env Config**: Fixed `local.env` parsing to strip inline comments which were breaking API keys/URLs.
+- **LLM Reasoning**: Increased `max_tokens` to 2000 to prevent truncated explanations.
+
 ## [1.1.0] - 2026-01-05 - ☁️ CLOUD COMPATIBILITY UPDATE
 
 ### Fixed
