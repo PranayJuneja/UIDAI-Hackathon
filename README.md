@@ -3,6 +3,7 @@
 > **UIDAI Hackathon Submission - AI-Powered Demand Forecasting**
 
 [![Submission](https://img.shields.io/badge/Read-Submission_Document-blue?style=for-the-badge&logo=markdown)](Submission.md)
+[![Devin Wiki](https://img.shields.io/badge/Devin-Wiki-blue?style=for-the-badge)](https://app.devin.ai/wiki/PranayJuneja/UIDAI-Hackathon)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![Polars](https://img.shields.io/badge/Polars-Fast_Data-orange)
 ![Amazon Chronos](https://img.shields.io/badge/AI-Amazon_Chronos_T5-purple)
