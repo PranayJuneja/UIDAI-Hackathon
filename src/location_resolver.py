@@ -68,6 +68,8 @@ CITY_TO_STATE: Dict[str, str] = {
     "bombay": "maharashtra",
     "pune": "maharashtra",
     "nagpur": "maharashtra",
+    "thane": "maharashtra",
+    "navi mumbai": "maharashtra",
     "bangalore": "karnataka",
     "bengaluru": "karnataka",
     "mysore": "karnataka",
@@ -89,6 +91,7 @@ CITY_TO_STATE: Dict[str, str] = {
     "varanasi": "uttar pradesh",
     "agra": "uttar pradesh",
     "noida": "uttar pradesh",
+    "greater noida": "uttar pradesh",
     "gurgaon": "haryana",
     "gurugram": "haryana",
     "faridabad": "haryana",
@@ -142,6 +145,17 @@ CITY_PIN_PREFIXES: Dict[str, List[str]] = {
     "goa": ["403"],
     "shimla": ["171"],
     "dehradun": ["248"],
+    "trivandrum": ["695"],
+    "thiruvananthapuram": ["695"],
+    "faridabad": ["121"],
+    "thane": ["400", "421"],
+    "navi mumbai": ["400", "410"],
+    "patna": ["800"],
+    "ranchi": ["834"],
+    "nagpur": ["440"],
+    "surat": ["395"],
+    "vadodara": ["390"],
+    "greater noida": ["201"],
 }
 
 
@@ -226,13 +240,17 @@ class LocationResolver:
             return self._get_pins_for_location(query, query, is_city=False)
         
         # 4. Try partial matching for common variations
-        for city, state in CITY_TO_STATE.items():
-            if query in city or city in query:
-                return self._get_pins_for_location(city, state, is_city=True)
-        
-        for state in STATE_PIN_PREFIXES.keys():
-            if query in state or state in query:
-                return self._get_pins_for_location(state, state, is_city=False)
+        # Only do partial matching if query is at least 3 chars to avoid false positives
+        # like "me" matching "ahmedabad" or "to" matching cities
+        if len(query) >= 3:
+            for city, state in CITY_TO_STATE.items():
+                # Match if query is the start of city name or city starts with query
+                if city.startswith(query) or query.startswith(city):
+                    return self._get_pins_for_location(city, state, is_city=True)
+            
+            for state in STATE_PIN_PREFIXES.keys():
+                if state.startswith(query) or query.startswith(state):
+                    return self._get_pins_for_location(state, state, is_city=False)
         
         return []
     
