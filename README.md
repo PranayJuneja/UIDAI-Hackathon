@@ -119,14 +119,37 @@ python src/data_pipeline.py
 ```
 *Output:* `data/output/pulse_vectors.parquet` (~75k rows)
 
-### 2. Run AI Forecasting
+### 2. Interactive AI Chatbot 🤖
+Launch the full-fledged AI chatbot for natural language queries about regional predictions.
+```bash
+python chronos_chatbot.py
+
+# Or with initial context:
+python chronos_chatbot.py --pincode 110001
+```
+
+**Example queries:**
+- *"What will happen in Delhi in 6 months?"*
+- *"Compare Mumbai with Bangalore regions"*
+- *"Why is migration high in Maharashtra?"*
+- *"What should UIDAI prepare for in Chennai?"*
+
+### 3. Single-Shot CLI
+Get a quick prediction for a specific PIN code.
+```bash
+python chronos_cli.py --pincode 110001
+
+# Or launch interactive mode:
+python chronos_cli.py --interactive
+```
+
+### 4. Run AI Forecasting
 Generate forecasts for specific PIN codes or run value/accuracy validation.
 ```bash
 python src/ai_forecaster.py
 ```
-*Note: The script currently runs a demo prediction on a sample PIN code.*
 
-### 3. Analyze Data Feasibility
+### 5. Analyze Data Feasibility
 Run the analysis script to inspect the generated data statistics.
 ```bash
 python scripts/analyze_feasibility.py

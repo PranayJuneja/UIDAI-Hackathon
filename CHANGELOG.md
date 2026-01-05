@@ -2,6 +2,62 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
+## [1.7.0] - 2026-01-05 - 🧠 ROBUST QUERY PARSING & ARCHITECTURE FIX
+
+### Fixed
+- **Critical Chatbot Architecture Issue**: Fixed a bug where the chatbot wasn't loading fresh context when users switched to a new PIN code. Now the architecture properly:
+  1. Parses query → Extracts structured JSON `{location, horizon, intent}`
+  2. Loads **FRESH** context for the extracted PIN
+  3. Generates AI response with the **CORRECT** data
+
+- **Query Parser Improvements** (`src/attestation.py`):
+  - Added **greeting filter**: Ignores informal greetings like "oi", "hi", "hey", "yo", "namaste", "bro", etc.
+  - **PIN code priority**: 6-digit numbers are now extracted with highest priority
+  - **Specific month support**: Handles "jan 2028", "feb 2025" format queries
+  - **Regex fallback**: If AI parser misses a PIN, regex scans for `\d{6}` patterns as backup
+
+### Changed
+- **`chronos_chatbot.py`**: Complete rewrite of `process_query()` with 4-step architecture:
+  - Step 1: Parse query via AI → Structured JSON
+  - Step 2: Resolve location to PIN (with fallback methods)
+  - Step 3: Load fresh context for the target PIN
+  - Step 4: Generate AI response with correct data
+- **Enriched context**: Horizon and intent from parsed query are now passed to the AI for smarter responses
+
+---
+
+## [1.6.0] - 2026-01-05 - 🤖 INTERACTIVE AI CHATBOT RELEASE
+
+### Added
+- **Interactive AI Chatbot (`chronos_chatbot.py`)**:
+  - Full-fledged conversational AI interface for UIDAI regional predictions.
+  - Natural language query understanding ("What to do in Delhi after 6 months?").
+  - Location resolution: Automatically converts city/state names to PIN codes.
+  - Multi-turn conversation support with context memory.
+  - Colorful REPL interface with helpful examples.
+  - Usage: `python chronos_chatbot.py` or `python chronos_cli.py --interactive`
+
+- **Enhanced Attestation Module (`src/attestation.py`)**:
+  - **`chat()` method**: Full conversational AI with data context injection.
+  - **`parse_query()` method**: NLU for extracting location, time horizon, and intent from queries.
+  - **Refined System Prompt**: Based on README's "Weather Forecast for Aadhaar" concept.
+  - **Increased Token Limit**: 8192 tokens (up from 2000) for reasoning-heavy responses.
+
+- **Location Resolver (`src/location_resolver.py`)**:
+  - Maps city names to PIN codes (e.g., "Delhi" → 110xxx PINs).
+  - State-level PIN prefix mappings for all Indian states/UTs.
+  - Dynamic resolution using `pulse_vectors.parquet` for actual PIN codes.
+
+- **CLI Updates (`chronos_cli.py`)**:
+  - New `--interactive` / `-i` flag to launch chatbot mode.
+  - Pincode is now optional when using interactive mode.
+
+### Changed
+- **`local.env`**: Added `AI_MAX_TOKENS=8192` and `AI_TEMPERATURE=0.4` configuration.
+- **README.md**: Updated usage section with chatbot documentation.
+
+---
+
 ## [1.5.0] - 2026-01-05 - 🖥️ CLI & ATTESTATION RELEASE
 
 ### Added

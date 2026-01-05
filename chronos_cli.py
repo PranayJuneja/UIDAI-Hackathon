@@ -54,8 +54,21 @@ def print_header(text):
 
 def main():
     parser = argparse.ArgumentParser(description="Chronos-X CLI Interface")
-    parser.add_argument("--pincode", type=str, required=True, help="6-digit PIN code")
+    parser.add_argument("--pincode", type=str, help="6-digit PIN code (required unless using --interactive)")
+    parser.add_argument("--interactive", "-i", action="store_true", 
+                       help="Launch interactive AI chatbot mode")
     args = parser.parse_args()
+    
+    # Launch interactive mode if requested
+    if args.interactive:
+        from chronos_chatbot import ChronosChatbot
+        chatbot = ChronosChatbot(initial_pincode=args.pincode)
+        chatbot.run()
+        return
+    
+    # For single-shot mode, require pincode
+    if not args.pincode:
+        parser.error("--pincode is required (or use --interactive for chatbot mode)")
     
     pincode = args.pincode
     
@@ -67,6 +80,7 @@ def main():
     # We prefer on-demand or hybrid to ensure we get similarity scores for the demo
     # The cache might not have similarity scores stored
     print(f"{Fore.YELLOW}Fetching data for PIN {pincode}...{Style.RESET_ALL}")
+
     
     # Force load pulse table if needed
     if engine.hybrid._pulse_table is None:
