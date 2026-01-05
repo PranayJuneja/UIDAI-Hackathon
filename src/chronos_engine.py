@@ -60,6 +60,29 @@ class ChronosX:
             logger.warning(f"Cache file {self.predictions_path} not found. Running in On-Demand Mode.")
             self.predictions = None
 
+    def _get_latest_data_date(self) -> date:
+        """
+        Derive the latest reference date from the pulse table.
+        Falls back to Hackathon default (Nov 1, 2025) if data unavailable.
+        """
+        # Ensure data is loaded
+        if self.hybrid._pulse_table is None:
+            try:
+                self.hybrid.load_pulse_table()
+            except Exception:
+                pass
+
+        if self.hybrid._pulse_table is not None:
+            try:
+                max_date = self.hybrid.pulse_table.select(pl.max("month")).item()
+                if max_date:
+                    return max_date
+            except Exception as e:
+                logger.warning(f"Failed to get max date from pulse table: {e}")
+
+        # Fallback
+        return date(2025, 11, 1)
+
     def lookup(self, pincode: str) -> Optional[Dict[str, Any]]:
         """
         Instant lookup from pre-computed predictions.
@@ -150,7 +173,7 @@ class ChronosX:
     def predict_by_date(self, pincode: str, target_date: str) -> Dict[str, Any]:
         """
         Get prediction for a specific future date.
-        Automatically calculates the horizon from the reference date (claimed as Nov 2025).
+        Automatically calculates the horizon from the reference date (derived from data).
         
         Args:
             pincode: Target PIN
@@ -159,9 +182,8 @@ class ChronosX:
         Returns:
             Prediction dictionary for that specific target horizon.
         """
-        # Hardcoded reference for this hackathon version - ideally from data
-        # "Today" / Latest Data = Nov 1, 2025
-        reference_date = date(2025, 11, 1)
+        # Derive reference from latest available data
+        reference_date = self._get_latest_data_date()
         
         try:
             target = datetime.strptime(target_date, "%Y-%m-%d").date()
@@ -173,7 +195,7 @@ class ChronosX:
         horizon = (target.year - reference_date.year) * 12 + (target.month - reference_date.month)
         
         if horizon <= 0:
-            return {"error": "Target date must be in the future (after Nov 2025)"}
+            return {"error": f"Target date must be in the future (after {reference_date})"}
             
         logger.info(f"Predicting for {target_date} (Horizon: {horizon} months)")
         
@@ -295,8 +317,8 @@ class ChronosX:
                 try:
                     row = self.hybrid.pulse_table.filter(pl.col("pincode") == pincode)
                     # We might have multiple rows (months), get the latest reference month
-                    # Assuming batch_predict uses 2025-11-01 as reference
-                    row = row.filter(pl.col("month") == date(2025, 11, 1))
+                    latest_date = self._get_latest_data_date()
+                    row = row.filter(pl.col("month") == latest_date)
                     
                     if len(row) > 0:
                         data = {
