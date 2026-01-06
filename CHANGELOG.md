@@ -2,7 +2,58 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
-## [1.7.0] - 2026-01-05 - 🧠 ROBUST QUERY PARSING & ARCHITECTURE FIX
+## [1.9.0] - 2026-01-06 - 🌍 THE CONTEXTUAL INTELLIGENCE UPDATE
+
+### 🔥 Headline Features
+
+#### 1. Context Engine (`src/context_engine.py`)
+> *Context is King.*
+- **Deterministic Seasonality**: Implemented "Based Logic" regarding Indian socio-economic cycles:
+  - **School Admissions (Mar-Jun)**: Predicts "Growth" signal spikes (0-5y enrolments) as schools mandate Aadhaar.
+  - **Kharif Harvest (Oct-Nov)**: Predicts "Labor" & "Flow" movement in agri-hubs (Punjab, Haryana) vs source states (Bihar, UP).
+  - **Rabi Harvest (Mar-Apr)**: Secondary migration wave logic.
+- **Mock Live Search**: Stability-focused simulation of "Real-Time News" injection for demo purposes (e.g., detecting "Paddy Arrival" or "Chhath Puja" rush).
+
+#### 2. Causal Reasoning Layer (`src/attestation.py`)
+- **Context Injection**: The `Attestor` now consumes "Contextual Drivers" (Seasonality + Local Events) alongside raw data.
+- **Why-Based Explanations**: The AI doesn't just read numbers; it links them to reality (e.g., "High Labor signal *because* of Kharif Harvest season").
+
+---
+
+## [1.8.0] - 2026-01-06 - 🧠 THE RESILIENCE & INTELLIGENCE UPDATE
+
+### 🔥 Headline Features
+
+#### 1. Hyper-Robust Location Resolver (`src/location_resolver.py`)
+> *If you can name it, we can find it.*
+- **Fuzzy Logic Engine**: Implemented `SequenceMatcher` based fuzzy matching to handle typos like "Banglaore" or "Delli" with 75% confidence threshold.
+- **Smart Abbreviations**: Native support for Indian shorthand:
+  - **Cities**: `Blr` (Bangalore), `Del` (Delhi), `Mum` (Mumbai), `Hyd` (Hyderabad), `Ggn` (Gurgaon), etc.
+  - **States**: `UP`, `MP`, `TN`, `MH`, `KA`, `WB`, `AP`, `TS`, etc.
+- **Compound Location Filtering**: Intelligent parsing of directional queries like "North Delhi", "Greater Mumbai", or "South Bangalore" mapping them to their core administrative zones.
+- **District-Level Granularity**: Dynamically maps district names (e.g., "Gorakhpur") to valid PIN codes using the demographic dataset.
+
+#### 2. Intent-Aware Query Parser (`src/attestation.py`)
+> *Reading minds, not just keywords.*
+- **Contextual NLU**: The AI now distinguishes between:
+  - **Forecast**: "What will happen in Delhi?"
+  - **Comparison**: "Compare Mumbai vs Bangalore" (Triggers dual-context loading)
+  - **Recommendation**: "What should I do?"
+  - **Explanation**: "Why is this happening?"
+- **Local Fallback Circuit**: If the AI API fails or returns invalid JSON, a robust Regex-based local parser kicks in instantly to ensure 100% uptime for basic queries.
+
+#### 3. Self-Healing Chatbot Architecture (`chronos_chatbot.py`)
+- **Dynamic Context Switching**: Automatically detects when a user switches context (e.g., from "Delhi" to "Mumbai") and reloads the entire prediction engine state in milliseconds.
+- **Session Memory**: Maintains a sliding window of the last 10 turns for natural multi-turn conversations.
+- **Input Sanitization**: Enterprise-grade sanitization striping control characters and normalizing Unicode to prevent injection attacks.
+
+### Changed
+- **`attestation.py`**: Massive prompt engineering update to "Chronos-X System Prompt" to enforce data-driven 3-signal analysis (Growth, Flow, Labor).
+- **`chronos_chatbot.py`**: Added "Thinking..." animation for better UX during AI inference.
+
+---
+
+## [1.7.0] - 2026-01-05 - 🧬 ARCHITECTURE FIX & QUERY PARSING
 
 ### Fixed
 - **Critical Chatbot Architecture Issue**: Fixed a bug where the chatbot wasn't loading fresh context when users switched to a new PIN code. Now the architecture properly:

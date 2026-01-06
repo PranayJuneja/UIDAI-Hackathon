@@ -4,12 +4,155 @@ Location Resolver for Chronos-X
 Resolves natural language location names (cities, states) to PIN codes.
 
 This enables queries like "Delhi" instead of requiring exact PIN codes.
+
+Enhanced with:
+- Fuzzy matching for misspelled locations
+- State abbreviations (UP, MP, TN, etc.)
+- Compound location handling (North Delhi, Greater Mumbai)
 """
 
 import polars as pl
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 import re
+from difflib import SequenceMatcher
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STATE ABBREVIATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+STATE_ABBREVIATIONS: Dict[str, str] = {
+    "up": "uttar pradesh",
+    "mp": "madhya pradesh",
+    "tn": "tamil nadu",
+    "ap": "andhra pradesh",
+    "ts": "telangana",
+    "wb": "west bengal",
+    "mh": "maharashtra",
+    "ka": "karnataka",
+    "dl": "delhi",
+    "ncr": "delhi",
+    "rj": "rajasthan",
+    "gj": "gujarat",
+    "hp": "himachal pradesh",
+    "jk": "jammu and kashmir",
+    "uk": "uttarakhand",
+    "pb": "punjab",
+    "hr": "haryana",
+    "od": "odisha",
+    "or": "odisha",
+    "br": "bihar",
+    "jh": "jharkhand",
+    "cg": "chhattisgarh",
+    "as": "assam",
+    "kl": "kerala",
+    "ga": "goa",
+    "sk": "sikkim",
+    "ml": "meghalaya",
+    "mn": "manipur",
+    "mz": "mizoram",
+    "tr": "tripura",
+    "nl": "nagaland",
+    "ar": "arunachal pradesh",
+    "ch": "chandigarh",
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CITY ABBREVIATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+CITY_ABBREVIATIONS: Dict[str, str] = {
+    "blr": "bangalore",
+    "bng": "bangalore",
+    "del": "delhi",
+    "mum": "mumbai",
+    "bom": "mumbai",
+    "hyd": "hyderabad",
+    "kol": "kolkata",
+    "cal": "kolkata",
+    "chn": "chennai",
+    "mad": "chennai",
+    "pun": "pune",
+    "ahd": "ahmedabad",
+    "amd": "ahmedabad",
+    "jai": "jaipur",
+    "lko": "lucknow",
+    "luc": "lucknow",
+    "ggn": "gurgaon",
+    "grg": "gurgaon",
+    "noi": "noida",
+    "chd": "chandigarh",
+    "bpl": "bhopal",
+    "ind": "indore",
+    "pat": "patna",
+    "ran": "ranchi",
+    "bhu": "bhubaneswar",
+    "ghy": "guwahati",
+    "cok": "kochi",
+    "trv": "trivandrum",
+    "viz": "visakhapatnam",
+    "vij": "vijayawada",
+    "sur": "surat",
+    "vad": "vadodara",
+    "nag": "nagpur",
+    "thn": "thane",
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPOUND LOCATIONS (Directional prefixes)
+# ═══════════════════════════════════════════════════════════════════════════════
+COMPOUND_LOCATIONS: Dict[str, str] = {
+    "north delhi": "delhi",
+    "south delhi": "delhi",
+    "east delhi": "delhi",
+    "west delhi": "delhi",
+    "central delhi": "delhi",
+    "new delhi": "delhi",
+    "old delhi": "delhi",
+    "north mumbai": "mumbai",
+    "south mumbai": "mumbai",
+    "central mumbai": "mumbai",
+    "greater mumbai": "mumbai",
+    "north bangalore": "bangalore",
+    "south bangalore": "bangalore",
+    "east bangalore": "bangalore",
+    "west bangalore": "bangalore",
+    "north chennai": "chennai",
+    "south chennai": "chennai",
+    "north kolkata": "kolkata",
+    "south kolkata": "kolkata",
+    "north hyderabad": "hyderabad",
+    "south hyderabad": "hyderabad",
+    "greater noida": "noida",
+    "greater gurgaon": "gurgaon",
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FUZZY MATCHING HELPER
+# ═══════════════════════════════════════════════════════════════════════════════
+def fuzzy_match_location(query: str, candidates: List[str], threshold: float = 0.75) -> Optional[Tuple[str, float]]:
+    """
+    Find closest matching location using sequence matching.
+    
+    Args:
+        query: User input to match
+        candidates: List of valid location names
+        threshold: Minimum similarity ratio (0-1)
+        
+    Returns:
+        Tuple of (matched_location, similarity_score) or None if no match
+    """
+    best_match = None
+    best_ratio = 0.0
+    
+    query_lower = query.lower().strip()
+    
+    for candidate in candidates:
+        ratio = SequenceMatcher(None, query_lower, candidate.lower()).ratio()
+        if ratio > best_ratio and ratio >= threshold:
+            best_ratio = ratio
+            best_match = candidate
+    
+    return (best_match, best_ratio) if best_match else None
+
 
 # State to PIN prefix mapping (first 2-3 digits)
 # Based on Indian PIN code system
@@ -178,6 +321,9 @@ class LocationResolver:
         self.pulse_table: Optional[pl.DataFrame] = None
         self.available_pincodes: set = set()
         self.pincode_to_state: Dict[str, str] = {}
+        self.pincode_to_district: Dict[str, str] = {}
+        self.district_to_pincodes: Dict[str, List[str]] = {}  # district_lower -> [pincodes]
+        self.district_to_state: Dict[str, str] = {}  # district_lower -> state
         
         if pulse_table_path:
             self._load_pulse_table(pulse_table_path)
@@ -186,6 +332,9 @@ class LocationResolver:
             default_path = Path(__file__).parent.parent / "data" / "output" / "pulse_vectors.parquet"
             if default_path.exists():
                 self._load_pulse_table(str(default_path))
+        
+        # Also load district mappings from CSV data
+        self._load_district_mappings()
     
     def _load_pulse_table(self, path: str):
         """Load pulse table for dynamic resolution."""
@@ -207,9 +356,59 @@ class LocationResolver:
         except Exception as e:
             print(f"Warning: Could not load pulse table: {e}")
     
+    def _load_district_mappings(self):
+        """Load district to PIN mappings from demographic CSV data."""
+        try:
+            data_dir = Path(__file__).parent.parent / "data" / "api_data_aadhar_demographic"
+            if not data_dir.exists():
+                return
+            
+            csv_files = list(data_dir.glob("*.csv"))
+            if not csv_files:
+                return
+            
+            # Just read the first CSV file to get district mappings
+            # (districts are consistent across all files)
+            df = pl.read_csv(csv_files[0])
+            
+            # Extract unique district/state/pincode combinations
+            if "district" in df.columns and "state" in df.columns and "pincode" in df.columns:
+                district_data = df.select(["district", "state", "pincode"]).unique()
+                
+                for row in district_data.iter_rows(named=True):
+                    district = str(row["district"]).lower().strip()
+                    state = str(row["state"]).lower().strip()
+                    pincode = str(row["pincode"])
+                    
+                    # Skip invalid entries
+                    if not district or district == "nan" or not pincode:
+                        continue
+                    
+                    # Build district -> pincodes mapping
+                    if district not in self.district_to_pincodes:
+                        self.district_to_pincodes[district] = []
+                    if pincode not in self.district_to_pincodes[district]:
+                        self.district_to_pincodes[district].append(pincode)
+                    
+                    # Build district -> state mapping
+                    if district not in self.district_to_state:
+                        self.district_to_state[district] = state
+                    
+                    # Build pincode -> district mapping
+                    self.pincode_to_district[pincode] = district
+                        
+        except Exception as e:
+            # Silently fail - district mapping is optional
+            pass
+    
     def resolve(self, query: str) -> List[str]:
         """
         Resolve a location query to a list of PIN codes.
+        
+        Enhanced with:
+        - State abbreviations (UP, MP, TN, etc.)
+        - Compound locations (North Delhi, Greater Mumbai)
+        - Fuzzy matching for misspelled locations
         
         Args:
             query: Location query (PIN code, city name, or state name)
@@ -217,7 +416,12 @@ class LocationResolver:
         Returns:
             List of matching PIN codes (may be empty if no match)
         """
+        original_query = query
         query = query.strip().lower()
+        
+        # Handle empty queries
+        if not query:
+            return []
         
         # 1. Check if it's already a valid PIN code (6 digits)
         if re.match(r'^\d{6}$', query):
@@ -230,18 +434,45 @@ class LocationResolver:
                 # PIN not in our data
                 return []
         
-        # 2. Check if it's a city
+        # 2. Check state abbreviations (UP, MP, TN, etc.)
+        if query in STATE_ABBREVIATIONS:
+            expanded_state = STATE_ABBREVIATIONS[query]
+            if expanded_state in STATE_PIN_PREFIXES:
+                return self._get_pins_for_location(expanded_state, expanded_state, is_city=False)
+        
+        # 2b. Check city abbreviations (Blr, Del, Mum, etc.)
+        if query in CITY_ABBREVIATIONS:
+            expanded_city = CITY_ABBREVIATIONS[query]
+            if expanded_city in CITY_TO_STATE:
+                state = CITY_TO_STATE[expanded_city]
+                return self._get_pins_for_location(expanded_city, state, is_city=True)
+        
+        # 3. Check compound locations (North Delhi, Greater Mumbai, etc.)
+        if query in COMPOUND_LOCATIONS:
+            resolved_location = COMPOUND_LOCATIONS[query]
+            if resolved_location in CITY_TO_STATE:
+                state = CITY_TO_STATE[resolved_location]
+                return self._get_pins_for_location(resolved_location, state, is_city=True)
+        
+        # 4. Check if it's a direct city match
         if query in CITY_TO_STATE:
             state = CITY_TO_STATE[query]
             return self._get_pins_for_location(query, state, is_city=True)
         
-        # 3. Check if it's a state
+        # 5. Check if it's a direct state match
         if query in STATE_PIN_PREFIXES:
             return self._get_pins_for_location(query, query, is_city=False)
         
-        # 4. Try partial matching for common variations
+        # 5b. Check if it's a district name (from loaded CSV data)
+        if query in self.district_to_pincodes:
+            pins = self.district_to_pincodes[query]
+            # Filter to only available pincodes if we have data
+            if self.available_pincodes:
+                pins = [p for p in pins if p in self.available_pincodes]
+            return sorted(pins)[:50]
+        
+        # 6. Try partial matching for common variations (prefix match)
         # Only do partial matching if query is at least 3 chars to avoid false positives
-        # like "me" matching "ahmedabad" or "to" matching cities
         if len(query) >= 3:
             for city, state in CITY_TO_STATE.items():
                 # Match if query is the start of city name or city starts with query
@@ -252,7 +483,36 @@ class LocationResolver:
                 if state.startswith(query) or query.startswith(state):
                     return self._get_pins_for_location(state, state, is_city=False)
         
+        # 7. Fuzzy matching for misspelled locations (last resort)
+        if len(query) >= 4:  # Only fuzzy match for longer queries
+            # Try cities first
+            all_cities = list(CITY_TO_STATE.keys())
+            city_match = fuzzy_match_location(query, all_cities, threshold=0.75)
+            if city_match:
+                matched_city, score = city_match
+                state = CITY_TO_STATE[matched_city]
+                return self._get_pins_for_location(matched_city, state, is_city=True)
+            
+            # Try states
+            all_states = list(STATE_PIN_PREFIXES.keys())
+            state_match = fuzzy_match_location(query, all_states, threshold=0.75)
+            if state_match:
+                matched_state, score = state_match
+                return self._get_pins_for_location(matched_state, matched_state, is_city=False)
+            
+            # Try districts (if we have district data loaded)
+            if self.district_to_pincodes:
+                all_districts = list(self.district_to_pincodes.keys())
+                district_match = fuzzy_match_location(query, all_districts, threshold=0.75)
+                if district_match:
+                    matched_district, score = district_match
+                    pins = self.district_to_pincodes[matched_district]
+                    if self.available_pincodes:
+                        pins = [p for p in pins if p in self.available_pincodes]
+                    return sorted(pins)[:50]
+        
         return []
+
     
     def _get_pins_for_location(self, location: str, state: str, is_city: bool) -> List[str]:
         """Get PIN codes for a location, using data if available."""
@@ -311,6 +571,12 @@ class LocationResolver:
         """
         pins = self.resolve(location)
         return pins[0] if pins else None
+    
+    def get_district_for_pin(self, pincode: str) -> Optional[str]:
+        """Get the district name for a PIN code."""
+        if pincode in self.pincode_to_district:
+            return self.pincode_to_district[pincode].title()
+        return None
 
 
 # Convenience function
@@ -333,19 +599,48 @@ def resolve_location(query: str, pulse_table_path: Optional[str] = None) -> List
 if __name__ == "__main__":
     resolver = LocationResolver()
     
-    test_queries = [
-        "Delhi",
-        "110001",
-        "Mumbai",
-        "Karnataka",
-        "Bangalore",
-        "chennai",
-        "HYDERABAD",
+    print("Location Resolution Tests:")
+    print("=" * 60)
+    
+    # Test cases grouped by feature
+    test_cases = [
+        # (query, expected_behavior)
+        ("Delhi", "Direct city match"),
+        ("110001", "Direct PIN code"),
+        ("mumbai", "Case insensitive"),
+        
+        # State abbreviations
+        ("UP", "State abbreviation"),
+        ("MP", "State abbreviation"),
+        ("TN", "State abbreviation"),
+        
+        # City abbreviations  
+        ("Blr", "City abbreviation"),
+        ("Del", "City abbreviation"),
+        ("Mum", "City abbreviation"),
+        ("Hyd", "City abbreviation"),
+        
+        # Compound locations
+        ("North Delhi", "Compound location"),
+        ("Greater Mumbai", "Compound location"),
+        ("South Bangalore", "Compound location"),
+        
+        # Fuzzy matching
+        ("Banglaore", "Fuzzy match (typo)"),
+        ("Delli", "Fuzzy match (typo)"),
+        ("Hyderbad", "Fuzzy match (typo)"),
+        
+        # District resolution
+        ("Gorakhpur", "District name"),
+        ("Jaipur", "District (also city)"),
     ]
     
-    print("Location Resolution Tests:")
-    print("=" * 50)
-    
-    for query in test_queries:
+    for query, description in test_cases:
         result = resolver.resolve(query)
-        print(f"'{query}' -> {result[:5]}{'...' if len(result) > 5 else ''} ({len(result)} total)")
+        status = "✓" if result else "✗"
+        pins_preview = result[:3] if result else []
+        print(f"{status} {description:25} | '{query}' -> {pins_preview}{'...' if len(result) > 3 else ''} ({len(result)} total)")
+    
+    print("\n" + "=" * 60)
+    print(f"Districts loaded: {len(resolver.district_to_pincodes)}")
+    print(f"Available PIN codes: {len(resolver.available_pincodes)}")

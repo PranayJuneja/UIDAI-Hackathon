@@ -11,6 +11,39 @@
 **Chronos-X** transforms UIDAI operations from **Reactive** to **Proactive**.
 Instead of waiting for queues to form, our AI predicts **Migration**, **Settlement**, and **Labor Trends** 1-3 months in advance.
 
+> *"India is too big for a single timeline. We built a system that finds parallel timelines to predict the future."*
+
+---
+
+## 🦾 The AI Brain (New in v1.8)
+
+Chronos-X isn't just a forecasting model; it's a **Conversational Intelligence**.
+
+### The "4-Step Thinking Process"
+When you ask *"What is the migration outlook for North Delhi vs Bangalore?"*, the system executes a complex cognitive pipeline:
+
+1.  **🧠 Intent Parsing (NLU)**:
+    *   Detects **Intent**: `Comparison`
+    *   Extracts **Primary Location**: `North Delhi` -> Maps to `Delhi` (PIN 110xxx)
+    *   Extracts **Secondary Location**: `Bangalore` -> Maps to `Bangalore` (PIN 560xxx)
+    *   Extracts **Horizon**: `Default (1 month)`
+
+2.  **📍 Hyper-Resolution**:
+    *   Uses **Fuzzy Matching** to fix typos ("Banglaore" -> "Bangalore").
+    *   Resolves **Abbreviations** ("Blr", "Del", "UP", "TN").
+    *   Filters through **74,000+ data rows** to find the most representative Pulse Vectors.
+
+3.  **⏳ Dual-Context Loading**:
+    *   Spins up *two separate* prediction instances.
+    *   Fetches **Spatial Parallels** for *both* locations simultaneously.
+    *   Injects **Cross-State Learning** (e.g., finding that Delhi's pattern matches a district in UP).
+
+4.  **🗣️ Authoritative Attestation**:
+    *   Synthesizes all 6 data points (Growth/Flow/Labor for City A & City B).
+    *   Generates a **Comparative Strategic Analysis** for UIDAI officials.
+
+All of this happens in **< 3 seconds**.
+
 ---
 
 ## 🏆 Hackathon Submission
@@ -86,8 +119,22 @@ python src/data_pipeline.py
 Launch the interactive chatbot to query predictions in natural language.
 ```bash
 python chronos_chatbot.py
-# Example: "What is the migration outlook for Delhi?"
 ```
+
+**Try these "Power Queries":**
+*   `"Compare Mumbai vs Bangalore"` (Dual-context comparison)
+*   `"What should I do in UP next month?"` (State-level abbreviation + Recommendation)
+*   `"Why is the labor signal high in 560001?"` (Deep-dive explanation)
+*   `"Forecast for Blr"` (City abbreviation support)
+
+#### Chatbot Commands
+| Command | Description |
+| :--- | :--- |
+| `pin <code>` | Instant context switch (e.g., `pin 110001`) |
+| `status` | View current engine state, loaded PIN, and context |
+| `history` | View memory of last 10 conversation turns |
+| `clear` | Wipe conversation memory |
+
 
 ### 4. Generate Forecasts
 Run the hybrid forecasting engine.

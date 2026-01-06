@@ -53,8 +53,38 @@ class Style:
 # Ensure src is in path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-# Security Constants
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECURITY CONSTANTS & INPUT SANITIZATION
+# ═══════════════════════════════════════════════════════════════════════════════
 MAX_INPUT_LENGTH = 1000
+MAX_HISTORY_LENGTH = 50  # Prevent unbounded history growth
+
+def sanitize_input(text: str) -> str:
+    """
+    Sanitize user input to prevent issues.
+    
+    Handles:
+    - Control characters (except newlines)
+    - Unicode normalization (fancy quotes → regular quotes)
+    - Multiple spaces collapsed
+    - Leading/trailing whitespace
+    """
+    import unicodedata
+    
+    if not text:
+        return ""
+    
+    # Remove control characters (except newlines and tabs)
+    text = ''.join(c for c in text if c.isprintable() or c in '\n\t')
+    
+    # Normalize unicode (handle fancy quotes, etc.)
+    text = unicodedata.normalize('NFKC', text)
+    
+    # Collapse multiple spaces into one
+    text = ' '.join(text.split())
+    
+    return text.strip()
+
 
 # Load environment variables from local.env
 def load_env(filename="local.env"):
@@ -78,12 +108,14 @@ try:
     from chronos_engine import ChronosX
     from attestation import Attestor
     from location_resolver import LocationResolver
+    from context_engine import ContextEngine
 except ImportError:
     # Fallback if run from src or different structure
     sys.path.insert(0, "src")
     from chronos_engine import ChronosX
     from attestation import Attestor
     from location_resolver import LocationResolver
+    from context_engine import ContextEngine
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -134,15 +166,18 @@ def print_banner():
 
 {Style.DIM}Example questions:{Style.RESET_ALL}
   {Fore.GREEN}•{Style.RESET_ALL} "What will happen in Delhi in 6 months?"
-  {Fore.GREEN}•{Style.RESET_ALL} "Show me the prediction for PIN 110001"
-  {Fore.GREEN}•{Style.RESET_ALL} "Compare Mumbai with Bangalore regions"
+  {Fore.GREEN}•{Style.RESET_ALL} "Show me the prediction for 560001"
+  {Fore.GREEN}•{Style.RESET_ALL} "Compare Mumbai with Bangalore"
   {Fore.GREEN}•{Style.RESET_ALL} "Why is migration high in Maharashtra?"
-  {Fore.GREEN}•{Style.RESET_ALL} "What should UIDAI prepare for in Chennai?"
+  {Fore.GREEN}•{Style.RESET_ALL} "What should UIDAI prepare for in UP?"  {Style.DIM}(state abbreviations work!){Style.RESET_ALL}
 
 {Style.DIM}Commands:{Style.RESET_ALL}
-  {Fore.YELLOW}exit{Style.RESET_ALL} or {Fore.YELLOW}quit{Style.RESET_ALL} - End the conversation
+  {Fore.YELLOW}status{Style.RESET_ALL}        - Show current context and session info
+  {Fore.YELLOW}history{Style.RESET_ALL}       - Show recent queries
   {Fore.YELLOW}clear{Style.RESET_ALL}         - Clear conversation history
+  {Fore.YELLOW}pin <code>{Style.RESET_ALL}    - Quick switch to a PIN (e.g., "pin 110001")
   {Fore.YELLOW}help{Style.RESET_ALL}          - Show this message
+  {Fore.YELLOW}exit{Style.RESET_ALL} / {Fore.YELLOW}quit{Style.RESET_ALL}  - End the conversation
 
 """
     print(banner)
@@ -211,11 +246,14 @@ class ChronosChatbot:
         Args:
             initial_pincode: Optional PIN to use as initial context
         """
+        from datetime import datetime
+        
         print(f"{Fore.YELLOW}⏳ Initializing Chronos-X Engine...{Style.RESET_ALL}")
         
         self.engine = ChronosX()
         self.attestor = Attestor()
         self.resolver = LocationResolver()
+        self.context_engine = ContextEngine()
         
         # Ensure pulse table is loaded
         if self.engine.hybrid._pulse_table is None:
@@ -227,6 +265,11 @@ class ChronosChatbot:
         
         # Conversation history for multi-turn chat
         self.history: List[Dict[str, str]] = []
+        
+        # Session tracking
+        self.session_start = datetime.now()
+        self.previous_pincodes: List[str] = []  # Track context switches
+        self.query_count = 0
         
         # Set initial context if provided
         if initial_pincode:
@@ -243,6 +286,13 @@ class ChronosChatbot:
         if "error" in context:
             print(f"{Fore.RED}⚠ Could not load context: {context['error']}{Style.RESET_ALL}")
             return False
+        
+        # Track previous PIN codes for context history
+        if self.current_pincode and self.current_pincode != pincode:
+            if self.current_pincode not in self.previous_pincodes:
+                self.previous_pincodes.append(self.current_pincode)
+            # Keep only last 10
+            self.previous_pincodes = self.previous_pincodes[-10:]
         
         self.current_context = context
         self.current_pincode = pincode
@@ -267,14 +317,26 @@ class ChronosChatbot:
         """
         Process a user query and generate a response.
         
-        ARCHITECTURE (Fixed):
-        1. Parse query → Extract structured JSON {location, horizon, intent}
-        2. If PIN found → Load FRESH context for that specific PIN
-        3. Generate AI response with the CORRECT, fresh data
+        ARCHITECTURE:
+        1. Sanitize input
+        2. Parse query → Extract structured JSON {location, horizon, intent}
+        3. If PIN found → Load FRESH context for that specific PIN
+        4. Handle comparison queries (two locations)
+        5. Generate AI response with the CORRECT, fresh data
+        6. Fallback to raw data if AI fails
         """
+        # Increment query counter
+        self.query_count += 1
+        
+        # Security: Sanitize input
+        user_input = sanitize_input(user_input)
+        
         # Security: Prevent DoS/Resource Exhaustion
         if len(user_input) > MAX_INPUT_LENGTH:
             return f"Error: Input too long. Please limit your query to {MAX_INPUT_LENGTH} characters."
+        
+        if not user_input:
+            return "Please enter a query. Try asking about a PIN code or city like 'What will happen in Delhi?'"
 
         # ═══════════════════════════════════════════════════════════════════
         # STEP 1: Parse query to extract structured intent
@@ -284,11 +346,13 @@ class ChronosChatbot:
         extracted_location = parsed.get("location")
         extracted_horizon = parsed.get("horizon", 1)
         extracted_intent = parsed.get("intent", "forecast")
+        secondary_location = parsed.get("secondary_location")
         
         # ═══════════════════════════════════════════════════════════════════
         # STEP 2: Resolve location to PIN and load FRESH context
         # ═══════════════════════════════════════════════════════════════════
         target_pin = None
+        secondary_pin = None
         
         # Method A: Extracted location from AI parser
         if extracted_location:
@@ -302,12 +366,25 @@ class ChronosChatbot:
                 if pins:
                     target_pin = pins[0]
         
+        # Resolve secondary location for comparisons
+        if secondary_location and extracted_intent == "comparison":
+            sec_str = str(secondary_location)
+            if len(sec_str) == 6 and sec_str.isdigit():
+                secondary_pin = sec_str
+            else:
+                pins = self.resolver.resolve(sec_str)
+                if pins:
+                    secondary_pin = pins[0]
+        
         # Method B: Fallback - scan for 6-digit numbers in user input
         if not target_pin:
             import re
             pin_matches = re.findall(r'\b(\d{6})\b', user_input)
             if pin_matches:
                 target_pin = pin_matches[0]
+                if len(pin_matches) > 1 and not secondary_pin:
+                    secondary_pin = pin_matches[1]
+                    extracted_intent = "comparison"
         
         # Method C: Fallback - scan for city names
         if not target_pin:
@@ -332,24 +409,104 @@ class ChronosChatbot:
         # ═══════════════════════════════════════════════════════════════════
         if not self.current_context:
             # No context at all - prompt user to specify location
-            return "I need a location to analyze. Please specify a PIN code (e.g., '560001') or a city name (e.g., 'Bangalore', 'Delhi')."
+            return "I need a location to analyze. Please specify a PIN code (e.g., '560001') or a city name (e.g., 'Bangalore', 'Delhi', 'UP')."
         
         # Add horizon info to context for the AI
         enriched_context = dict(self.current_context)
         enriched_context["requested_horizon"] = extracted_horizon
         enriched_context["user_intent"] = extracted_intent
         
-        response = self.attestor.chat(
-            user_message=user_input,
-            context=enriched_context,
-            history=self.history[-10:]  # Keep last 10 turns
+        # Add secondary context for comparisons
+        if secondary_pin and extracted_intent == "comparison":
+            secondary_context = get_prediction_context(self.engine, secondary_pin)
+            if "error" not in secondary_context:
+                enriched_context["comparison_target"] = secondary_context
+                enriched_context["comparison_pin"] = secondary_pin
+
+        # ═══════════════════════════════════════════════════════════════════
+        # STEP 3.5: Enrich context with CONTEXTUAL DRIVERS (Context Engine)
+        # ═══════════════════════════════════════════════════════════════════
+        from datetime import datetime, timedelta
+        
+        # Determine if we need live search (triggered by "Why?" queries)
+        should_search = extracted_intent == "explanation" or "why" in user_input.lower()
+        
+        # Calculate target date based on horizon
+        target_date = datetime.now() + timedelta(days=30 * extracted_horizon)
+        
+        # Get contextual intelligence
+        context_drivers = self.context_engine.get_context(
+            pincode=target_pin, 
+            target_month=target_date,
+            run_search=should_search
         )
         
-        # Update history
+        # Merge into enriched context
+        enriched_context["contextual_drivers"] = context_drivers
+        
+        try:
+            response = self.attestor.chat(
+                user_message=user_input,
+                context=enriched_context,
+                history=self.history[-10:]  # Keep last 10 turns for context
+            )
+            
+            # Detect unhelpful AI responses and fallback
+            if (not response or 
+                len(response.strip()) < 30 or
+                "I don't" in response[:50] or
+                "I cannot" in response[:50] or
+                "I'm unable" in response[:50]):
+                response = self.attestor.generate_fallback_response(self.current_context)
+                
+        except Exception as e:
+            logging.warning(f"AI chat failed, using fallback: {e}")
+            response = self.attestor.generate_fallback_response(self.current_context)
+        
+        # Update history (limit size to prevent memory issues)
         self.history.append({"role": "user", "content": user_input})
         self.history.append({"role": "assistant", "content": response})
         
+        # Trim history if too long
+        if len(self.history) > MAX_HISTORY_LENGTH * 2:
+            self.history = self.history[-(MAX_HISTORY_LENGTH * 2):]
+        
         return response
+    
+    def show_status(self):
+        """Show current session status."""
+        from datetime import datetime
+        
+        duration = datetime.now() - self.session_start
+        minutes = int(duration.total_seconds() // 60)
+        seconds = int(duration.total_seconds() % 60)
+        
+        print(f"\n{Fore.CYAN}═══ Session Status ═══{Style.RESET_ALL}")
+        print(f"  {Fore.WHITE}Current PIN :{Style.RESET_ALL} {self.current_pincode or 'None'}")
+        if self.current_context:
+            print(f"  {Fore.WHITE}State       :{Style.RESET_ALL} {self.current_context.get('state', 'Unknown')}")
+        print(f"  {Fore.WHITE}Queries     :{Style.RESET_ALL} {self.query_count}")
+        print(f"  {Fore.WHITE}History     :{Style.RESET_ALL} {len(self.history) // 2} turns")
+        print(f"  {Fore.WHITE}Session Time:{Style.RESET_ALL} {minutes}m {seconds}s")
+        
+        if self.previous_pincodes:
+            print(f"  {Fore.WHITE}Previous PINs:{Style.RESET_ALL} {', '.join(self.previous_pincodes[-5:])}")
+        print()
+    
+    def show_history(self):
+        """Show recent query history."""
+        if not self.history:
+            print(f"{Fore.YELLOW}No history yet.{Style.RESET_ALL}")
+            return
+        
+        print(f"\n{Fore.CYAN}═══ Recent Queries ═══{Style.RESET_ALL}")
+        # Show last 5 user messages
+        user_messages = [h for h in self.history if h["role"] == "user"]
+        for i, msg in enumerate(user_messages[-5:], 1):
+            # Truncate long messages
+            content = msg["content"][:60] + "..." if len(msg["content"]) > 60 else msg["content"]
+            print(f"  {i}. {content}")
+        print()
     
     def clear_history(self):
         """Clear conversation history."""
@@ -387,6 +544,14 @@ class ChronosChatbot:
                 
                 if lower_input == "help":
                     print_banner()
+                    continue
+                
+                if lower_input == "status":
+                    self.show_status()
+                    continue
+                
+                if lower_input == "history":
+                    self.show_history()
                     continue
                 
                 if lower_input.startswith("pin "):

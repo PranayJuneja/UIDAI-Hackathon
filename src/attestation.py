@@ -38,6 +38,12 @@ Every PIN code has a 3-dimensional "Pulse Vector" you analyze:
 3. **Explain reasoning**: Reference spatial parallels and their outcomes
 4. **Use the 3-signal framework**: Frame insights in terms of Growth, Flow, and Labor
 5. **Be conversational**: You're helping someone understand regional patterns
+6. **Interpret Contextual Drivers**: When seasonal context is provided, explain HOW it affects the forecast:
+   - **School Season** + High Growth → "Child enrolment demand from school admissions"
+   - **Harvest Season** + High Flow → Use region type to determine direction:
+     * Agricultural destinations (Punjab, Haryana, AP) → "Labor arriving for harvest"
+     * Labor source regions (Bihar, UP, Jharkhand) → "Workers returning home"
+   - Use your geographic knowledge to infer migration direction
 
 ## Example Insight Format
 "This region shows [signal pattern]. Similar patterns in [parallel regions] led to [outcome]. 
@@ -57,7 +63,9 @@ Users often start with informal greetings. IGNORE these completely and focus on 
 - **PIN codes (PRIORITY)**: Always look for 6-digit numbers like "110001", "560001", "400001" - these are PIN codes!
 - City names: "Delhi", "Mumbai", "Bangalore", "Chennai", etc.
 - State names: "Maharashtra", "Karnataka", "Tamil Nadu", etc.
+- State abbreviations: "UP" (Uttar Pradesh), "MP" (Madhya Pradesh), "TN" (Tamil Nadu), "MH" (Maharashtra)
 - Regions: "North India", "South", etc.
+- Compound locations: "North Delhi", "Greater Mumbai", "Navi Mumbai" → Resolve to base city
 
 ## Time Patterns
 - Specific months: "jan 2028", "january 2028", "feb 2025" → Calculate months from now (Jan 2026)
@@ -66,17 +74,25 @@ Users often start with informal greetings. IGNORE these completely and focus on 
 - "after 3 months" → horizon: 3  
 - "next year" → horizon: 12
 - "2028" alone → assume Jan 2028 → horizon: 24 (from Jan 2026)
+- "this quarter" → horizon: 3
+- "end of year" or "year end" → horizon: 12
+- "after monsoon" → horizon: 4 (approx Oct from Jun)
 - No time mentioned → horizon: 1 (default)
 
 ## Intent Types
 - "forecast": User wants to know what WILL happen (default if location is mentioned)
 - "recommendation": User asks what to DO
-- "comparison": User wants to compare regions
+- "comparison": User wants to compare regions (keywords: compare, vs, versus, differ, difference)
 - "explanation": User asks WHY something is happening
 - "status": User asks about CURRENT state
 
+## Multiple Locations (Comparison)
+If query mentions two locations, extract the FIRST as primary location:
+- "Compare Delhi with Mumbai" → location: "Delhi", secondary_location: "Mumbai", intent: "comparison"
+- "How does 560001 differ from 110001" → location: "560001", secondary_location: "110001", intent: "comparison"
+
 ## Output Format
-{"location": "<city/state/pin or null>", "horizon": <months int>, "intent": "<type>", "raw_location": "<original text>"}
+{"location": "<city/state/pin or null>", "horizon": <months int>, "intent": "<type>", "raw_location": "<original text>", "secondary_location": "<optional, for comparisons>"}
 
 ## Examples
 Query: "oi 560001 for jan 2028"
@@ -89,14 +105,27 @@ Query: "What to do in Delhi after 6 months?"
 Output: {"location": "Delhi", "horizon": 6, "intent": "recommendation", "raw_location": "Delhi"}
 
 Query: "Compare 110001 with Bangalore"
-Output: {"location": "110001", "horizon": 1, "intent": "comparison", "raw_location": "110001 with Bangalore"}
+Output: {"location": "110001", "horizon": 1, "intent": "comparison", "raw_location": "110001", "secondary_location": "Bangalore"}
 
 Query: "Why is migration high?"
 Output: {"location": null, "horizon": 1, "intent": "explanation", "raw_location": null}
 
 Query: "yo 400001"
 Output: {"location": "400001", "horizon": 1, "intent": "forecast", "raw_location": "400001"}
+
+Query: "560001"
+Output: {"location": "560001", "horizon": 1, "intent": "forecast", "raw_location": "560001"}
+
+Query: "UP prediction"
+Output: {"location": "UP", "horizon": 1, "intent": "forecast", "raw_location": "UP"}
+
+Query: "Mumbai vs Delhi"
+Output: {"location": "Mumbai", "horizon": 1, "intent": "comparison", "raw_location": "Mumbai", "secondary_location": "Delhi"}
+
+Query: "What about the labor signal?"
+Output: {"location": null, "horizon": 1, "intent": "status", "raw_location": null, "signal_focus": "labor"}
 """
+
 
 
 class Attestor:
@@ -139,9 +168,77 @@ class Attestor:
         else:
             self.client = None
     
+    def _local_fallback_parse(self, user_message: str) -> Dict[str, Any]:
+        """
+        Local fallback parser for when AI is unavailable or for simple queries.
+        Uses regex patterns to extract basic information.
+        """
+        import re
+        
+        result = {
+            "location": None,
+            "horizon": 1,
+            "intent": "forecast",
+            "raw_location": None,
+            "secondary_location": None
+        }
+        
+        # Look for 6-digit PIN codes
+        pin_matches = re.findall(r'\b(\d{6})\b', user_message)
+        if pin_matches:
+            result["location"] = pin_matches[0]
+            result["raw_location"] = pin_matches[0]
+            if len(pin_matches) > 1:
+                result["secondary_location"] = pin_matches[1]
+                result["intent"] = "comparison"
+        
+        # Look for common cities (case insensitive)
+        cities = ["delhi", "mumbai", "bangalore", "bengaluru", "chennai", "kolkata", 
+                  "hyderabad", "pune", "ahmedabad", "jaipur", "lucknow", "kanpur",
+                  "surat", "kochi", "goa", "chandigarh", "bhopal", "indore"]
+        lower_msg = user_message.lower()
+        found_cities = [c for c in cities if c in lower_msg]
+        if found_cities and not result["location"]:
+            result["location"] = found_cities[0].title()
+            result["raw_location"] = found_cities[0].title()
+            if len(found_cities) > 1:
+                result["secondary_location"] = found_cities[1].title()
+        
+        # Detect comparison intent
+        comparison_keywords = ["compare", "vs", "versus", "differ", "difference", "between"]
+        if any(kw in lower_msg for kw in comparison_keywords):
+            result["intent"] = "comparison"
+        
+        # Detect recommendation intent
+        recommendation_keywords = ["what to do", "should", "recommend", "prepare", "action"]
+        if any(kw in lower_msg for kw in recommendation_keywords):
+            result["intent"] = "recommendation"
+        
+        # Detect explanation intent
+        explanation_keywords = ["why", "reason", "because", "explain", "how come"]
+        if any(kw in lower_msg for kw in explanation_keywords):
+            result["intent"] = "explanation"
+        
+        # Extract time horizon
+        if "next year" in lower_msg:
+            result["horizon"] = 12
+        elif "6 month" in lower_msg or "six month" in lower_msg:
+            result["horizon"] = 6
+        elif "3 month" in lower_msg or "three month" in lower_msg:
+            result["horizon"] = 3
+        elif "next month" in lower_msg:
+            result["horizon"] = 1
+        
+        return result
+    
     def parse_query(self, user_message: str) -> Dict[str, Any]:
         """
         Parse natural language query to extract location, time horizon, and intent.
+        
+        Enhanced with:
+        - Local fallback for simple queries (no API call needed)
+        - Validation of AI parser output
+        - Better error handling
         
         Args:
             user_message: Natural language query (e.g., "What to do in Delhi after 6 months?")
@@ -152,9 +249,27 @@ class Attestor:
             - horizon: Time horizon in months
             - intent: Type of query (forecast, recommendation, comparison, explanation)
             - raw_location: Original location text from query
+            - secondary_location: Optional, for comparison queries
         """
+        import re
+        
+        # Quick local extraction for very simple patterns (no API call needed)
+        # This handles cases like "560001" or just a PIN code
+        stripped = user_message.strip()
+        if re.match(r'^\d{6}$', stripped):
+            # Just a PIN code - no need to call AI
+            return {
+                "location": stripped,
+                "horizon": 1,
+                "intent": "forecast",
+                "raw_location": stripped
+            }
+        
+        # If API is not configured, use local fallback
         if not self.client:
-            return {"location": None, "horizon": 1, "intent": "forecast", "raw_location": None, "error": "API not configured"}
+            result = self._local_fallback_parse(user_message)
+            result["fallback_used"] = True
+            return result
         
         try:
             response = self.client.chat.completions.create(
@@ -176,25 +291,97 @@ class Attestor:
             elif "```" in result_text:
                 result_text = result_text.split("```")[1].split("```")[0].strip()
             
-            return json.loads(result_text)
+            parsed = json.loads(result_text)
+            
+            # Validate and sanitize the result
+            if not isinstance(parsed.get("horizon"), int):
+                parsed["horizon"] = 1
+            if parsed.get("horizon", 1) < 1:
+                parsed["horizon"] = 1
+            if parsed.get("horizon", 1) > 60:  # Cap at 5 years
+                parsed["horizon"] = 60
+            
+            valid_intents = ["forecast", "recommendation", "comparison", "explanation", "status"]
+            if parsed.get("intent") not in valid_intents:
+                parsed["intent"] = "forecast"
+            
+            return parsed
             
         except json.JSONDecodeError:
-            # Fallback: try to extract basic info
-            return {
-                "location": None,
-                "horizon": 1,
-                "intent": "forecast",
-                "raw_location": None,
-                "parse_error": "Could not parse structured output"
-            }
+            # Fallback to local parser
+            result = self._local_fallback_parse(user_message)
+            result["parse_error"] = "AI returned invalid JSON, used local fallback"
+            return result
         except Exception as e:
-            return {
-                "location": None,
-                "horizon": 1,
-                "intent": "forecast",
-                "raw_location": None,
-                "error": str(e)
-            }
+            # Fallback to local parser
+            result = self._local_fallback_parse(user_message)
+            result["error"] = str(e)
+            result["fallback_used"] = True
+            return result
+    
+    def generate_fallback_response(self, context: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Generate a basic response without AI when API is unavailable.
+        Shows raw data in a readable format.
+        
+        Args:
+            context: The prediction context dictionary
+            
+        Returns:
+            A formatted string with the raw data
+        """
+        if not context:
+            return "I couldn't retrieve data for this location. Please try a different PIN code or city name."
+        
+        pin = context.get("pincode", "Unknown")
+        state = context.get("state", "Unknown")
+        current = context.get("current", {})
+        
+        # Get signal values
+        growth = current.get("growth", 0)
+        flow = current.get("flow", 0)
+        labor = current.get("labor", 0)
+        
+        # Determine levels
+        def get_level(val):
+            if val > 0.7:
+                return "HIGH 🔴"
+            elif val > 0.4:
+                return "MODERATE 🟡"
+            else:
+                return "LOW 🟢"
+        
+        # Build response
+        response = f"""📍 **PIN {pin}** ({state})
+
+**Current Pulse Vector** (Normalized 0-1):
+• Growth (Child Enrolment): {growth:.3f} [{get_level(growth)}]
+• Flow (Migration/Updates): {flow:.3f} [{get_level(flow)}]
+• Labor (Biometric Updates): {labor:.3f} [{get_level(labor)}]"""
+        
+        # Add parallels if available
+        parallels = context.get("parallels", [])
+        if parallels:
+            response += "\n\n**Similar Regions:**"
+            for i, p in enumerate(parallels[:3], 1):
+                if p:
+                    p_pin = p.get("pincode", "?")
+                    p_state = p.get("state", "?")
+                    p_sim = p.get("similarity", 0) * 100
+                    response += f"\n• {p_pin} ({p_state}) - {p_sim:.0f}% similar"
+        
+        # Add AI forecast if available
+        ai_forecast = context.get("ai_forecast", {})
+        if ai_forecast and "error" not in ai_forecast:
+            response += "\n\n**AI Forecast:**"
+            for key in ["growth", "flow", "labor"]:
+                if key in ai_forecast:
+                    response += f"\n• {key.title()}: {ai_forecast[key]:.3f}"
+        
+        response += "\n\n⚠️ *AI analysis temporarily unavailable. Showing raw data.*"
+        
+        return response
+
     
     def chat(
         self, 
@@ -311,6 +498,20 @@ Provide a helpful, data-driven response based on the context above."""
             for key in ["growth", "flow", "labor"]:
                 if key in ensemble:
                     lines.append(f"- {key.title()}: {ensemble[key]:.3f}")
+        
+        # Contextual Drivers (from Context Engine)
+        contextual = context.get("contextual_drivers", {})
+        if contextual:
+            lines.append("\n**Contextual Drivers** (External Intelligence):")
+            seasonal = contextual.get("seasonal_drivers", [])
+            for driver in seasonal:
+                lines.append(f"- 📅 {driver['name']}: {driver['hint']}")
+            
+            events = contextual.get("local_events", [])
+            if events:
+                lines.append("\n**Local Events** (from Search):")
+                for event in events[:3]:  # Limit to 3
+                    lines.append(f"- 📰 {event}")
         
         return "\n".join(lines)
 

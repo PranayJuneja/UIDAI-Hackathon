@@ -39,8 +39,8 @@ These are hardcoded, recurring events based on the month and season.
 
 #### The "Directionality" Solution (Immigration vs. Emigration)
 A key challenge is knowing if "Harvest Season" means workers are *coming* or *going*.
-*   **Problem:** "Harvest" implies movement, but direction depends on whether the region is a *Source* (Village) or *Destination* (Farm/City).
-*   **Solution:** The Context Engine **does not guess**. It provides the *Season*, and relies on the **LLM's semantic knowledge** + **Chronos Forecast** to generate the explanation.
+*   **Problem:** "Harvest" implies movement, but direction depends on whether the region is a *Source* (Village) or *Destination* (Farm/City). 
+*   **Solution:** The Context Engine **does not guess**. It provides the *Season*, and relies on the **LLM's semantic knowledge** + **Chronos Forecast** to generate the explanation. HEy over here the thing is chronos forecast in itself doesnt define a lot as we only have 4 months data. use AI to define the places wheere we usually have these harvest seasons and then define the inflation not based on chronos forecast to inflate this number. 
     *   *Scenario A:* Chronos predicts `High Flow` for a Punjab PIN in Oct.
         *   LLM Input: `Forecast: High Flow`, `Context: Kharif Harvest`, `Location: Ludhiana`.
         *   LLM Output: "High flow is likely due to laborers **arriving** for the harvest."
@@ -51,7 +51,7 @@ A key challenge is knowing if "Harvest Season" means workers are *coming* or *go
 ### Layer 2: Live Web Search (The "Unpredictable")
 This layer is triggered *on-demand* for specific complex queries.
 
-*   **Trigger:** User asks "Why?" or specific anomaly queries.
+*   **Trigger:** User asks "Why?" or specific anomaly queries. also like in future questions if like he asks why in march june the centres need to be high tell them because of student being enrolled to school
 *   **Mechanism:** Uses a search tool to query: `"{Location} news {Month} {Year}"` or `"{Location} Aadhaar camps"`.
 *   **Goal:** Find one-off events (e.g., "Floods", "Kumbh Mela", "New Industrial Park opening").
 
