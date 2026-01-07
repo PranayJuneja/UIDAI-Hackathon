@@ -166,6 +166,17 @@ export default function Dashboard() {
                         title={`Top ${viewMode === 'state' ? 'Districts' : 'Hotspots'}`}
                         loading={stats.loading}
                         items={topItems}
+                        onItemClick={(item) => {
+                            if (viewMode === 'india') {
+                                // Drill into state
+                                const stateStore = useMapStore.getState();
+                                stateStore.drillIntoState(item.state_id, item.name);
+                            } else {
+                                // Select district
+                                const stateStore = useMapStore.getState();
+                                stateStore.setSelectedDistrict(item.district_name);
+                            }
+                        }}
                     />
                 </aside>
             </div>

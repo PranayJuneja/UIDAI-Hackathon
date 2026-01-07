@@ -11,8 +11,9 @@ interface DashboardHotspotsProps {
 const DashboardHotspots = memo(function DashboardHotspots({
     title,
     loading,
-    items
-}: DashboardHotspotsProps) {
+    items,
+    onItemClick
+}: DashboardHotspotsProps & { onItemClick?: (item: any) => void }) {
     return (
         <motion.div
             className={styles.hotspotsCard}
@@ -33,6 +34,8 @@ const DashboardHotspots = memo(function DashboardHotspots({
                             initial={{ opacity: 0, x: 10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.5 + (i * 0.1) }}
+                            onClick={() => onItemClick?.(item)}
+                            style={{ cursor: onItemClick ? 'pointer' : 'default' }}
                         >
                             <span className={styles.hotspotRank}>{i + 1}</span>
                             <span className={styles.hotspotName}>

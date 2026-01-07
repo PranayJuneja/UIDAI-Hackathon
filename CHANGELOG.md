@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.7.0] - 2026-01-08 - 🖱️ THE INTERACTIVE LISTS UPDATE
+> *"Don't just look at the data. Touch it."*
+
+### 🔥 Headline Features
+
+#### 1. Interactive Sidebar Lists
+- **Click-to-Navigate Hotspots**: The "Top Hotspots" and "Top Districts" lists are no longer just static text.
+  - **Drill-Down from List**: Clicking a State name in the "Top Hotspots" list instantly drills down into that state on the map.
+  - **Select District**: Clicking a District name in the "Top Districts" list selects it on the map and opens its data panel.
+- **Visual Feedback**: Added `cursor: pointer` and subtle hover effects to list items to indicate interactivity.
+
+---
+
 ## [2.6.0] - 2026-01-08 - 🤖 THE LIQUID GLASS BOT RELEASE
 > *"Talk to the Grid."*
 
