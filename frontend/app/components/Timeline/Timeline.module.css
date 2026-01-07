@@ -1,0 +1,215 @@
+.timelineContainer {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    min-width: 500px;
+    max-width: 90%;
+    background: rgba(15, 23, 42, 0.6);
+    /* More transparent for glass effect */
+    backdrop-filter: blur(20px);
+    /* Stronger blur */
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    /* Highlight top border for depth */
+    border-radius: 20px;
+    padding: 12px 20px;
+    /* Reduced padding */
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06),
+        0 20px 25px -5px rgba(0, 0, 0, 0.2),
+        /* Deep shadow */
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    /* Inner highlight */
+    z-index: 50;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timelineContainer:hover {
+    background: rgba(15, 23, 42, 0.75);
+    border-color: rgba(96, 165, 250, 0.3);
+    box-shadow:
+        0 20px 25px -5px rgba(0, 0, 0, 0.3),
+        0 10px 10px -5px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(59, 130, 246, 0.1);
+    /* Subtle blue ring */
+    transform: translateX(-50%) translateY(-2px);
+}
+
+/* Playback Controls */
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.playButton {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60A5FA;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.playButton:hover {
+    background: rgba(59, 130, 246, 0.3);
+    transform: scale(1.05);
+    color: white;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.playButton:active {
+    transform: scale(0.95);
+}
+
+.navButton {
+    background: transparent;
+    border: none;
+    color: #64748B;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.navButton:hover {
+    color: #E2E8F0;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.navButton:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Slider Area */
+.sliderArea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    padding-right: 4px;
+}
+
+.sliderTrack {
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.rangeInput {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+}
+
+.rangeInput::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #3B82F6;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    margin-top: -6px;
+}
+
+.rangeInput::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
+}
+
+/* Custom Track Fill */
+.trackFill {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 3px;
+    background: linear-gradient(90deg, #3B82F6, #60A5FA);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Month Markers */
+.markers {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2px;
+    margin-top: 2px;
+}
+
+.marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    width: 30px;
+}
+
+.markerDot {
+    width: 3px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.markerLabel {
+    font-size: 9px;
+    color: #64748B;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+.marker.active .markerDot {
+    background: #60A5FA;
+    transform: scale(1.5);
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+}
+
+.marker.active .markerLabel {
+    color: #E2E8F0;
+    transform: translateY(-1px);
+    font-weight: 600;
+}
+
+.marker:hover .markerLabel {
+    color: #94A3B8;
+}
+
+.marker.now .markerLabel {
+    color: #F59E0B;
+}

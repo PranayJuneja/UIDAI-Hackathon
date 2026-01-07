@@ -2,6 +2,40 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
+## [2.5.0] - 2026-01-08 - ⏳ THE TIME MACHINE RELEASE
+> *"The Future is just a Slider away."*
+
+### 🔥 Headline Features
+
+#### 1. Timeline Navigation ("The Time Machine")
+> *See the future before it happens.*
+- **Interactive Timeline Slider**:
+  - Implemented a sleek, glassmorphic timeline control floating at the bottom of the map.
+  - **Range**: Allows navigation from **Nov 2025** to **Oct 2026**, visualizing the 12-month forecast horizon.
+  - **Auto-Play**: "Play" button automatically cycles through months (1s interval) to visualize trends dynamically.
+  - **Data Sync**: Fully integrated with the dashboard state; changing the month instantly updates the "Viewing [Month]" badge and triggers map data transitions.
+  - **Visuals**: Added markers indicating data availability for each month.
+
+#### 2. Glassmorphism UI Polish
+> *Refined. Translucent. Premium.*
+- **Timeline Aesthetics**:
+  - **Frosted Glass**: Heavy `backdrop-filter: blur(20px)` with variable transparency (`rgba(15, 23, 42, 0.6)`).
+  - **Depth Effects**: Added multi-layered box-shadows and subtle border highlights to create a physical sense of depth.
+  - **Compact Design**: Condensed the control bar based on user feedback to sit perfectly within the map viewport (`min-width: 500px`).
+- **Breadcrumb Refinement**:
+  - **Minimalism**: Replaced the verbose "India" text with just the Indian Flag (🇮🇳) icon in the breadcrumb trail.
+  - **Cleaner UX**: Reduces visual noise while maintaining clear navigation hierarchy (e.g., `🇮🇳 > Maharashtra`).
+
+### Fixes & Improvements
+- **CSS Warning Resolved**: Added standard `appearance: none` property to `Timeline.module.css` to fix IDE warnings and ensure cross-browser compatibility for range inputs.
+- **Layout Optimization**: Fixed positioning issues where the timeline was too wide or misaligned; now perfectly centered with `max-width: 90%`.
+- **Z-Index Layering**: Ensured the timeline floats above the map but below tooltips.
+
+### Changed
+- **`mapStore.ts`**: Expanded global state to include `isPlaying`, `playbackSpeed`, and timeline negotiation logic.
+
+---
+
 ## [2.4.0] - 2026-01-08 - ⚡ THE 60FPS PERFORMANCE OVERHAUL
 > *"Less is More. Smooth is Fast."*
 

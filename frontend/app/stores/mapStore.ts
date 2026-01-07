@@ -72,6 +72,10 @@ export interface MapState {
 
     selectedDistrict: string | null;
 
+    // Timeline State
+    isPlaying: boolean;
+    playbackSpeed: number;
+
     // Actions
     setSelectedMonth: (month: string) => void;
     setSelectedState: (stateId: string | null) => void;
@@ -81,6 +85,11 @@ export interface MapState {
     setStates: (states: StateData[]) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
+
+    // Timeline Actions
+    setIsPlaying: (isPlaying: boolean) => void;
+    setPlaybackSpeed: (speed: number) => void;
+    togglePlayback: () => void;
 
     // Drill-down actions
     drillIntoState: (stateId: string, stateName: string) => void;
@@ -111,6 +120,10 @@ export const useMapStore = create<MapState>((set, get) => ({
     loadingDistricts: false,
     error: null,
 
+    // Timeline State
+    isPlaying: false,
+    playbackSpeed: 1000, // ms per month
+
     // Actions
     setSelectedMonth: (month) => set({ selectedMonth: month }),
     setSelectedState: (stateId) => set({ selectedState: stateId }),
@@ -120,6 +133,11 @@ export const useMapStore = create<MapState>((set, get) => ({
     setStates: (states) => set({ states, loading: false }),
     setLoading: (loading) => set({ loading }),
     setError: (error) => set({ error, loading: false }),
+
+    // Timeline Actions
+    setIsPlaying: (isPlaying: boolean) => set({ isPlaying }),
+    setPlaybackSpeed: (speed: number) => set({ playbackSpeed: speed }),
+    togglePlayback: () => set((state) => ({ isPlaying: !state.isPlaying })),
 
     // Drill-down actions
     drillIntoState: (stateId, stateName) => set({

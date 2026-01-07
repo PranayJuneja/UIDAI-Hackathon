@@ -385,7 +385,7 @@ export default function IndiaMap() {
                     className={`${styles.breadcrumbItem} ${viewMode === 'india' ? styles.active : styles.clickable}`}
                     onClick={viewMode === 'state' ? () => { setTooltipData(null); drillBackToIndia(); } : undefined}
                 >
-                    🇮🇳 India
+                    🇮🇳
                 </span>
                 {viewMode === 'state' && selectedStateName && (
                     <>

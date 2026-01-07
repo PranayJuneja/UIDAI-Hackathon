@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import IndiaMap from "./components/Map/IndiaMap";
 import DashboardStats from "./components/Dashboard/DashboardStats";
 import DashboardHotspots from "./components/Dashboard/DashboardHotspots";
+import Timeline from "./components/Timeline/Timeline";
 import { useMapStore } from "./stores/mapStore";
 import styles from "./dashboard.module.css";
 
@@ -130,6 +131,7 @@ export default function Dashboard() {
                         transition={{ duration: 0.5 }}
                     >
                         <IndiaMap />
+                        <Timeline />
                     </motion.div>
                 </section>
 

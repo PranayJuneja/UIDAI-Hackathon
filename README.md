@@ -108,7 +108,8 @@ npm run dev
 1.  **TissueDeck Visuals**: Ambient aurora backgrounds, glassmorphic containers, and precision grids.
 2.  **Smart Drill-Down**: Click-to-zoom for all 36 states/UTs with auto-scaling.
 3.  **Context Sidebar**: Sidebar updates dynamically to show National vs State vs District insights.
-4.  **Deep Polish**: distraction-free UI with no artifacts or decorative noise.
+4.  **Time Machine**: Interactive timeline slider to visualize forecasts from Nov 2025 - Oct 2026 with auto-play.
+5.  **Deep Polish**: distraction-free UI with no artifacts or decorative noise.
 
 
 ---
