@@ -1,4 +1,4 @@
-# Cognexis: Temporal Spatial Intelligence for Aadhaar
+# Chronos-X: Temporal Spatial Intelligence for Aadhaar
 
 > **UIDAI Hackathon 2026 Submission**
 >
@@ -14,9 +14,9 @@
 
 ## Executive Summary
 
-**Cognexis** (formerly Chronos-X) acts as the central nervous system for UIDAI's demand forecasting operations. It represents a paradigm shift from **Reactive Logistics**—responding to queues after they form—to **Proactive Anticipation**—provisioning resources 1-3 months before demand surges.
+**Chronos-X** acts as the central nervous system for UIDAI's demand forecasting operations. It represents a paradigm shift from **Reactive Logistics**—responding to queues after they form—to **Proactive Anticipation**—provisioning resources 1-3 months before demand surges.
 
-By synthesizing disparate data signals (Biometric updates, Demographic changes, and New Enrolments) into a unified **Pulse Vector**, Cognexis creates a high-fidelity digital twin of India's socio-economic movement. It utilizes **Amazon Chronos**, a foundation model for time-series forecasting, coupled with a novel **Spatial Parallel Search** algorithm to predict migration trends, labor movements, and settlement patterns with unprecedented accuracy, even in data-sparse environments.
+By synthesizing disparate data signals (Biometric updates, Demographic changes, and New Enrolments) into a unified **Pulse Vector**, Chronos-X creates a high-fidelity digital twin of India's socio-economic movement. It utilizes **Amazon Chronos**, a foundation model for time-series forecasting, coupled with a novel **Spatial Parallel Search** algorithm to predict migration trends, labor movements, and settlement patterns with unprecedented accuracy, even in data-sparse environments.
 
 This platform provides UIDAI officials with a "Weather Forecast" for Aadhaar services, enabling data-driven decisions for center allocation, manpower planning, and dynamic resource distribution.
 
@@ -24,7 +24,7 @@ This platform provides UIDAI officials with a "Weather Forecast" for Aadhaar ser
 
 ## System Architecture
 
-The Cognexis platform is architected as a decoupled, event-driven system comprising a high-performance Python inference engine and a hardware-accelerated React frontend.
+The Chronos-X platform is architected as a decoupled, event-driven system comprising a high-performance Python inference engine and a hardware-accelerated React frontend.
 
 ### 1. The Inference Engine (Backend)
 Built on **FastAPI**, the backend serves as the orchestration layer for three critical sub-systems:
@@ -42,7 +42,7 @@ Built on **Next.js 16**, the frontend is a strictly typed, component-driven appl
 
 ## Theoretical Framework: The Pulse Vector
 
-At the heart of Cognexis lies the **Pulse Vector ($V_p$)**, a normalized 3-dimensional tensor representing the socio-economic heartbeat of a specific PIN code at time $t$.
+At the heart of Chronos-X lies the **Pulse Vector ($V_p$)**, a normalized 3-dimensional tensor representing the socio-economic heartbeat of a specific PIN code at time $t$.
 
 $$ V_{p,t} = \langle G_{p,t}, F_{p,t}, L_{p,t} \rangle $$
 
@@ -65,7 +65,7 @@ This allows the AI to learn universal behavioral patterns (e.g., "Pre-Harvest Mi
 
 ## Algorithmic Innovation: Spatial Parallel Search
 
-Traditional time-series models (ARIMA, LSTM) fail when historical data is limited (e.g., < 6 months). Cognexis overcomes this with **Spatial Parallel Search**, a technique inspired by behavioral cloning.
+Traditional time-series models (ARIMA, LSTM) fail when historical data is limited (e.g., < 6 months). Chronos-X overcomes this with **Spatial Parallel Search**, a technique inspired by behavioral cloning.
 
 **The Hypothesis**: India is vast. The future trajectory of a developing suburb in one state often mirrors the *past* trajectory of a clearer, more mature suburb in another state.
 
