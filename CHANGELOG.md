@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.8.0] - 2026-01-08 - 🏛️ THE HOMEPAGE MASTERPIECE
+> *"First impressions matter. We just made ours unforgettable."*
+
+### 🔥 Headline Features
+
+#### 1. The "Liquid Glass" Homepage Overhaul
+> *A landing page that tells the story of Chronos-X.*
+- **Immersive Hero Section**: Featuring dynamic "Temporal Spatial Intelligence" typography and real-time project stats (74k+ Data Points, 19,079 PIN Codes).
+- **The Pulse Vector Visualized**:
+  - Abandoned generic feature lists for a dedicated signal visualization section.
+  - **Growth (Emerald)**, **Flow (Violet)**, and **Labor (Amber)** signals are now showcased with gradient progress bars and custom Lucide icons.
+- **Spatial Parallel Search Explained**: 
+  - A glassmorphic "Code Window" visualization that demystifies the "Behavioral Cloning" algorithm.
+  - Shows exactly how the system scans 19,000+ PINs to find "Parallel Universes".
+
+#### 2. TissueDeck Design System Extension
+- **Ambient Aurora**: Implemented a deep, pulsing background `radial-gradient` that mimics the "breathing" of the grid.
+- **Technical Grid Overlay**: A subtle `1px` grid mask that reinforces the data-driven nature of the platform.
+- **Glassmorphism 2.0**: Updated all cards (Pulse, Tech Stack, Copilot) with `backdrop-filter: blur(20px)` and neon border glows.
+
+#### 3. "The Engine Room" Tech Stack
+- A transparent grid layout showcasing the powerhouse stack:
+  - **Next.js 16** (App Router)
+  - **FastAPI** (Async Backend)
+  - **Polars** (Rust DataFrame Engine)
+  - **Amazon Chronos** (Foundation Model)
+
+### Changed
+- **`page.tsx`**: Complete rewrite using Framer Motion for scroll-triggered entrance animations.
+- **`page.module.css`**: Migrated 100% of styles to "TissueDeck" tokens, removing all legacy CSS.
+
+---
+
 ## [2.7.0] - 2026-01-08 - 🖱️ THE INTERACTIVE LISTS UPDATE
 > *"Don't just look at the data. Touch it."*
 
