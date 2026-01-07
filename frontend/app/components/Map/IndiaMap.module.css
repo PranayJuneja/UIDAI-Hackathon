@@ -68,18 +68,21 @@
 }
 
 .statePath:hover {
-    fill-opacity: 0.95 !important;
-    filter: brightness(1.2) saturate(1.2);
+    fill-opacity: 1 !important;
+    filter: brightness(1.1) saturate(1.2) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
     transform: scale(1.01);
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 1.5px;
+    z-index: 10;
 }
 
 .statePath.hovered {
-    filter: brightness(1.25) saturate(1.3) drop-shadow(0 0 12px currentColor);
+    filter: brightness(1.25) saturate(1.3) drop-shadow(0 0 12px rgba(208, 188, 255, 0.6));
     transform: scale(1.015);
 }
 
 .statePath.selected {
-    filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 20px var(--brand-primary));
+    filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 15px var(--brand-primary));
     stroke: var(--brand-primary) !important;
     stroke-width: 2.5 !important;
     transform: scale(1.02);
@@ -276,18 +279,20 @@
 }
 
 .districtPath:hover {
-    fill-opacity: 0.95 !important;
-    filter: brightness(1.2) saturate(1.2);
+    fill-opacity: 1 !important;
+    filter: brightness(1.1) saturate(1.2) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
     transform: scale(1.01);
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 1px;
 }
 
 .districtPath.hovered {
-    filter: brightness(1.25) saturate(1.3) drop-shadow(0 0 12px currentColor);
+    filter: brightness(1.25) saturate(1.3) drop-shadow(0 0 12px rgba(208, 188, 255, 0.6));
     transform: scale(1.015);
 }
 
 .districtPath.selected {
-    filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 20px var(--brand-primary));
+    filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 15px var(--brand-primary));
     stroke: var(--brand-primary) !important;
     stroke-width: 2.5 !important;
     transform: scale(1.02);

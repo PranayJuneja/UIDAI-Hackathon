@@ -95,12 +95,14 @@ export default function MapTooltip({ x, y, data, isDistrict }: TooltipProps) {
                 </div>
             )}
 
-            <div className={styles.meta}>
-                {!isDistrict && data.districts && <span>{data.districts} Districts</span>}
-                {(data.pincodes || data.pin_count) && (
-                    <span>{(data.pincodes || data.pin_count || 0).toLocaleString()} PINs</span>
-                )}
-            </div>
+            {!isDistrict && (
+                <div className={styles.meta}>
+                    {data.districts && <span>{data.districts} Districts</span>}
+                    {(data.pincodes || data.pin_count) && (
+                        <span>{(data.pincodes || data.pin_count || 0).toLocaleString()} PINs</span>
+                    )}
+                </div>
+            )}
 
             <div className={styles.hint}>
                 {isDistrict ? 'Click to select' : 'Click to explore →'}
