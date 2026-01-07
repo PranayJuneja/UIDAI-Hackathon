@@ -2,6 +2,94 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
+## [2.1.0] - 2026-01-07 - 🎨 THE GOD-TIER UI RELEASE
+
+### 🔥 Headline Features
+
+#### 1. Premium Frontend Foundation (`frontend/`)
+> *Where UX makes or breaks the product.*
+
+- **Next.js 16 + TypeScript**: Latest React framework with App Router.
+- **Google Fonts Integration**: 
+  - `Outfit` (display headings) - Bold, modern, 800 weight
+  - `Inter` (body text) - Clean, highly readable
+- **Premium Design System** (`globals.css`): 300+ lines of design tokens:
+  - Off-white light theme (`#FAFBFC` base)
+  - Strategic dark accents for map/dashboard (`#1A1D24`)
+  - Signal colors: Growth (Emerald), Flow (Violet), Labor (Amber)
+  - Glassmorphism and shadows
+  - Spring-based animation timings
+
+#### 2. Animated Landing Page
+- **Hero Section**: Gradient text, stats row with 4 key metrics
+- **Signal Cards**: Pulse Vector explained with animated progress bars
+- **Dashboard Preview**: Dark macOS-style window with map placeholder
+- **Framer Motion**: Smooth fade/slide animations throughout
+
+### Added
+- `frontend/` - Complete Next.js 16 application
+- `frontend/app/globals.css` - Premium design system (300+ lines)
+- `frontend/app/page.tsx` - Animated landing with Framer Motion
+- `frontend/app/page.module.css` - Page-specific styling
+
+### Technical Stack
+- **Framework**: Next.js 16.1.1 + React 19
+- **Animations**: Framer Motion
+- **State**: Zustand (prepared for dashboard)
+- **Maps**: D3-geo (prepared for India map)
+
+---
+
+## [2.0.0] - 2026-01-07 - 🚀 THE API SERVER RELEASE
+
+### 🔥 Headline Features
+
+#### 1. Production-Ready API Server (`api_server.py`)
+> *The Backend That Powers the God-Tier UI*
+
+- **FastAPI Backend**: 1,100+ lines of production-ready Python powering the dashboard.
+- **REST Endpoints**: Complete API for map visualization:
+  | Endpoint | Purpose |
+  |:---------|:--------|
+  | `GET /api/health` | Server health + data statistics |
+  | `GET /api/timeline` | Available months (Sep-Dec 2025) |
+  | `GET /api/states` | All 36 states with aggregated signals |
+  | `GET /api/states/{id}` | State drill-down with districts |
+  | `GET /api/pins/{code}` | Individual PIN data + forecasts |
+  | `GET /api/search?q=` | Fuzzy search across locations |
+  | `GET /api/compare` | Side-by-side location comparison |
+  | `GET /api/map` | Complete map data for rendering |
+
+- **WebSocket Chat Integration**:
+  - `WS /ws/chat`: Real-time connection to Chronos AI chatbot.
+  - **Location Extraction**: AI responses are parsed to extract mentioned locations.
+  - **Action Triggers**: Frontend receives instructions (zoom, highlight, compare) based on queries.
+
+#### 2. Data Aggregation Engine
+- **State-Level Rollups**: Average signals across all PINs in a state.
+- **District-Level Drill-Down**: 46 states mapped to 500+ districts.
+- **Hotspot Calculation**: Weighted intensity formula:
+  ```
+  Intensity = 0.3 × Growth + 0.4 × Flow + 0.3 × Labor
+  ```
+- **Pulse Speed**: Animation speed mapped to intensity (0.5x → 2.0x).
+
+#### 3. Timeline Navigation
+- **Month Filtering**: All endpoints accept `?month=YYYY-MM` parameter.
+- **Data Range**: Sep 2025 - Dec 2025 (4 months of data).
+- **Years List**: Extracted for timeline year-jump navigation.
+
+### Added
+- `api_server.py` - Complete FastAPI server (1,100+ lines)
+- `requirements.txt` - Added `fastapi`, `uvicorn[standard]`, `websockets`, `python-multipart`
+
+### Technical Details
+- **CORS Enabled**: Frontend can connect from any origin.
+- **Auto-Reload**: Development mode with hot-reload on file changes.
+- **Swagger Docs**: Auto-generated at `/docs` and `/redoc`.
+
+---
+
 ## [1.9.0] - 2026-01-06 - 🌍 THE CONTEXTUAL INTELLIGENCE UPDATE
 
 ### 🔥 Headline Features

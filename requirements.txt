@@ -12,6 +12,18 @@ torch>=2.0.0
 # LLM Attestation (Local)
 openai>=1.0.0
 
-# Visualization (Future)
-# streamlit>=1.30.0
-# plotly>=5.18.0
+# API Server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+websockets>=12.0
+python-multipart>=0.0.6
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Frontend (see frontend/package.json for Node dependencies)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Next.js 16 + TypeScript
+# Framer Motion (animations)
+# Zustand (state management)
+# D3-geo (map projections)
+#
+# Run: cd frontend && npm install && npm run dev

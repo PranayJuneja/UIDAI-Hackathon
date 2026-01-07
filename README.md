@@ -74,12 +74,74 @@ We utilize **Amazon Chronos T5**, a Zero-Shot time-series foundation model, to g
 
 ---
 
+## 🎨 Frontend Dashboard (New in v2.1)
+
+Premium UI built with **Next.js 16**, Google Fonts, and Framer Motion.
+
+### Quick Start
+```bash
+cd frontend
+npm install
+npm run dev
+# Opens at http://localhost:3000
+```
+
+### Technology Stack
+| Technology | Purpose |
+|:-----------|:--------|
+| Next.js 16 | React framework with App Router |
+| TypeScript | Type safety |
+| Framer Motion | Smooth animations |
+| Google Fonts | Outfit (headings), Inter (body) |
+| Zustand | State management |
+| D3-geo | Map projections |
+
+### Design System
+- **Theme**: Premium off-white light (`#FAFBFC`) with dark accents
+- **Typography**: Outfit 800 for display, Inter for body
+- **Colors**: Signal-specific palettes (Growth/Flow/Labor)
+
+---
+
+## 🌐 API Server (New in v2.0)
+
+The Chronos-X API powers the dashboard with **real-time data aggregation**.
+
+### Quick Start
+```bash
+python api_server.py
+# Server starts at http://localhost:8000
+# Swagger docs at http://localhost:8000/docs
+```
+
+### REST Endpoints
+| Endpoint | Description |
+|:---------|:------------|
+| `GET /api/health` | Server health + loaded data stats |
+| `GET /api/timeline` | Available months for timeline slider |
+| `GET /api/states` | All 36 states with hotspot intensities |
+| `GET /api/states/{id}` | State details + district breakdown |
+| `GET /api/pins/{code}` | PIN-level data + AI forecasts |
+| `GET /api/search?q=` | Fuzzy search (states, districts, PINs) |
+| `GET /api/map?month=` | Complete map data for rendering |
+| `WS /ws/chat` | Real-time AI chatbot (WebSocket) |
+
+---
+
 ## 📂 Directory Structure
 
 ```plaintext
 chronos-x/
 ├── Submission.md               # 📄 MASTER SUBMISSION DOCUMENT
 ├── README.md                   # Project Overview
+├── api_server.py               # 🌐 FastAPI Backend Server
+│
+├── frontend/                   # 🎨 Next.js Dashboard (NEW)
+│   ├── app/
+│   │   ├── globals.css         # Design system (300+ lines)
+│   │   ├── page.tsx            # Landing page with animations
+│   │   └── layout.tsx          # Root layout
+│   └── package.json
 │
 ├── data/                       # Dataset Storage
 │   ├── api_data_aadhar_*       # Raw CSV inputs
@@ -88,12 +150,12 @@ chronos-x/
 ├── src/                        # Core Application Code
 │   ├── data_pipeline.py        # ETL: Load -> Fuse -> Normalize -> Export
 │   ├── ai_forecaster.py        # AI Engine: Chronos Model + Spatial Search
-│   ├── chronos_engine.py       # wrapper for chronos
-│   └── ...
+│   ├── chronos_engine.py       # Wrapper for Chronos
+│   ├── context_engine.py       # Seasonal/Event Context
+│   └── location_resolver.py    # Fuzzy Location Matching
 │
 ├── scripts/                    # Analysis Tools
-│   ├── analyze_feasibility.py  # Data stats
-│   └── ...
+│   └── analyze_feasibility.py  # Data stats
 │
 ├── chronos_chatbot.py          # 🤖 AI Chatbot Interface
 ├── chronos_cli.py              # Command Line Interface
