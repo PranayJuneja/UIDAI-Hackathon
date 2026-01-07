@@ -480,7 +480,7 @@ class ChronosDataEngine:
             )
             
             results.append(DistrictAggregation(
-                district_id=f"{STATE_ID_MAP.get(state_normalized, 'XX')}_{district_name[:3].upper()}",
+                district_id=f"{STATE_ID_MAP.get(state_normalized, 'XX')}_{district_name.replace(' ', '').upper()}",
                 district_name=district_name,
                 state_name=state_normalized,
                 signals=signals,
@@ -646,31 +646,39 @@ class ChatbotBridge:
             return
             
         try:
-            from chronos_chatbot import ChronosChatbot
-            self.chatbot = ChronosChatbot()
+            # Try loading the new LangChain bot
+            from src.langchain_bot import LangChainBot
+            self.chatbot = LangChainBot()
             self._initialized = True
-            logger.info("✓ Chatbot bridge initialized")
+            logger.info("✓ LangChain Bot initialized")
+        except ImportError:
+             logger.warning("LangChain dependencies missing, falling back to legacy bot")
+             try:
+                 from chronos_chatbot import ChronosChatbot
+                 self.chatbot = ChronosChatbot()
+                 self._initialized = True
+                 logger.info("✓ Legacy Chatbot initialized")
+             except Exception as e:
+                 logger.error(f"✗ Failed to initialize legacy chatbot: {e}")
         except Exception as e:
             logger.error(f"✗ Failed to initialize chatbot: {e}")
             
     async def process_message(self, message: str) -> Dict[str, Any]:
         """
         Process a chat message and return response.
-        
-        Returns dict with:
-        - response: The AI response text
-        - locations: List of mentioned locations (for map highlighting)
-        - action: Optional action for frontend (zoom, compare, etc.)
         """
         if not self._initialized or self.chatbot is None:
             return {
-                "response": "Chatbot is not available. Please try again later.",
-                "locations": [],
-                "action": None
+                "text": "Chatbot is not available. Please try again later.",
+                "client_action": None
             }
             
         try:
-            # Run the synchronous chatbot in a thread pool
+            # Check if it's the LangChain bot (has async process_message)
+            if hasattr(self.chatbot, "process_message"):
+                return await self.chatbot.process_message(message)
+            
+            # Legacy Fallback
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None, 
@@ -685,9 +693,15 @@ class ChatbotBridge:
             action = self._determine_action(message, response)
             
             return {
-                "response": response,
-                "locations": locations,
-                "action": action
+                "text": response,
+                "client_action": action
+            }
+            
+        except Exception as e:
+            logger.error(f"Chatbot error: {e}")
+            return {
+                "text": f"I encountered an error: {str(e)}",
+                "client_action": None
             }
             
         except Exception as e:
@@ -798,8 +812,8 @@ async def health_check():
         "data_loaded": data_engine._initialized,
         "chatbot_available": chatbot_bridge._initialized,
         "pulse_vectors_rows": data_engine.pulse_vectors.height if data_engine.pulse_vectors is not None else 0,
-        "predictions_rows": data_engine.predictions.height if data_engine.predictions is not None else 0,
     }
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # TIMELINE ENDPOINTS
@@ -1064,25 +1078,41 @@ async def websocket_chat(websocket: WebSocket):
                 result = await chatbot_bridge.process_message(message)
                 
                 # Send response
-                await manager.send_json(websocket, {
-                    "type": "response",
-                    "content": result["response"],
-                    "locations": result["locations"],
-                    "action": result["action"],
-                    "timestamp": datetime.now().isoformat()
-                })
-                
-            elif data.get("type") == "ping":
-                await manager.send_json(websocket, {
-                    "type": "pong",
-                    "timestamp": datetime.now().isoformat()
-                })
-                
+            # Receive text from client (expecting JSON structure)
+            data_text = await websocket.receive_text()
+            
+            try:
+                message_data = json.loads(data_text)
+                user_content = message_data.get("content", "")
+            except json.JSONDecodeError:
+                # Fallback for plain text if any
+                user_content = data_text
+            
+            if not user_content:
+                continue
+
+            # Process via LangChain Bot
+            # The bot returns { "text": "...", "client_action": ... }
+            result = await chatbot_bridge.process_message(user_content)
+            
+            # Map to Frontend Protocol: { "type": "response", "content": "...", "action": ... }
+            response_payload = {
+                "type": "response",
+                "content": result.get("text"),
+                "action": result.get("client_action")
+            }
+            
+            # Send back JSON
+            await websocket.send_json(response_payload)
+            
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        logger.info("Client disconnected from chat")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
-        manager.disconnect(websocket)
+        try:
+            await websocket.close()
+        except:
+            pass
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN ENTRY POINT

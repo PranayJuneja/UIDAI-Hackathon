@@ -1,23 +1,23 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import IndiaMap from "./components/Map/IndiaMap";
 import DashboardStats from "./components/Dashboard/DashboardStats";
 import DashboardHotspots from "./components/Dashboard/DashboardHotspots";
 import Timeline from "./components/Timeline/Timeline";
 import { useMapStore } from "./stores/mapStore";
+import Chatbot from "./components/Chatbot/Chatbot";
 import styles from "./dashboard.module.css";
 
-// Generate random particles for ambient effect
-const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    size: Math.random() * 2.5 + 1.5,
-    duration: Math.random() * 20 + 20,  // Slow: 20-40 seconds
-    delay: Math.random() * 10,
-}));
+interface Particle {
+    id: number;
+    left: string;
+    top: string;
+    size: number;
+    duration: number;
+    delay: number;
+}
 
 export default function Dashboard() {
     const {
@@ -30,6 +30,20 @@ export default function Dashboard() {
         loadingDistricts,
         selectedDistrict
     } = useMapStore();
+
+    // Generate particles only on client side to avoid hydration mismatch
+    const [particles, setParticles] = useState<Particle[]>([]);
+
+    useEffect(() => {
+        setParticles(Array.from({ length: 20 }, (_, i) => ({
+            id: i,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            size: Math.random() * 2.5 + 1.5,
+            duration: Math.random() * 20 + 20,
+            delay: Math.random() * 10,
+        })));
+    }, []);
 
     // Get currently selected state object if any
     const selectedStateData = useMemo(() =>
@@ -77,7 +91,7 @@ export default function Dashboard() {
         const sourceData = viewMode === 'state' ? districts : states;
         return [...sourceData]
             .sort((a, b) => (b.hotspot?.intensity || 0) - (a.hotspot?.intensity || 0))
-            .slice(0, 5);
+            .slice(0, 15);
     }, [viewMode, districts, states]);
 
     return (
@@ -109,7 +123,7 @@ export default function Dashboard() {
                         animate={{ opacity: 1, x: 0 }}
                     >
                         <span className={styles.brandPrefix}>&gt;</span>
-                        <span className={styles.brandText}>Cognexis</span>
+                        <span className={styles.brandText}>Chronos-X</span>
                         <span className={styles.cursor}>_</span>
                     </motion.div>
 
@@ -155,6 +169,8 @@ export default function Dashboard() {
                     />
                 </aside>
             </div>
+            {/* Chatbot */}
+            <Chatbot />
         </main>
     );
 }

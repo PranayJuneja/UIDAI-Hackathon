@@ -1,0 +1,218 @@
+/* Liquid Glass Container */
+.chatContainer {
+    position: fixed;
+    /* Desktop: positioned above theory panel area only */
+    bottom: 24px;
+    right: 24px;
+    top: auto;
+    width: 380px;
+    z-index: 9999;
+
+    border-radius: 24px;
+
+    /* ===== LIQUID GLASS BACKGROUND ===== */
+    background:
+        linear-gradient(135deg,
+            rgba(255, 255, 255, 0.06) 0%,
+            rgba(255, 255, 255, 0.02) 40%,
+            rgba(255, 255, 255, 0.01) 100%),
+        rgba(18, 20, 28, 0.94);
+
+    /* ===== LIQUID GLASS BORDER ===== */
+    border: 1.5px solid transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+
+    /* ===== LIQUID GLASS SHADOWS ===== */
+    box-shadow:
+        0 0 20px rgba(100, 140, 255, 0.04),
+        0 10px 30px rgba(0, 0, 0, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
+        inset 0 -1px 8px rgba(0, 0, 0, 0.1);
+
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    color: #ececf1;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    /* ===== LIQUID GLASS BLUR ===== */
+    backdrop-filter: blur(64px) saturate(180%) brightness(1.05);
+    -webkit-backdrop-filter: blur(64px) saturate(180%) brightness(1.05);
+
+    /* Initial state (collapsed - hidden or small) - controlled by React state instead */
+    display: flex;
+    flex-direction: column;
+
+    isolation: isolate;
+}
+
+/* Specular Highlight Pseudo-element */
+.chatContainer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+
+    background:
+        radial-gradient(ellipse 80% 50% at 20% 10%,
+            rgba(255, 255, 255, 0.15) 0%,
+            rgba(255, 255, 255, 0.05) 30%,
+            transparent 70%),
+        linear-gradient(165deg,
+            rgba(255, 255, 255, 0.15) 0%,
+            transparent 40%);
+
+    opacity: 1;
+}
+
+/* Header */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 10;
+}
+
+/* Header Actions */
+.closeBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.closeBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+/* Messages Area */
+.messagesArea {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 500px;
+    position: relative;
+    z-index: 10;
+
+    /* Hide scrollbar for cleaner look */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.inputArea {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    z-index: 10;
+}
+
+.inputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    /* Pill shape */
+    padding: 12px 48px 12px 20px;
+    /* Right padding for button */
+    color: #fff;
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+}
+
+.input:focus {
+    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+.sendBtn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sendBtn:not(:disabled):hover {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    transform: translateY(-50%) scale(1.05);
+}
+
+.sendBtn:not(:disabled).active {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+}
+
+.sendBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Toggle Button */
+.toggleBtn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    z-index: 9998;
+    transition: transform 0.2s;
+}
+
+.toggleBtn:hover {
+    transform: scale(1.05);
+}

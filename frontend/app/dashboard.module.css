@@ -194,10 +194,12 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .sidebar {
+    /* Updated for fixed layout with internal scrolling */
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
-    overflow-y: auto;
+    overflow: hidden;
+    height: 100%;
     min-height: 0;
 }
 
@@ -244,6 +246,13 @@
         0 0 50px rgba(208, 188, 255, 0.15),
         inset 0 1px 0 rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.12);
+}
+
+.hotspotsCard {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 
@@ -357,6 +366,30 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
+    overflow-y: auto;
+    flex: 1;
+    padding-right: var(--space-2);
+    /* Space for scrollbar */
+    min-height: 0;
+}
+
+/* Custom Scrollbar for hotspots list */
+.hotspotsList::-webkit-scrollbar {
+    width: 4px;
+}
+
+.hotspotsList::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+.hotspotsList::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+.hotspotsList::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .hotspotItem {
@@ -373,6 +406,7 @@
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 /* Left accent bar */

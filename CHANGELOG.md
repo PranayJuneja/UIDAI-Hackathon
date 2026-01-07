@@ -1,6 +1,37 @@
 # Changelog
 
-All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
+## [2.6.0] - 2026-01-08 - 🤖 THE LIQUID GLASS BOT RELEASE
+> *"Talk to the Grid."*
+
+### 🔥 Headline Features
+
+#### 1. "Tissue Deck" Chatbot UI
+> *A UI that feels like it's from 2050.*
+- **Liquid Glass Aesthetic**: 
+  - Ported the exact CSS from Tissue Deck (`Chatbot.module.css`) to replicate the signature "Liquid Glass" effect.
+  - **Specs**: `backdrop-filter: blur(64px)`, `saturate(180%)`, and complex multi-stop linear gradients (`rgba(18, 20, 28, 0.94)`).
+  - **Specular Highlights**: Added pseudo-element reflection layers to simulate physical glass surfaces.
+- **Modern Polish**:
+  - **Floating Action Button**: Gradient Blue/Purple toggle button with pulse animation.
+  - **Input Design**: Pill-shaped input with "active state" gradient send button that glows when typing.
+  - **Embedded Close Button**: Rotates 90° on hover with a subtle glass background.
+
+#### 2. Vercel AI Gateway Native
+> *Enterprise-ready AI routing.*
+- **Gateway Priority**: The backend now automatically detects `AI_GATEWAY_BASE_URL` (defaulting to `https://gateway.ai.vercel.dev/v1`) and prioritizes it over direct OpenAI connections.
+- **Analytics Ready**: Injects `HTTP-Referer` and `X-Title` headers for Vercel AI analytics tracking.
+- **Robustness**: Fallback logic ensures the bot works even if standard OpenAI keys are used, but prefers the Gateway for caching and monitoring.
+
+#### 3. Chronos Copilot Identity
+- **Rebranding**: Renamed the assistant to **"Chronos Copilot"**.
+- **Visual Identity**: Replaced generic medical icons with a **Sparkles** icon in a blue glow container, emphasizing "Aadhaar Analytics Active" status.
+
+### Changed
+- **`Chatbot.tsx`**: Refactored from inline styles to CSS Modules (`Chatbot.module.css`) for strict styling fidelity.
+- **`api_server.py`**: Restored `WebSocket` endpoint with a structured JSON protocol (`{"type": "message", "content": "..."}`) for stable frontend-backend communication.
+
+---
+
 
 ## [2.5.0] - 2026-01-08 - ⏳ THE TIME MACHINE RELEASE
 > *"The Future is just a Slider away."*
