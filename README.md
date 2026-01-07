@@ -101,6 +101,13 @@ npm run dev
 - **Theme**: Premium off-white light (`#FAFBFC`) with dark accents
 - **Typography**: Outfit 800 for display, Inter for body
 - **Colors**: Signal-specific palettes (Growth/Flow/Labor)
+- **Maps**: Interactive Drill-Down (India -> State -> District)
+
+### Key Features
+1.  **TissueDeck Visuals**: Ambient aurora backgrounds, glassmorphic containers, and precision grids.
+2.  **Smart Drill-Down**: Click-to-zoom for all 36 states/UTs with auto-scaling.
+3.  **Context Sidebar**: Sidebar updates dynamically to show National vs State vs District insights.
+
 
 ---
 

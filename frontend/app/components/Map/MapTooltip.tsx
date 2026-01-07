@@ -6,9 +6,12 @@ import styles from './MapTooltip.module.css';
 interface TooltipProps {
     x: number;
     y: number;
+    isDistrict?: boolean;
     data: {
         name?: string;
-        state_id: string;
+        district_name?: string;
+        state_id?: string;
+        state_name?: string;
         signals?: {
             growth: number;
             flow: number;
@@ -19,13 +22,19 @@ interface TooltipProps {
         };
         districts?: number;
         pincodes?: number;
+        pin_count?: number;
     };
 }
 
-export default function MapTooltip({ x, y, data }: TooltipProps) {
+export default function MapTooltip({ x, y, data, isDistrict }: TooltipProps) {
     // Position tooltip to avoid going off-screen
     const adjustedX = x + 20;
     const adjustedY = y - 10;
+
+    // Determine title to display
+    const title = isDistrict
+        ? (data.district_name || 'Unknown District')
+        : (data.name || data.state_id);
 
     return (
         <motion.div
@@ -40,7 +49,12 @@ export default function MapTooltip({ x, y, data }: TooltipProps) {
             transition={{ duration: 0.15 }}
         >
             <div className={styles.header}>
-                <h3>{data.name || data.state_id}</h3>
+                <div>
+                    <h3>{title}</h3>
+                    {isDistrict && data.state_name && (
+                        <span className={styles.subHeader}>{data.state_name}</span>
+                    )}
+                </div>
                 {data.hotspot && (
                     <span
                         className={styles.intensityBadge}
@@ -81,14 +95,16 @@ export default function MapTooltip({ x, y, data }: TooltipProps) {
                 </div>
             )}
 
-            {(data.districts || data.pincodes) && (
-                <div className={styles.meta}>
-                    {data.districts && <span>{data.districts} Districts</span>}
-                    {data.pincodes && <span>{data.pincodes.toLocaleString()} PINs</span>}
-                </div>
-            )}
+            <div className={styles.meta}>
+                {!isDistrict && data.districts && <span>{data.districts} Districts</span>}
+                {(data.pincodes || data.pin_count) && (
+                    <span>{(data.pincodes || data.pin_count || 0).toLocaleString()} PINs</span>
+                )}
+            </div>
 
-            <div className={styles.hint}>Click to explore →</div>
+            <div className={styles.hint}>
+                {isDistrict ? 'Click to select' : 'Click to explore →'}
+            </div>
         </motion.div>
     );
 }

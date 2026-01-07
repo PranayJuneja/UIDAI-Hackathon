@@ -2,7 +2,42 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
-## [2.2.0] - 2026-01-08 - 🧬 THE TISSUEDECK UI OVERHAUL
+## [2.3.0] - 2026-01-08 - 🗺️ THE DRILL-DOWN & TYPOGRAPHY UPDATE
+> *"From a Bird's Eye View to a Worm's Eye View"*
+
+### 🔥 Headline Features
+
+#### 1. Interactive District Drill-Down
+> *"See the Forest AND the Trees."*
+- **Seamless State Zoom**: Clicking any state (e.g., Rajasthan) transitions the viewport from the national map to a focused, auto-scaled view of that state's districts.
+- **Dynamic GeoJSON Loading**:
+  - Implemented on-demand fetching of district boundaries from `udit-001/india-maps-data`.
+  - **Intelligent Caching**: Maps are cached in memory (`geoJsonCache`) to ensure instant subsequent loads.
+  - **Auto-Fit Projection**: Replaced manual scaling with `d3.fitExtent` for pixel-perfect viewport fitting regardless of state shape or size.
+
+#### 2. Enhanced Map Legibility
+- **Smart Typography with Abbreviations**:
+  - Solved the "overlapping label" crisis by introducing a dictionary of standard Indian abbreviations.
+  - **Mappings**: `Madhya Pradesh` → `MP`, `Uttar Pradesh` → `UP`, `Andaman & Nicobar` → `A&N`.
+  - **Centroid Labeling**: State and District names are now dynamically placed at the geometric center of their polygon paths.
+- **Rich Tooltips**:
+  - **Dual-Context Header**: Hovering a district now shows "District Name" (Primary) and "State Name" (Secondary) for absolute clarity.
+  - **Pin Count Metadata**: Added "Total PIN Codes" count to tooltips, giving users a sense of data density.
+
+#### 3. Context-Aware Dashboard Sidebar
+- **Dynamic Logic Switch**:
+  - **India View**: Shows "India Overview" and "Top National Hotspots".
+  - **State View**: Instantly reconfigures to "State Overview" (District count, PIN count) and lists "Top {State} Districts" by intensity.
+- **Reactive animations**: Sidebar cards animate in/out when context changes.
+
+### Fixed
+- **Empty Side Panels**: Fixed a critical bug where drilling down left the "Overview" and "Hotspots" panels showing stale national data.
+- **Tooltip Ambiguity**: Resolved issue where tooltips showed "Unknown" or generic data when hovering districts.
+- **Map Scaling**: Fixed issue where smaller states appeared tiny by implementing D3's auto-fit logic.
+
+---
+
+
 > *"Design is not just what it looks like and feels like. Design is how it works."*
 
 ### 🔥 Headline Features

@@ -22,10 +22,12 @@ interface StatePathProps {
     feature: GeoFeature;
     pathD: string;
     stateId: string | undefined;
+    stateName: string;
     intensity: number;
     isHovered: boolean;
     isSelected: boolean;
     hasData: boolean;
+    centroid: [number, number] | null;
     onMouseEnter: (e: React.MouseEvent, feature: GeoFeature) => void;
     onMouseLeave: () => void;
     onClick: () => void;
@@ -40,7 +42,9 @@ const StatePath = memo(function StatePath({
     onMouseEnter,
     onMouseLeave,
     onClick,
-    feature
+    feature,
+    stateName,
+    centroid
 }: StatePathProps) {
     const handleMouseEnter = useCallback((e: React.MouseEvent) => {
         onMouseEnter(e, feature);
@@ -55,19 +59,32 @@ const StatePath = memo(function StatePath({
             : 'rgba(255, 255, 255, 0.2)';
 
     return (
-        <path
-            d={pathD}
-            className={`${styles.statePath} ${isHovered ? styles.hovered : ''} ${isSelected ? styles.selected : ''}`}
-            style={{
-                fill: fill,
-                fillOpacity: hasData ? 0.85 : 0.4,
-                stroke: strokeColor,
-                strokeWidth: isSelected ? 2.5 : isHovered ? 2 : 0.75,
-            }}
+        <g
+            className={styles.stateGroup}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={onMouseLeave}
             onClick={onClick}
-        />
+        >
+            <path
+                d={pathD}
+                className={`${styles.statePath} ${isHovered ? styles.hovered : ''} ${isSelected ? styles.selected : ''}`}
+                style={{
+                    fill: fill,
+                    fillOpacity: hasData ? 0.85 : 0.4,
+                    stroke: strokeColor,
+                    strokeWidth: isSelected ? 2.5 : isHovered ? 2 : 0.75,
+                }}
+            />
+            {centroid && (
+                <text
+                    x={centroid[0]}
+                    y={centroid[1]}
+                    className={`${styles.stateLabel} ${isHovered || isSelected ? styles.hovered : ''}`}
+                >
+                    {stateName}
+                </text>
+            )}
+        </g>
     );
 });
 
@@ -147,6 +164,23 @@ const BackArrowIcon = () => (
         <path d="M12 19l-7-7 7-7" />
     </svg>
 );
+
+const stateAbbreviations: { [key: string]: string } = {
+    "Andaman and Nicobar Islands": "A&N",
+    "Arunachal Pradesh": "Arunachal",
+    "Dadra and Nagar Haveli and Daman and Diu": "DNH & DD",
+    "Jammu and Kashmir": "J&K",
+    "Madhya Pradesh": "MP",
+    "Uttar Pradesh": "UP",
+    "Andhra Pradesh": "AP",
+    "Himachal Pradesh": "HP",
+    "West Bengal": "WB",
+    "Tamil Nadu": "TN",
+    "NCT of Delhi": "Delhi",
+    "Lakshadweep": "LD",
+    "Chhattisgarh": "C.garh",
+    "Chandigarh": "Ch.garh"
+};
 
 export default function IndiaMap() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -450,12 +484,14 @@ export default function IndiaMap() {
                         <g className={styles.statesGroup}>
                             {geoData.features.map((feature, i) => {
                                 const name = getStateName(feature);
+                                const displayName = stateAbbreviations[name] || name;
                                 const stateId = getStateIdFromGeoJSON(name);
                                 const stateData = getStateData(name);
                                 const intensity = stateData?.hotspot?.intensity || 0;
                                 const isHovered = stateId ? hoveredState === stateId : false;
                                 const isSelected = stateId ? selectedState === stateId : false;
                                 const pathD = indiaPathGenerator(feature as any) || '';
+                                const centroid = indiaPathGenerator.centroid(feature as any);
 
                                 return (
                                     <StatePath
@@ -463,10 +499,12 @@ export default function IndiaMap() {
                                         feature={feature}
                                         pathD={pathD}
                                         stateId={stateId}
+                                        stateName={displayName}
                                         intensity={intensity}
                                         isHovered={isHovered}
                                         isSelected={isSelected}
                                         hasData={!!stateData}
+                                        centroid={centroid}
                                         onMouseEnter={handleStateMouseEnter}
                                         onMouseLeave={handleStateMouseLeave}
                                         onClick={() => handleStateClick(stateId, name)}
