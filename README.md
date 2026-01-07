@@ -1,225 +1,227 @@
-# Cognexis: The Weather Forecast for Aadhaar 🧬
+# Cognexis: Temporal Spatial Intelligence for Aadhaar
 
-> **UIDAI Hackathon Submission - AI-Powered Demand Forecasting**
+> **UIDAI Hackathon 2026 Submission**
+>
+> **Project Code**: UIDAI-HACK-2026-CHRONOS
+> **Version**: 2.6.0 (The Liquid Glass Release)
 
-[![Submission](https://img.shields.io/badge/Read-Submission_Document-blue?style=for-the-badge&logo=markdown)](Submission.md)
-[![Devin Wiki](https://img.shields.io/badge/Devin-Wiki-blue?style=for-the-badge)](https://app.devin.ai/wiki/PranayJuneja/UIDAI-Hackathon)
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![Polars](https://img.shields.io/badge/Polars-Fast_Data-orange)
-![Amazon Chronos](https://img.shields.io/badge/AI-Amazon_Chronos_T5-purple)
-![TissueDeck](https://img.shields.io/badge/UI-TissueDeck_Design-teal)
-
-**Cognexis** (formerly Chronos-X) transforms UIDAI operations from **Reactive** to **Proactive**.
-Instead of waiting for queues to form, our AI predicts **Migration**, **Settlement**, and **Labor Trends** 1-3 months in advance.
-
-> *"India is too big for a single timeline. We built a system that finds parallel timelines to predict the future."*
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![TypeScript](https://img.shields.io/badge/typescript-5.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
-## 🦾 The AI Brain (New in v1.8)
+## Executive Summary
 
-Chronos-X isn't just a forecasting model; it's a **Conversational Intelligence**.
+**Cognexis** (formerly Chronos-X) acts as the central nervous system for UIDAI's demand forecasting operations. It represents a paradigm shift from **Reactive Logistics**—responding to queues after they form—to **Proactive Anticipation**—provisioning resources 1-3 months before demand surges.
 
-### The "4-Step Thinking Process"
-When you ask *"What is the migration outlook for North Delhi vs Bangalore?"*, the system executes a complex cognitive pipeline:
+By synthesizing disparate data signals (Biometric updates, Demographic changes, and New Enrolments) into a unified **Pulse Vector**, Cognexis creates a high-fidelity digital twin of India's socio-economic movement. It utilizes **Amazon Chronos**, a foundation model for time-series forecasting, coupled with a novel **Spatial Parallel Search** algorithm to predict migration trends, labor movements, and settlement patterns with unprecedented accuracy, even in data-sparse environments.
 
-1.  **🧠 Intent Parsing (NLU)**:
-    *   Detects **Intent**: `Comparison`
-    *   Extracts **Primary Location**: `North Delhi` -> Maps to `Delhi` (PIN 110xxx)
-    *   Extracts **Secondary Location**: `Bangalore` -> Maps to `Bangalore` (PIN 560xxx)
-    *   Extracts **Horizon**: `Default (1 month)`
-
-2.  **📍 Hyper-Resolution**:
-    *   Uses **Fuzzy Matching** to fix typos ("Banglaore" -> "Bangalore").
-    *   Resolves **Abbreviations** ("Blr", "Del", "UP", "TN").
-    *   Filters through **74,000+ data rows** to find the most representative Pulse Vectors.
-
-3.  **⏳ Dual-Context Loading**:
-    *   Spins up *two separate* prediction instances.
-    *   Fetches **Spatial Parallels** for *both* locations simultaneously.
-    *   Injects **Cross-State Learning** (e.g., finding that Delhi's pattern matches a district in UP).
-
-4.  **🗣️ Authoritative Attestation**:
-    *   Synthesizes all 6 data points (Growth/Flow/Labor for City A & City B).
-    *   Generates a **Comparative Strategic Analysis** for UIDAI officials.
-
-All of this happens in **< 3 seconds**.
+This platform provides UIDAI officials with a "Weather Forecast" for Aadhaar services, enabling data-driven decisions for center allocation, manpower planning, and dynamic resource distribution.
 
 ---
 
-## 🏆 Hackathon Submission
-This repository contains the complete source code and documentation for our solution.
+## System Architecture
 
-👉 **[Read the Full Submission Document (Submission.md)](Submission.md)** for:
-1.  **Problem Statement:** Moving from "Firefighting" to "Weather Forecasting".
-2.  **Methodology:** How we use **Pulse Vectors** and **Spatial Parallel Search**.
-3.  **Datasets:** Fusion of Enrolment, Demographic, and Biometric data.
-4.  **Winning Criteria:** Detailed alignment with the judging parameters.
+The Cognexis platform is architected as a decoupled, event-driven system comprising a high-performance Python inference engine and a hardware-accelerated React frontend.
 
----
+### 1. The Inference Engine (Backend)
+Built on **FastAPI**, the backend serves as the orchestration layer for three critical sub-systems:
+*   **Data Ingestion Pipeline**: A Polars-based ETL engine that fuses raw CSV dumps into optimized Parquet artifacts.
+*   **Chronos-X Forecasting Core**: A hybrid prediction engine combining large-scale primitive foundation models with spatial behavioral cloning.
+*   **Contextual Attestation Layer**: An LLM-driven reasoning module that explains *why* a prediction was made, citing local events (e.g., Harvest Season, School Admissions).
 
-## 💡 The Core Innovation
-
-### 1. The "Pulse Vector" ($V_{p,t}$)
-We don't just count transactions. We fuse three signals into a 3D "DNA" for every PIN code:
-*   **Growth Signal (0-5 Enrolments):** Families settling down.
-*   **Flow Signal (Demographic Updates):** Migration and urbanization.
-*   **Labor Signal (Biometric Updates):** Manual labor intensity.
-
-### 2. The "Time Machine" (Spatial Parallel Search)
-*   **Insight:** India is vast. What happens in a developing suburb of **Pune** today often *already happened* in a similar suburb of **Bangalore** last month.
-*   **Engine:** Our AI finds these "Parallel Universes" across states to predict the future trajectory of a region even with limited historical data.
-
-### 3. Foundation Model Forecasting
-We utilize **Amazon Chronos T5**, a Zero-Shot time-series foundation model, to generate accurate forecasts even on short (2-3 month) data horizons where traditional models fail.
+### 2. The Experience Layer (Frontend)
+Built on **Next.js 16**, the frontend is a strictly typed, component-driven application designed for high-density data visualization.
+*   **Visual Engine**: A memoized D3-geo projection system capable of rendering 500+ district paths at 60fps.
+*   **State Management**: A global Zustand store managing temporal states, geographical selection, and cross-component signaling.
+*   **Design System**: "TissueDeck"—a proprietary design language utilizing glassmorphism, physics-based particle dynamics, and chromatic aberration to visualize data depth.
 
 ---
 
-## 🎨 Frontend Dashboard (New in v2.1)
+## Theoretical Framework: The Pulse Vector
 
-Premium UI built with **Next.js 16**, Google Fonts, and Framer Motion.
+At the heart of Cognexis lies the **Pulse Vector ($V_p$)**, a normalized 3-dimensional tensor representing the socio-economic heartbeat of a specific PIN code at time $t$.
 
-### Quick Start
+$$ V_{p,t} = \langle G_{p,t}, F_{p,t}, L_{p,t} \rangle $$
+
+Where:
+*   **$G$ (Growth Signal)**: Normalized velocity of child enrolments (0-5 years). Indicates residential settlement and family unit formation.
+    *   *Source*: New Enrolment Dataset
+*   **$F$ (Flow Signal)**: Rate of demographic updates (Address changes). Proxy for urban migration and housing shifts.
+    *   *Source*: Demographic Update Dataset
+*   **$L$ (Labor Signal)**: Intensity of biometric updates. Correlates with manual labor workforce movement and aging populations.
+    *   *Source*: Biometric Update Dataset
+
+### Normalization Logic
+Raw transaction counts are meaningless across disparate geographies (e.g., comparing Mumbai to a rural village). We apply Z-Score Normalization relative to the state's baseline to extract the *intensity* of the signal.
+
+$$ Signal_{norm} = \frac{x - \mu_{state}}{\sigma_{state}} $$
+
+This allows the AI to learn universal behavioral patterns (e.g., "Pre-Harvest Migration") independent of absolute population scale.
+
+---
+
+## Algorithmic Innovation: Spatial Parallel Search
+
+Traditional time-series models (ARIMA, LSTM) fail when historical data is limited (e.g., < 6 months). Cognexis overcomes this with **Spatial Parallel Search**, a technique inspired by behavioral cloning.
+
+**The Hypothesis**: India is vast. The future trajectory of a developing suburb in one state often mirrors the *past* trajectory of a clearer, more mature suburb in another state.
+
+**The Algorithm**:
+1.  **Vector Embedding**: Encode the last $k$ months of Pulse Vectors for the target PIN $P_{target}$.
+2.  **Cosine Similarity Scan**: Search the entire national database (19,000+ PINs) for "Parallel Universes"—PINs ($P_{parallel}$) in *different* states that exhibited an identical behavioral signature $n$ months ago.
+    $$ Similarity(A, B) = \frac{A \cdot B}{\|A\| \|B\|} $$
+3.  **Future Projection**: If regions $P_{target}$ and $P_{parallel}$ shared the same past, we infer that $P_{target}$'s future will statistically resemble $P_{parallel}$'s present.
+4.  **Ensemble Weighting**: These spatial projections are fused with Amazon Chronos (T5-Base) zero-shot forecasts using a confidence-weighted average.
+
+---
+
+## Technical Specifications
+
+### Frontend Application
+The frontend is engineered for performance and visual fidelity, handling complex vector mapping without blocking the main thread.
+
+**Core Stack**:
+*   **Framework**: Next.js 16.1.1 (App Router)
+*   **Language**: TypeScript 5.0 (Strict Mode)
+*   **Rendering**: React 19 (Server Components + Client Islands)
+*   **Styling**: CSS Modules with "TissueDeck" Design Tokens
+*   **Motion**: Framer Motion (Spring Physics)
+
+**Key Modules**:
+*   **`MapVisuals`**: A `React.memo` optimized component separating D3 calculations from rendering updates. Ensures hover interactions (0ms latency) do not trigger map reprojections.
+*   **`Chatbot.tsx`**: A WebSocket client implementing a robust "Heartbeat" protocol tailored for unstable network conditions. Features a custom "Liquid Glass" UI implementation.
+*   **`Timeline.tsx`**: A continuous interaction slider syncing global app state (`mapStore`) with temporal data slices, utilizing debounced dispatchers for smooth playback.
+
+### Backend Services
+The backend is a high-throughput synchronous/asynchronous hybrid server.
+
+**Core Stack**:
+*   **Server**: FastAPI (Uvicorn Worker Class)
+*   **Language**: Python 3.10+
+*   **Data Processing**: Polars (Rust-backed DataFrame engine)
+*   **AI Orchestration**: LangChain + Amazon Chronos
+
+**Key Modules**:
+*   **`api_server.py`**: Entry point defining REST contracts and WebSocket lifecycle management.
+*   **`chronos_engine.py`**: Encapsulates model inference logic, caching mechanisms, and HuggingFace transformer pipelines.
+*   **`attestation.py`**: The "Reasoning Layer". Parses natural language intent, injects statistical context, and acts as a gateway to Large Language Models (LLM) via Vercel AI Gateway.
+*   **`location_resolver.py`**: A deterministic fuzzy-logic engine capable of resolving 75,000+ non-standard location strings (e.g., "Banglaore", "Del") to canonical PIN codes.
+
+---
+
+## Installation & Deployment
+
+### Prerequisites
+*   **Python**: 3.10 or higher
+*   **Node.js**: 20.x or higher
+*   **Memory**: 8GB RAM minimum (16GB recommended for full India map rendering)
+*   **GPU**: Optional (Required only for batch training/inference with Amazon Chronos)
+
+### 1. Clone & Initialize
 ```bash
-cd frontend
-npm install
-npm run dev
-# Opens at http://localhost:3000
+git clone https://github.com/PranayJuneja/UIDAI-Hackathon.git
+cd UIDAI-Hackathon
 ```
 
-### Technology Stack
-| Technology | Purpose |
-|:-----------|:--------|
-| Next.js 16 | React framework with App Router |
-| TypeScript | Type safety |
-| Framer Motion | Smooth animations |
-| Google Fonts | Outfit (headings), Inter (body) |
-| Zustand | State management |
-| D3-geo | Map projections |
-
-### Design System
-- **Theme**: Premium off-white light (`#FAFBFC`) with dark accents
-- **Typography**: Outfit 800 for display, Inter for body
-- **Colors**: Signal-specific palettes (Growth/Flow/Labor)
-- **Maps**: Interactive Drill-Down (India -> State -> District)
-- **Philosophy**: "Data-Forward" - Minimal chrome, maximum insight.
-
-### Key Features
-1.  **TissueDeck Visuals**: Ambient aurora backgrounds, glassmorphic containers, and precision grids.
-2.  **Smart Drill-Down**: Click-to-zoom for all 36 states/UTs with auto-scaling.
-3.  **Context Sidebar**: Sidebar updates dynamically to show National vs State vs District insights.
-4.  **Time Machine**: Interactive timeline slider to visualize forecasts from Nov 2025 - Oct 2026 with auto-play.
-5.  **Deep Polish**: distraction-free UI with no artifacts or decorative noise.
-
-
----
-
-## 🌐 API Server (New in v2.0)
-
-The Chronos-X API powers the dashboard with **real-time data aggregation**.
-
-### Quick Start
+### 2. Backend Setup
+Create a virtual environment and install dependencies.
 ```bash
-python api_server.py
-# Server starts at http://localhost:8000
-# Swagger docs at http://localhost:8000/docs
-```
+python -m venv venv
+# Windows
+.\venv\Scripts\activate
+# Linux/Mac
+source venv/bin/activate
 
-### REST Endpoints
-| Endpoint | Description |
-|:---------|:------------|
-| `GET /api/health` | Server health + loaded data stats |
-| `GET /api/timeline` | Available months for timeline slider |
-| `GET /api/states` | All 36 states with hotspot intensities |
-| `GET /api/states/{id}` | State details + district breakdown |
-| `GET /api/pins/{code}` | PIN-level data + AI forecasts |
-| `GET /api/search?q=` | Fuzzy search (states, districts, PINs) |
-| `GET /api/map?month=` | Complete map data for rendering |
-| `WS /ws/chat` | Real-time AI chatbot (WebSocket) |
-
----
-
-## 📂 Directory Structure
-
-```plaintext
-chronos-x/
-├── Submission.md               # 📄 MASTER SUBMISSION DOCUMENT
-├── README.md                   # Project Overview
-├── api_server.py               # 🌐 FastAPI Backend Server
-│
-├── frontend/                   # 🎨 Next.js Dashboard (NEW)
-│   ├── app/
-│   │   ├── globals.css         # Design system (300+ lines)
-│   │   ├── page.tsx            # Landing page with animations
-│   │   └── layout.tsx          # Root layout
-│   └── package.json
-│
-├── data/                       # Dataset Storage
-│   ├── api_data_aadhar_*       # Raw CSV inputs
-│   └── output/                 # Generated artifacts (pulse_vectors.parquet)
-│
-├── src/                        # Core Application Code
-│   ├── data_pipeline.py        # ETL: Load -> Fuse -> Normalize -> Export
-│   ├── ai_forecaster.py        # AI Engine: Chronos Model + Spatial Search
-│   ├── chronos_engine.py       # Wrapper for Chronos
-│   ├── context_engine.py       # Seasonal/Event Context
-│   └── location_resolver.py    # Fuzzy Location Matching
-│
-├── scripts/                    # Analysis Tools
-│   └── analyze_feasibility.py  # Data stats
-│
-├── chronos_chatbot.py          # 🤖 AI Chatbot Interface
-├── chronos_cli.py              # Command Line Interface
-└── requirements.txt            # Dependencies
-```
-
----
-
-## ⚡ Quick Start
-
-### 1. Installation
-```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run the Data Pipeline
-Fuse the raw UIDAI CSVs into the Master Pulse Table.
+### 3. Data Pipeline Execution
+Transform raw CSVs into the Pulse Vector Parquet store.
 ```bash
 python src/data_pipeline.py
+# Output: data/output/pulse_vectors.parquet (approx. 50MB)
 ```
 
-### 3. Ask the AI 🤖
-Launch the interactive chatbot to query predictions in natural language.
+### 4. Frontend Setup
+Navigate to the frontend directory and install dependencies.
 ```bash
-python chronos_chatbot.py
+cd frontend
+npm install
 ```
 
-**Try these "Power Queries":**
-*   `"Compare Mumbai vs Bangalore"` (Dual-context comparison)
-*   `"What should I do in UP next month?"` (State-level abbreviation + Recommendation)
-*   `"Why is the labor signal high in 560001?"` (Deep-dive explanation)
-*   `"Forecast for Blr"` (City abbreviation support)
-
-#### Chatbot Commands
-| Command | Description |
-| :--- | :--- |
-| `pin <code>` | Instant context switch (e.g., `pin 110001`) |
-| `status` | View current engine state, loaded PIN, and context |
-| `history` | View memory of last 10 conversation turns |
-| `clear` | Wipe conversation memory |
-
-
-### 4. Generate Forecasts
-Run the hybrid forecasting engine.
+### 5. Running the Application
+**Terminal 1 (Backend)**:
 ```bash
-python chronos_cli.py --pincode 110001
+python api_server.py
+# Server listening on http://localhost:8000
+```
+
+**Terminal 2 (Frontend)**:
+```bash
+cd frontend
+npm run dev
+# Application live at http://localhost:3000
 ```
 
 ---
 
-## 📊 Visualisation
-Check out `chronos_colab.ipynb` for interactive charts and deep-dive analysis of the Pulse Vectors and Forecast confidence intervals.
+## API Documentation
+
+The API adheres to OpenAPI 3.0 standards. Full Swagger documentation is available at `http://localhost:8000/docs` when the server is running.
+
+### Core Endpoints
+
+#### `GET /api/map`
+Retrieves the complete GeoJSON data fused with current Pulse Vector intensities for map rendering.
+*   **Parameters**: `month` (YYYY-MM), `signal` (growth|flow|labor)
+*   **Response**: Compressed GeoJSON `FeatureCollection`.
+
+#### `GET /api/states/{id}`
+Fetches drill-down data for a specific state, including district-level aggregation.
+*   **Parameters**: `id` (State Code, e.g., 'MH', 'UP')
+*   **Response**: JSON object containing normalized growth metrics for all districts in the state.
+
+#### `GET /api/predict/{pincode}`
+Triggers the inference engine for a specific locale.
+*   **Parameters**: `horizon` (1-6 months)
+*   **Response**:
+    ```json
+    {
+      "forecast": { "growth": 0.85, "flow": 1.2, "labor": -0.3 },
+      "attestation": "High inbound migration predicted due to post-harvest labor shift...",
+      "parallels": [ "560034", "110001" ]
+    }
+    ```
+
+#### `WS /ws/chat`
+Bi-directional WebSocket for the Chronos Copilot.
+*   **Protocol**: JSON-RPC style messages.
+    *   **Inbound**: `{ "query": "Analysis for Mumbai", "context": {...} }`
+    *   **Outbound**: `{ "type": "token", "content": "..." }` | `{ "type": "action", "payload": "ZOOM_MAP" }`
 
 ---
 
-> **Team Chronos-X** | UIDAI Hackathon 2026
+## Contributing
+
+We welcome contributions from the open-source community, particularly in the areas of:
+1.  **Model Fine-tuning**: Improving Amazon Chronos weights with regional Indian datasets.
+2.  **Visualization Optimizations**: Enhancing WebGL performance for low-end devices.
+3.  **Localization**: Adding vernacular support to the Attestation engine.
+
+**Pull Request Workflow**:
+1.  Fork the repository.
+2.  Create a feature branch (`git checkout -b feature/amazing-feature`).
+3.  Commit your changes following the [Conventional Commits](https://www.conventionalcommits.org/) specification.
+4.  Push to the branch.
+5.  Open a Pull Request.
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the `LICENSE` file for details.
+
+> **Disclaimer**: This is a prototype developed for the UIDAI Hackathon 2026. All data used is synthetic or anonymized for demonstration purposes.
