@@ -233,22 +233,7 @@
     overflow: hidden;
 }
 
-/* Gradient top bar on hover - TissueDeck Colors */
-.statsCard::before,
-.hotspotsCard::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg,
-            #4DB6AC 0%,
-            #D0BCFF 50%,
-            #EFB8C8 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
+
 
 .statsCard:hover,
 .hotspotsCard:hover {
@@ -261,10 +246,7 @@
     border-color: rgba(255, 255, 255, 0.12);
 }
 
-.statsCard:hover::before,
-.hotspotsCard:hover::before {
-    opacity: 1;
-}
+
 
 .cardTitle {
     font-family: var(--font-display);

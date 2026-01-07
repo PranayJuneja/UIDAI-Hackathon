@@ -2,6 +2,32 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
+## [2.3.1] - 2026-01-08 - 💎 THE DEEP POLISH
+> *"Perfection is attained not when there is nothing more to add, but when there is nothing more to take away."*
+
+### 🔥 Headline Features
+
+#### 1. Visual Clarification & Artifact Removal
+- **Gradient Bar Elimination**: 
+  - Systematically removed the "Apple-style" blue/purple gradient bars from **Map Tooltips**, **India Overview**, and **Top Hotspots** panels.
+  - **Reasoning**: While aesthetically pleasing in isolation, these bars created visual noise that competed with the map's own data intensity gradients. The UI is now strictly data-forward having a cleaner, professional look.
+- **Emoji Sanitization**: 
+  - Removed the "🔥" emoji from the "Top Hotspots" header.
+  - **Typography First**: Relying on weight (`Outfit 800`) and color context (Red/Amber signals) to convey "heat" rather than decorative emojis.
+
+#### 2. Tooltip Typography Engine
+- **Hierarchical Clarity**: 
+  - **Primary**: District Name (Bold, White)
+  - **Secondary**: State Name (Regular, Muted 50%)
+  - **Meta**: Data stats separated by dividers
+- **Zero-Layout Shift**: Fixed issue where long district names caused tooltip jitter.
+
+### Fixed
+- **CSS Artifacts**: Cleaned up residual `::before` pseudo-elements in `dashboard.module.css` that were causing ghost clicks and visual clutter.
+- **Z-Index Layering**: Ensured tooltips always float above the glassmorphic sidebars (`z-index: 100`).
+
+---
+
 ## [2.3.0] - 2026-01-08 - 🗺️ THE DRILL-DOWN & TYPOGRAPHY UPDATE
 > *"From a Bird's Eye View to a Worm's Eye View"*
 

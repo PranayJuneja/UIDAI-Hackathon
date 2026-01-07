@@ -238,7 +238,7 @@ export default function Dashboard() {
                         transition={{ delay: 0.4 }}
                     >
                         <h3 className={styles.cardTitle}>
-                            🔥 Top {viewMode === 'state' ? 'Districts' : 'Hotspots'}
+                            Top {viewMode === 'state' ? 'Districts' : 'Hotspots'}
                         </h3>
 
                         {stats.loading ? (
