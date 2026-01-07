@@ -1,4 +1,4 @@
-# Chronos-X: The Weather Forecast for Aadhaar 🌦️
+# Cognexis: The Weather Forecast for Aadhaar 🧬
 
 > **UIDAI Hackathon Submission - AI-Powered Demand Forecasting**
 
@@ -7,8 +7,9 @@
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![Polars](https://img.shields.io/badge/Polars-Fast_Data-orange)
 ![Amazon Chronos](https://img.shields.io/badge/AI-Amazon_Chronos_T5-purple)
+![TissueDeck](https://img.shields.io/badge/UI-TissueDeck_Design-teal)
 
-**Chronos-X** transforms UIDAI operations from **Reactive** to **Proactive**.
+**Cognexis** (formerly Chronos-X) transforms UIDAI operations from **Reactive** to **Proactive**.
 Instead of waiting for queues to form, our AI predicts **Migration**, **Settlement**, and **Labor Trends** 1-3 months in advance.
 
 > *"India is too big for a single timeline. We built a system that finds parallel timelines to predict the future."*

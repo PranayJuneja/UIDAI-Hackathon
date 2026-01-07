@@ -4,9 +4,37 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import styles from "./page.module.css";
 
+// Generate random particles for ambient effect
+const particles = Array.from({ length: 25 }, (_, i) => ({
+  id: i,
+  left: `${Math.random() * 100}%`,
+  top: `${Math.random() * 100}%`,
+  size: Math.random() * 3 + 1.5,
+  duration: Math.random() * 20 + 20,  // Slow: 20-40 seconds
+  delay: Math.random() * 10,
+}));
+
 export default function Home() {
   return (
     <main className={styles.main}>
+      {/* Floating Particles */}
+      <div className="particlesContainer">
+        {particles.map((p) => (
+          <span
+            key={p.id}
+            className="particle"
+            style={{
+              left: p.left,
+              top: p.top,
+              width: p.size,
+              height: p.size,
+              animationDuration: `${p.duration}s`,
+              animationDelay: `${p.delay}s`,
+            }}
+          />
+        ))}
+      </div>
+
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>

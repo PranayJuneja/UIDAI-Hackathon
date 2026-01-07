@@ -2,6 +2,48 @@
 
 All notable changes to the **Chronos-X** project (The "Time Machine" for Aadhaar) will be documented in this file.
 
+## [2.2.0] - 2026-01-08 - 🧬 THE TISSUEDECK UI OVERHAUL
+> *"Design is not just what it looks like and feels like. Design is how it works."*
+
+### 🔥 Headline Features
+
+#### 1. "Cognexis" Rebranding & Identity
+- **Monospace Brand Identity**: Shifted header branding to `> Cognexis_` using a developer-centric monospace font stack (`JetBrains Mono`, `Fira Code`).
+- **Terminal Aesthetics**: Implemented a blinking yellow cursor (`_`) and semantic coloring (Teal prefix, White text) to evoke a high-tech, precision engineering feel.
+
+#### 2. TissueDeck Visual System Integration
+> *Porting the award-winning "Virtual Microscope" aesthetic to Aadhaar forecasting.*
+- **Ambient Aurora Backgrounds**:
+  - Replaced generic gradients with **TissueDeck's exact blue/lavender aurora** (`rgba(66, 133, 244)` & `rgba(138, 180, 248)`).
+  - Implemented specific opacity (`0.8`) and blur (`60px`) values for that signature deep-space glow.
+- **Precision Grid Overlay**:
+  - Applied the exact mathematically masked grid pattern (`0.03` opacity) used in TissueDeck.
+  - Ensures data density is felt without visual clutter.
+- **Hyper-Glassmorphism**:
+  - Updated the India Map container to be a **transparent glass box** (`opacity 0.6`).
+  - **40px Blur**: Maximized backdrop filter to create a premium "slide viewer" effect where the background grid remains visible through the UI elements.
+
+#### 3. Particle Dynamics Engine
+- **Brownian Motion**: Upgraded particle animation from simple linear float to complex Brownian drift.
+- **Physics Tuning**: Adjusted particle lifecycle (20-40s duration) for a slower, more hypnotic ambient effect.
+- **Z-Index Layering**: Particles now float *above* the map but *below* interaction layers (`z-index: 500`) for depth perception.
+
+#### 4. Interaction Design Updates
+- **Drill-Down Logic**:
+  - **State -> District**: Clicking a state now seamlessly drills down to district level.
+  - **District Selection**: Clicking a district highlights it (`stroke-width: 2px`) and loads granular data.
+  - **Back Navigation**: Added a floating glassmorphic "Back to India" button.
+- **Hover Micro-interactions**:
+  - State/District cards now glow with **TissueDeck Teal/Lavender** gradients.
+  - Map paths highlight with `drop-shadow(0 0 12px currentColor)` for better visibility.
+
+### Fixed
+- **Map Clipping**: Fixed SVG viewport clipping where Arunachal Pradesh was cut off by adjusting D3 projection center/scale.
+- **Gradient Consistency**: Removed legacy blue/purple gradients from `page.module.css` and `dashboard.module.css`, unifying the entire app under the new TissueDeck color palette.
+- **Hotspot Visibility**: Fixed logic where low-intensity hotspots weren't rendering; now color-coded (Blue/Yellow/Red) based on normalized thresholds.
+
+---
+
 ## [2.1.0] - 2026-01-07 - 🎨 THE GOD-TIER UI RELEASE
 
 ### 🔥 Headline Features

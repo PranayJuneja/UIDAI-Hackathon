@@ -54,12 +54,13 @@ export function useMapData() {
 
 // Mapping from our state IDs to GeoJSON state names
 // Updated for the new GeoJSON which uses ST_NM property
+// State IDs now match api_server.py STATE_ID_MAP
 export const STATE_ID_TO_GEOJSON: Record<string, string[]> = {
     'AP': ['Andhra Pradesh'],
     'AR': ['Arunachal Pradesh'],
     'AS': ['Assam'],
     'BR': ['Bihar'],
-    'CG': ['Chhattisgarh'],
+    'CT': ['Chhattisgarh'],  // Changed from CG to CT to match API
     'GA': ['Goa'],
     'GJ': ['Gujarat'],
     'HR': ['Haryana'],
@@ -79,10 +80,10 @@ export const STATE_ID_TO_GEOJSON: Record<string, string[]> = {
     'RJ': ['Rajasthan'],
     'SK': ['Sikkim'],
     'TN': ['Tamil Nadu'],
-    'TS': ['Telangana'],
+    'TG': ['Telangana'],  // Changed from TS to TG to match API
     'TR': ['Tripura'],
     'UP': ['Uttar Pradesh'],
-    'UK': ['Uttarakhand', 'Uttaranchal'],
+    'UT': ['Uttarakhand', 'Uttaranchal'],  // Changed from UK to UT to match API
     'WB': ['West Bengal'],
     'DL': ['Delhi', 'NCT of Delhi'],
     'AN': ['Andaman & Nicobar', 'Andaman and Nicobar', 'Andaman & Nicobar Islands'],

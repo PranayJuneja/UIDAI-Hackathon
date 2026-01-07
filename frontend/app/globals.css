@@ -1,8 +1,8 @@
 /* 
-  Chronos-X Design System
-  =======================
-  Premium off-white theme with Google Fonts
-  Strategic dark accents for contrast and depth
+  Chronos-X Design System - TissueDeck Inspired Dark Theme
+  =========================================================
+  Premium dark glassmorphic theme with Material 3 influences
+  Aurora ambient effects, grid overlays, and floating particles
 */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -11,135 +11,209 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CSS CUSTOM PROPERTIES (Design Tokens)
+   CSS CUSTOM PROPERTIES (Design Tokens) - DARK THEME
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root {
   /* ─────────────────────────────────────────────────────────────────────────────
-     COLORS - Premium Off-White Light Theme
+     COLORS - TissueDeck Material 3 Dark Theme (Exact Palette)
      ───────────────────────────────────────────────────────────────────────────── */
-  
-  /* Background Layers */
-  --bg-base: #FAFBFC;           /* Subtle off-white */
-  --bg-surface: #FFFFFF;        /* Pure white cards */
-  --bg-elevated: #F5F7FA;       /* Elevated sections */
-  --bg-muted: #EDF0F4;          /* Muted backgrounds */
-  
-  /* Dark Accent Areas (Map, Charts, Headers) */
-  --bg-dark: #1A1D24;           /* Rich dark */
-  --bg-dark-surface: #242831;   /* Dark cards */
-  --bg-dark-elevated: #2E333D;  /* Dark elevated */
-  
-  /* Brand Colors */
-  --brand-primary: #2563EB;     /* Royal Blue */
-  --brand-secondary: #7C3AED;   /* Vivid Purple */
-  --brand-accent: #0EA5E9;      /* Sky Blue */
-  
-  /* Signal Colors (Semantic) */
-  --signal-growth: #10B981;     /* Emerald - Growth/Settlement */
-  --signal-flow: #8B5CF6;       /* Violet - Migration/Flow */
-  --signal-labor: #F59E0B;      /* Amber - Labor Intensity */
-  
+
+  /* Background Layers - TissueDeck Dark */
+  --bg-base: #1C1B1F;
+  /* Material 3 dark surface */
+  --bg-surface: rgba(28, 27, 31, 0.8);
+  --bg-elevated: #2B2930;
+  /* Elevated dark */
+  --bg-muted: #1E1E22;
+  /* Deep dark muted */
+
+  /* TissueDeck Material 3 Color Tokens */
+  --md-sys-color-primary: #D0BCFF;
+  /* Lavender Purple */
+  --md-sys-color-on-primary: #381E72;
+  --md-sys-color-primary-container: #4F378B;
+  --md-sys-color-on-primary-container: #EADDFF;
+  --md-sys-color-secondary: #CCC2DC;
+  /* Light Purple */
+  --md-sys-color-on-secondary: #332D41;
+  --md-sys-color-secondary-container: #4A4458;
+  --md-sys-color-on-secondary-container: #E8DEF8;
+  --md-sys-color-tertiary: #EFB8C8;
+  /* Pink */
+  --md-sys-color-on-tertiary: #492532;
+  --md-sys-color-tertiary-container: #633B48;
+  --md-sys-color-on-tertiary-container: #FFD8E4;
+  --md-sys-color-background: #1C1B1F;
+  --md-sys-color-surface: #1C1B1F;
+  --md-sys-color-on-surface: #E6E1E5;
+  --md-sys-color-surface-variant: #49454F;
+  --md-sys-color-on-surface-variant: #CAC4D0;
+  --md-sys-color-outline: #938F99;
+
+  /* Dark Surface Variants */
+  --bg-dark: #14141A;
+  /* TissueDeck ultra dark */
+  --bg-dark-surface: #1E1E24;
+  /* Dark card surface */
+  --bg-dark-elevated: #28282E;
+  /* Dark elevated */
+
+  /* Brand Colors - TissueDeck Palette */
+  --brand-primary: #D0BCFF;
+  /* Lavender Purple (TissueDeck primary) */
+  --brand-secondary: #4DB6AC;
+  /* Teal (TissueDeck accent) */
+  --brand-accent: #EFB8C8;
+  /* Pink (TissueDeck tertiary) */
+  --brand-teal: #4DB6AC;
+  /* TissueDeck teal accent */
+  --brand-yellow: #FFE082;
+  /* TissueDeck yellow cursor */
+
+  /* Signal Colors - TissueDeck Inspired */
+  --signal-growth: #4DB6AC;
+  /* Teal */
+  --signal-flow: #D0BCFF;
+  /* Lavender */
+  --signal-labor: #FFE082;
+  /* Yellow */
+
   /* Hotspot Intensities */
-  --hotspot-low: #60A5FA;       /* Blue - Low activity */
-  --hotspot-medium: #FBBF24;    /* Yellow - Medium activity */
-  --hotspot-high: #EF4444;      /* Red - High activity */
-  
-  /* Gradient Presets */
-  --gradient-growth: linear-gradient(135deg, #10B981 0%, #34D399 100%);
-  --gradient-flow: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
-  --gradient-labor: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
-  --gradient-brand: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
-  --gradient-dark: linear-gradient(180deg, #1A1D24 0%, #242831 100%);
-  
-  /* Text Colors */
-  --text-primary: #111827;      /* Near black */
-  --text-secondary: #4B5563;    /* Gray 600 */
-  --text-muted: #9CA3AF;        /* Gray 400 */
-  --text-on-dark: #F9FAFB;      /* White on dark */
-  --text-on-dark-muted: #9CA3AF; /* Muted on dark */
-  
-  /* Border Colors */
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-default: rgba(0, 0, 0, 0.10);
-  --border-strong: rgba(0, 0, 0, 0.15);
+  --hotspot-low: #8AB4F8;
+  /* Soft Blue */
+  --hotspot-medium: #FFE082;
+  /* Yellow */
+  --hotspot-high: #EFB8C8;
+  /* Pink */
+
+  /* Gradient Presets - TissueDeck Style */
+  --gradient-growth: linear-gradient(135deg, #4DB6AC 0%, #80CBC4 100%);
+  --gradient-flow: linear-gradient(135deg, #D0BCFF 0%, #EADDFF 100%);
+  --gradient-labor: linear-gradient(135deg, #FFE082 0%, #FFECB3 100%);
+  --gradient-brand: linear-gradient(135deg, #4DB6AC 0%, #D0BCFF 100%);
+  --gradient-dark: linear-gradient(180deg, #14141A 0%, #1C1B1F 100%);
+  --gradient-aurora: radial-gradient(50% 50% at 50% 50%, rgba(208, 188, 255, 0.35) 0%, rgba(77, 182, 172, 0.15) 40%, transparent 80%);
+
+  /* Text Colors - Light on Dark */
+  --text-primary: #E6E1E5;
+  /* Off-white */
+  --text-secondary: #CAC4D0;
+  /* Muted white */
+  --text-muted: #938F99;
+  /* Gray */
+  --text-on-dark: #F9FAFB;
+  /* Pure white */
+  --text-on-dark-muted: #9CA3AF;
+  /* Muted on dark */
+
+  /* Border Colors - Subtle Glass Edges */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.15);
   --border-on-dark: rgba(255, 255, 255, 0.08);
-  
-  /* Shadow System */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.3);
-  
-  /* Glassmorphism */
-  --glass-bg-light: rgba(255, 255, 255, 0.7);
-  --glass-bg-dark: rgba(26, 29, 36, 0.85);
+
+  /* Shadow System - Deep Dark Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 30px rgba(139, 92, 246, 0.3);
+  --shadow-glow-blue: 0 0 30px rgba(59, 130, 246, 0.3);
+
+  /* Glassmorphism - Premium Dark Glass */
+  --glass-bg-light: rgba(255, 255, 255, 0.03);
+  --glass-bg-dark: rgba(10, 15, 26, 0.85);
   --glass-blur: 20px;
-  
+  --glass-saturate: 150%;
+
   /* ─────────────────────────────────────────────────────────────────────────────
      TYPOGRAPHY
      ───────────────────────────────────────────────────────────────────────────── */
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  
+
   /* Font Sizes */
-  --text-xs: 0.75rem;      /* 12px */
-  --text-sm: 0.875rem;     /* 14px */
-  --text-base: 1rem;       /* 16px */
-  --text-lg: 1.125rem;     /* 18px */
-  --text-xl: 1.25rem;      /* 20px */
-  --text-2xl: 1.5rem;      /* 24px */
-  --text-3xl: 2rem;        /* 32px */
-  --text-4xl: 2.5rem;      /* 40px */
-  --text-display: 3.5rem;  /* 56px - Hero */
-  
+  --text-xs: 0.75rem;
+  /* 12px */
+  --text-sm: 0.875rem;
+  /* 14px */
+  --text-base: 1rem;
+  /* 16px */
+  --text-lg: 1.125rem;
+  /* 18px */
+  --text-xl: 1.25rem;
+  /* 20px */
+  --text-2xl: 1.5rem;
+  /* 24px */
+  --text-3xl: 2rem;
+  /* 32px */
+  --text-4xl: 2.5rem;
+  /* 40px */
+  --text-display: 3.5rem;
+  /* 56px - Hero */
+
   /* Line Heights */
   --leading-tight: 1.25;
   --leading-normal: 1.5;
   --leading-relaxed: 1.75;
-  
+
   /* Letter Spacing */
   --tracking-tight: -0.025em;
   --tracking-normal: 0;
   --tracking-wide: 0.025em;
-  
+
   /* ─────────────────────────────────────────────────────────────────────────────
      SPACING
      ───────────────────────────────────────────────────────────────────────────── */
-  --space-1: 0.25rem;   /* 4px */
-  --space-2: 0.5rem;    /* 8px */
-  --space-3: 0.75rem;   /* 12px */
-  --space-4: 1rem;      /* 16px */
-  --space-5: 1.25rem;   /* 20px */
-  --space-6: 1.5rem;    /* 24px */
-  --space-8: 2rem;      /* 32px */
-  --space-10: 2.5rem;   /* 40px */
-  --space-12: 3rem;     /* 48px */
-  --space-16: 4rem;     /* 64px */
-  
+  --space-1: 0.25rem;
+  /* 4px */
+  --space-2: 0.5rem;
+  /* 8px */
+  --space-3: 0.75rem;
+  /* 12px */
+  --space-4: 1rem;
+  /* 16px */
+  --space-5: 1.25rem;
+  /* 20px */
+  --space-6: 1.5rem;
+  /* 24px */
+  --space-8: 2rem;
+  /* 32px */
+  --space-10: 2.5rem;
+  /* 40px */
+  --space-12: 3rem;
+  /* 48px */
+  --space-16: 4rem;
+  /* 64px */
+
   /* ─────────────────────────────────────────────────────────────────────────────
      BORDER RADIUS
      ───────────────────────────────────────────────────────────────────────────── */
-  --radius-sm: 0.375rem;   /* 6px */
-  --radius-md: 0.5rem;     /* 8px */
-  --radius-lg: 0.75rem;    /* 12px */
-  --radius-xl: 1rem;       /* 16px */
-  --radius-2xl: 1.5rem;    /* 24px */
+  --radius-sm: 0.375rem;
+  /* 6px */
+  --radius-md: 0.5rem;
+  /* 8px */
+  --radius-lg: 0.75rem;
+  /* 12px */
+  --radius-xl: 1rem;
+  /* 16px */
+  --radius-2xl: 1.5rem;
+  /* 24px */
   --radius-full: 9999px;
-  
+
   /* ─────────────────────────────────────────────────────────────────────────────
      ANIMATIONS
      ───────────────────────────────────────────────────────────────────────────── */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   --duration-fast: 150ms;
   --duration-normal: 300ms;
   --duration-slow: 500ms;
-  
+
   /* ─────────────────────────────────────────────────────────────────────────────
      Z-INDEX SCALE
      ───────────────────────────────────────────────────────────────────────────── */
@@ -155,7 +229,9 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
    GLOBAL RESET & BASE STYLES
    ═══════════════════════════════════════════════════════════════════════════════ */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -175,6 +251,107 @@ body {
   color: var(--text-primary);
   background-color: var(--bg-base);
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   AMBIENT BACKGROUND EFFECTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Aurora Background Effect - TissueDeck Colors */
+.aurora {
+  position: fixed;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140vw;
+  height: 140vh;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(208, 188, 255, 0.35) 0%, rgba(77, 182, 172, 0.15) 40%, transparent 80%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.8;
+  animation: auroraPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes auroraPulse {
+  0% {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(1);
+  }
+
+  100% {
+    opacity: 0.9;
+    transform: translateX(-50%) scale(1.05);
+  }
+}
+
+/* Grid Overlay */
+.gridOverlay {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(circle at 50% 30%, black 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at 50% 30%, black 0%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Particles Container */
+.particlesContainer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 500;
+  /* High z-index to float above map and cards */
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  filter: blur(1px);
+  box-shadow:
+    0 0 6px rgba(208, 188, 255, 0.9),
+    0 0 12px rgba(77, 182, 172, 0.7),
+    0 0 20px rgba(208, 188, 255, 0.4);
+  animation: floatUp linear infinite;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.85;
+  }
+
+  25% {
+    transform: translateY(-40px) translateX(15px);
+  }
+
+  50% {
+    transform: translateY(-90px) translateX(-10px);
+  }
+
+  75% {
+    transform: translateY(-140px) translateX(20px);
+  }
+
+  90% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translateY(-180px) translateX(-5px);
+    opacity: 0;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -182,58 +359,88 @@ body {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* Typography Utilities */
-.font-display { font-family: var(--font-display); }
-.font-body { font-family: var(--font-body); }
-.font-mono { font-family: var(--font-mono); }
+.font-display {
+  font-family: var(--font-display);
+}
 
-.text-xs { font-size: var(--text-xs); }
-.text-sm { font-size: var(--text-sm); }
-.text-base { font-size: var(--text-base); }
-.text-lg { font-size: var(--text-lg); }
-.text-xl { font-size: var(--text-xl); }
-.text-2xl { font-size: var(--text-2xl); }
-.text-3xl { font-size: var(--text-3xl); }
-.text-4xl { font-size: var(--text-4xl); }
-.text-display { font-size: var(--text-display); }
+.font-body {
+  font-family: var(--font-body);
+}
 
-.text-primary { color: var(--text-primary); }
-.text-secondary { color: var(--text-secondary); }
-.text-muted { color: var(--text-muted); }
+.font-mono {
+  font-family: var(--font-mono);
+}
 
-/* Card Styles */
+.text-xs {
+  font-size: var(--text-xs);
+}
+
+.text-sm {
+  font-size: var(--text-sm);
+}
+
+.text-base {
+  font-size: var(--text-base);
+}
+
+.text-lg {
+  font-size: var(--text-lg);
+}
+
+.text-xl {
+  font-size: var(--text-xl);
+}
+
+.text-2xl {
+  font-size: var(--text-2xl);
+}
+
+.text-3xl {
+  font-size: var(--text-3xl);
+}
+
+.text-4xl {
+  font-size: var(--text-4xl);
+}
+
+.text-display {
+  font-size: var(--text-display);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* Premium Dark Glass Card */
 .card {
-  background: var(--bg-surface);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%),
+    rgba(28, 27, 31, 0.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--duration-normal) var(--ease-out-expo),
-              transform var(--duration-normal) var(--ease-out-expo);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: all var(--duration-normal) var(--ease-out-expo);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow:
+    var(--shadow-lg),
+    var(--shadow-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
-}
-
-.card-dark {
-  background: var(--bg-dark-surface);
-  border: 1px solid var(--border-on-dark);
-  color: var(--text-on-dark);
-}
-
-/* Glass Card */
-.glass {
-  background: var(--glass-bg-light);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-}
-
-.glass-dark {
-  background: var(--glass-bg-dark);
-  border: 1px solid var(--border-on-dark);
-  color: var(--text-on-dark);
+  border-color: var(--border-default);
 }
 
 /* Signal Badges */
@@ -245,29 +452,41 @@ body {
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   font-weight: 500;
+  backdrop-filter: blur(8px);
 }
 
 .signal-growth {
-  background: rgba(16, 185, 129, 0.1);
-  color: #059669;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .signal-flow {
-  background: rgba(139, 92, 246, 0.1);
-  color: #7C3AED;
+  background: rgba(139, 92, 246, 0.15);
+  color: #A78BFA;
+  border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 .signal-labor {
-  background: rgba(245, 158, 11, 0.1);
-  color: #D97706;
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 /* Hotspot Indicators */
-.hotspot-low { background: var(--hotspot-low); }
-.hotspot-medium { background: var(--hotspot-medium); }
-.hotspot-high { background: var(--hotspot-high); }
+.hotspot-low {
+  background: var(--hotspot-low);
+}
 
-/* Button Base */
+.hotspot-medium {
+  background: var(--hotspot-medium);
+}
+
+.hotspot-high {
+  background: var(--hotspot-high);
+}
+
+/* Button Base - Dark Theme */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -286,23 +505,29 @@ body {
 .btn-primary {
   background: var(--gradient-brand);
   color: white;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--shadow-glow);
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), 0 0 40px rgba(139, 92, 246, 0.4);
 }
 
 .btn-secondary {
-  background: var(--bg-surface);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
+    rgba(28, 27, 31, 0.5);
   color: var(--text-primary);
   border: 1px solid var(--border-default);
+  backdrop-filter: blur(12px);
 }
 
 .btn-secondary:hover {
-  background: var(--bg-elevated);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%),
+    rgba(28, 27, 31, 0.6);
   border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -310,18 +535,53 @@ body {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.05); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: var(--shadow-glow);
+  }
+
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 50px rgba(139, 92, 246, 0.5);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .animate-pulse-glow {
@@ -329,7 +589,7 @@ body {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, var(--bg-muted) 25%, var(--bg-surface) 50%, var(--bg-muted) 75%);
+  background: linear-gradient(90deg, var(--bg-muted) 25%, var(--bg-elevated) 50%, var(--bg-muted) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
@@ -339,26 +599,26 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SCROLLBAR STYLING
+   SCROLLBAR STYLING - Sleek Dark Glass
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-full);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

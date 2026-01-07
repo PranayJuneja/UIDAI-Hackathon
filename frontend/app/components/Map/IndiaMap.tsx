@@ -3,36 +3,18 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as d3 from 'd3-geo';
-import { useMapStore } from '../../stores/mapStore';
-import { useMapData, getStateIdFromGeoJSON } from '../../hooks/useMapData';
+import { useMapStore, GeoFeature, GeoJSON, DistrictData } from '../../stores/mapStore';
+import { useMapData, getStateIdFromGeoJSON, STATE_ID_TO_GEOJSON } from '../../hooks/useMapData';
+import { useDistrictData } from '../../hooks/useDistrictData';
 import MapTooltip from './MapTooltip';
 import styles from './IndiaMap.module.css';
 
-interface GeoFeature {
-    type: string;
-    properties: {
-        ST_NM?: string;
-        NAME_1?: string;
-        name?: string;
-        [key: string]: any;
-    };
-    geometry: any;
-}
-
-interface GeoJSON {
-    type: string;
-    features: GeoFeature[];
-}
-
-// Color scale for hotspot intensity
+// Traffic-light style color palette for clear intensity distinction
+// Blue (Low ≤50%) → Green (Medium 50-55%) → Red (High >55%)
 function getIntensityColor(intensity: number): string {
-    if (intensity < 0.33) return 'var(--hotspot-low)';
-    if (intensity < 0.66) return 'var(--hotspot-medium)';
-    return 'var(--hotspot-high)';
-}
-
-function getIntensityOpacity(intensity: number): number {
-    return 0.4 + (intensity * 0.4); // 0.4 to 0.8
+    if (intensity <= 0.50) return '#3B82F6';  // Blue - Low (≤50%)
+    if (intensity <= 0.55) return '#22C55E';  // Green - Medium (50-55%)
+    return '#EF4444';  // Red - High (>55%)
 }
 
 // Memoized state path component for performance
@@ -64,15 +46,23 @@ const StatePath = memo(function StatePath({
         onMouseEnter(e, feature);
     }, [onMouseEnter, feature]);
 
+    // Use solid color for states with data, gray for no data
+    const fill = hasData ? getIntensityColor(intensity) : '#374151';
+    const strokeColor = isSelected
+        ? '#3B82F6'
+        : isHovered
+            ? '#60A5FA'
+            : 'rgba(255, 255, 255, 0.2)';
+
     return (
         <path
             d={pathD}
             className={`${styles.statePath} ${isHovered ? styles.hovered : ''} ${isSelected ? styles.selected : ''}`}
             style={{
-                fill: hasData ? getIntensityColor(intensity) : 'var(--bg-muted)',
-                fillOpacity: hasData ? getIntensityOpacity(intensity) : 0.3,
-                stroke: isSelected ? 'var(--brand-primary)' : isHovered ? 'var(--brand-primary)' : 'var(--border-on-dark)',
-                strokeWidth: isSelected ? 2 : isHovered ? 1.5 : 0.5,
+                fill: fill,
+                fillOpacity: hasData ? 0.85 : 0.4,
+                stroke: strokeColor,
+                strokeWidth: isSelected ? 2.5 : isHovered ? 2 : 0.75,
             }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={onMouseLeave}
@@ -81,6 +71,83 @@ const StatePath = memo(function StatePath({
     );
 });
 
+// Memoized district path component
+interface DistrictPathProps {
+    feature: GeoFeature;
+    pathD: string;
+    districtName: string;
+    districtData: DistrictData | undefined;
+    isHovered: boolean;
+    isSelected: boolean;
+    centroid: [number, number] | null;
+    onMouseEnter: (e: React.MouseEvent, feature: GeoFeature, districtName: string) => void;
+    onMouseLeave: () => void;
+    onClick: () => void;
+}
+
+const DistrictPath = memo(function DistrictPath({
+    pathD,
+    districtName,
+    districtData,
+    isHovered,
+    isSelected,
+    centroid,
+    onMouseEnter,
+    onMouseLeave,
+    onClick,
+    feature
+}: DistrictPathProps) {
+    const handleMouseEnter = useCallback((e: React.MouseEvent) => {
+        onMouseEnter(e, feature, districtName);
+    }, [onMouseEnter, feature, districtName]);
+
+    const intensity = districtData?.hotspot?.intensity || 0;
+    const hasData = !!districtData;
+    const fill = hasData ? getIntensityColor(intensity) : '#374151';
+    const strokeColor = isSelected
+        ? '#3B82F6'
+        : isHovered
+            ? '#60A5FA'
+            : 'rgba(255, 255, 255, 0.3)';
+
+    return (
+        <g
+            className={styles.districtGroup}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={onMouseLeave}
+            onClick={onClick} // Added onClick
+        >
+            <path
+                d={pathD}
+                className={`${styles.districtPath} ${isHovered ? styles.hovered : ''} ${isSelected ? styles.selected : ''}`}
+                style={{
+                    fill: fill,
+                    fillOpacity: hasData ? 0.85 : 0.4,
+                    stroke: strokeColor,
+                    strokeWidth: isSelected ? 2 : isHovered ? 1.5 : 0.5,
+                }}
+            />
+            {centroid && (
+                <text
+                    x={centroid[0]}
+                    y={centroid[1]}
+                    className={`${styles.districtLabel} ${isHovered || isSelected ? styles.hovered : ''}`}
+                >
+                    {districtName}
+                </text>
+            )}
+        </g>
+    );
+});
+
+// Back Arrow Icon
+const BackArrowIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 12H5" />
+        <path d="M12 19l-7-7 7-7" />
+    </svg>
+);
+
 export default function IndiaMap() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [geoData, setGeoData] = useState<GeoJSON | null>(null);
@@ -88,23 +155,37 @@ export default function IndiaMap() {
     const [tooltipData, setTooltipData] = useState<{
         x: number;
         y: number;
-        state: any;
+        state?: any;
+        district?: any;
     } | null>(null);
 
     const {
         hoveredState,
         setHoveredState,
+        hoveredDistrict,
+        setHoveredDistrict,
         selectedState,
         setSelectedState,
         states,
         loading,
-        error
+        error,
+        viewMode,
+        selectedStateForDrilldown,
+        selectedStateName,
+        drillIntoState,
+        drillBackToIndia,
+        loadingDistricts,
+        selectedDistrict,
+        setSelectedDistrict,
     } = useMapStore();
 
     // Fetch map data from API
     useMapData();
 
-    // Load GeoJSON - use the new smaller, more accurate file
+    // Fetch district data when in state view
+    const { districts, districtGeoData, getDistrictName, getDistrictData } = useDistrictData();
+
+    // Load India GeoJSON
     useEffect(() => {
         fetch('/india-new.geojson')
             .then(res => {
@@ -118,6 +199,17 @@ export default function IndiaMap() {
             });
     }, []);
 
+    // Handle keyboard escape for back navigation
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && viewMode === 'state') {
+                drillBackToIndia();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [viewMode, drillBackToIndia]);
+
     // Get state name from GeoJSON feature
     const getStateName = useCallback((feature: GeoFeature): string => {
         return feature.properties.ST_NM || feature.properties.NAME_1 || feature.properties.name || '';
@@ -130,16 +222,32 @@ export default function IndiaMap() {
         return states.find(s => s.state_id === stateId);
     }, [states]);
 
-    // D3 projection for India - scaled up to fill space
-    const projection = d3.geoMercator()
-        .center([82, 23]) // Centered on India
-        .scale(1350)
-        .translate([350, 380]);
+    // D3 projection for India - adjusted to include northeast states fully
+    const indiaProjection = d3.geoMercator()
+        .center([82.5, 23])
+        .scale(1250)
+        .translate([400, 380]);
 
-    const pathGenerator = d3.geoPath().projection(projection);
+    const indiaPathGenerator = d3.geoPath().projection(indiaProjection);
 
-    // Handle mouse events
-    const handleMouseEnter = useCallback((e: React.MouseEvent, feature: GeoFeature) => {
+    // Dynamic projection for district view - using auto-fit
+    const getDistrictProjection = useCallback(() => {
+        if (!districtGeoData) return null;
+
+        const projection = d3.geoMercator();
+
+        // Use fitSize to automatically calculate scale and translate
+        // to fit the GeoJSON into the 800x780 viewport with 50px padding
+        projection.fitExtent(
+            [[50, 50], [750, 730]],
+            districtGeoData as any
+        );
+
+        return projection;
+    }, [districtGeoData]);
+
+    // Handle state mouse events
+    const handleStateMouseEnter = useCallback((e: React.MouseEvent, feature: GeoFeature) => {
         const name = getStateName(feature);
         const stateData = getStateData(name);
         const stateId = getStateIdFromGeoJSON(name);
@@ -147,17 +255,11 @@ export default function IndiaMap() {
         if (stateId) {
             setHoveredState(stateId);
 
-            // Calculate position relative to viewport
             let x = e.clientX + 15;
             let y = e.clientY + 15;
 
-            // Prevent tooltip from going off-screen
-            if (x > window.innerWidth - 220) {
-                x = e.clientX - 220;
-            }
-            if (y > window.innerHeight - 150) {
-                y = e.clientY - 150;
-            }
+            if (x > window.innerWidth - 220) x = e.clientX - 220;
+            if (y > window.innerHeight - 150) y = e.clientY - 150;
 
             setTooltipData({
                 x,
@@ -167,16 +269,63 @@ export default function IndiaMap() {
         }
     }, [getStateName, getStateData, setHoveredState]);
 
-    const handleMouseLeave = useCallback(() => {
+    const handleStateMouseLeave = useCallback(() => {
         setHoveredState(null);
         setTooltipData(null);
     }, [setHoveredState]);
 
-    const handleClick = useCallback((stateId: string | undefined) => {
-        if (stateId) {
-            setSelectedState(selectedState === stateId ? null : stateId);
+    // Handle state click for drill-down
+    const handleStateClick = useCallback((stateId: string | undefined, stateName: string) => {
+        if (stateId && stateName) {
+            // Clear tooltip and hovered state
+            setTooltipData(null);
+            setHoveredState(null);
+            // Drill into the state
+            drillIntoState(stateId, stateName);
         }
-    }, [selectedState, setSelectedState]);
+    }, [drillIntoState, setHoveredState]);
+
+    // Handle district mouse events
+    const handleDistrictMouseEnter = useCallback((e: React.MouseEvent, feature: GeoFeature, districtName: string) => {
+        setHoveredDistrict(districtName);
+
+        const districtData = getDistrictData(districtName);
+
+        let x = e.clientX + 15;
+        let y = e.clientY + 15;
+
+        if (x > window.innerWidth - 220) x = e.clientX - 220;
+        if (y > window.innerHeight - 150) y = e.clientY - 150;
+
+        setTooltipData({
+            x,
+            y,
+            district: districtData || {
+                district_name: districtName,
+                state_name: selectedStateName
+            }
+        });
+    }, [getDistrictData, selectedStateName, setHoveredDistrict]);
+
+    const handleDistrictMouseLeave = useCallback(() => {
+        setHoveredDistrict(null);
+        setTooltipData(null);
+    }, [setHoveredDistrict]);
+
+    // Handle district click
+    const handleDistrictClick = useCallback((districtName: string) => {
+        if (selectedDistrict === districtName) {
+            setSelectedDistrict(null); // Deselect if already selected
+        } else {
+            setSelectedDistrict(districtName);
+        }
+    }, [selectedDistrict, setSelectedDistrict]);
+
+    // Handle back button click
+    const handleBackClick = useCallback(() => {
+        setTooltipData(null);
+        drillBackToIndia();
+    }, [drillBackToIndia]);
 
     // Show error state
     if (geoError || error) {
@@ -198,80 +347,205 @@ export default function IndiaMap() {
         );
     }
 
+    // Get district projection for state view
+    const districtProjection = getDistrictProjection();
+    const districtPathGenerator = districtProjection ? d3.geoPath().projection(districtProjection) : null;
+
     return (
         <div ref={containerRef} className={styles.mapContainer}>
-            <svg
-                viewBox="0 0 700 780"
-                className={styles.mapSvg}
-                preserveAspectRatio="xMidYMid meet"
-            >
-                {/* Definitions for effects */}
-                <defs>
-                    <radialGradient id="hotspotGlow" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="var(--hotspot-high)" stopOpacity="0.6" />
-                        <stop offset="100%" stopColor="var(--hotspot-high)" stopOpacity="0" />
-                    </radialGradient>
-                </defs>
+            {/* Back Button - Show when in state view */}
+            <AnimatePresence>
+                {viewMode === 'state' && (
+                    <motion.button
+                        className={styles.backButton}
+                        onClick={handleBackClick}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <BackArrowIcon />
+                        <span>Back to India</span>
+                    </motion.button>
+                )}
+            </AnimatePresence>
 
-                {/* State paths - using memoized component */}
-                <g className={styles.statesGroup}>
-                    {geoData.features.map((feature, i) => {
-                        const name = getStateName(feature);
-                        const stateId = getStateIdFromGeoJSON(name);
-                        const stateData = getStateData(name);
-                        const intensity = stateData?.hotspot?.intensity || 0;
-                        const isHovered = stateId ? hoveredState === stateId : false;
-                        const isSelected = stateId ? selectedState === stateId : false;
-                        const pathD = pathGenerator(feature as any) || '';
+            {/* Breadcrumb Navigation */}
+            <div className={styles.breadcrumb}>
+                <span
+                    className={`${styles.breadcrumbItem} ${viewMode === 'india' ? styles.active : styles.clickable}`}
+                    onClick={viewMode === 'state' ? handleBackClick : undefined}
+                >
+                    🇮🇳 India
+                </span>
+                {viewMode === 'state' && selectedStateName && (
+                    <>
+                        <span className={styles.breadcrumbSeparator}>›</span>
+                        <span className={`${styles.breadcrumbItem} ${styles.active}`}>
+                            {selectedStateName}
+                        </span>
+                    </>
+                )}
+            </div>
 
-                        return (
-                            <StatePath
-                                key={`state-${stateId || name}-${i}`}
-                                feature={feature}
-                                pathD={pathD}
-                                stateId={stateId}
-                                intensity={intensity}
-                                isHovered={isHovered}
-                                isSelected={isSelected}
-                                hasData={!!stateData}
-                                onMouseEnter={handleMouseEnter}
-                                onMouseLeave={handleMouseLeave}
-                                onClick={() => handleClick(stateId)}
-                            />
-                        );
-                    })}
-                </g>
+            {/* Loading Overlay for Districts */}
+            <AnimatePresence>
+                {loadingDistricts && (
+                    <motion.div
+                        className={styles.loadingOverlay}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <div className={styles.loadingPulse}></div>
+                        <span>Loading districts...</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                {/* Hotspot indicators - simple static dots for high intensity states */}
-                <g className={styles.hotspotsGroup}>
-                    {states.filter(s => s.hotspot.intensity > 0.6).map((state) => {
-                        const feature = geoData.features.find(f => {
-                            const name = getStateName(f);
-                            return getStateIdFromGeoJSON(name) === state.state_id;
-                        });
+            {/* India View */}
+            <AnimatePresence mode="wait">
+                {viewMode === 'india' && (
+                    <motion.svg
+                        key="india-map"
+                        viewBox="0 0 800 780"
+                        className={styles.mapSvg}
+                        preserveAspectRatio="xMidYMid meet"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.1 }}
+                        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    >
+                        {/* SVG Definitions */}
+                        <defs>
+                            {/* Blue/Green/Red intensity gradients */}
+                            <linearGradient id="gradientLow" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#2563EB" stopOpacity="1" />
+                                <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.95" />
+                                <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.9" />
+                            </linearGradient>
+                            <linearGradient id="gradientMedium" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#16A34A" stopOpacity="1" />
+                                <stop offset="50%" stopColor="#22C55E" stopOpacity="0.95" />
+                                <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.9" />
+                            </linearGradient>
+                            <linearGradient id="gradientHigh" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#DC2626" stopOpacity="1" />
+                                <stop offset="50%" stopColor="#EF4444" stopOpacity="0.95" />
+                                <stop offset="100%" stopColor="#F87171" stopOpacity="0.9" />
+                            </linearGradient>
 
-                        if (!feature) return null;
+                            {/* Glow filter for hover/selected states */}
+                            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
 
-                        const centroid = pathGenerator.centroid(feature as any);
-                        if (!centroid || isNaN(centroid[0])) return null;
+                        {/* State paths */}
+                        <g className={styles.statesGroup}>
+                            {geoData.features.map((feature, i) => {
+                                const name = getStateName(feature);
+                                const stateId = getStateIdFromGeoJSON(name);
+                                const stateData = getStateData(name);
+                                const intensity = stateData?.hotspot?.intensity || 0;
+                                const isHovered = stateId ? hoveredState === stateId : false;
+                                const isSelected = stateId ? selectedState === stateId : false;
+                                const pathD = indiaPathGenerator(feature as any) || '';
 
-                        const color = getIntensityColor(state.hotspot.intensity);
+                                return (
+                                    <StatePath
+                                        key={`state-${stateId || name}-${i}`}
+                                        feature={feature}
+                                        pathD={pathD}
+                                        stateId={stateId}
+                                        intensity={intensity}
+                                        isHovered={isHovered}
+                                        isSelected={isSelected}
+                                        hasData={!!stateData}
+                                        onMouseEnter={handleStateMouseEnter}
+                                        onMouseLeave={handleStateMouseLeave}
+                                        onClick={() => handleStateClick(stateId, name)}
+                                    />
+                                );
+                            })}
+                        </g>
+                    </motion.svg>
+                )}
 
-                        return (
-                            <circle
-                                key={`hotspot-${state.state_id}`}
-                                cx={centroid[0]}
-                                cy={centroid[1]}
-                                r={7}
-                                fill={color}
-                                fillOpacity={0.9}
-                                stroke="white"
-                                strokeWidth={2}
-                            />
-                        );
-                    })}
-                </g>
-            </svg>
+                {/* State/District View */}
+                {viewMode === 'state' && districtGeoData && districtPathGenerator && (
+                    <motion.svg
+                        key="district-map"
+                        viewBox="0 0 800 780"
+                        className={styles.mapSvg}
+                        preserveAspectRatio="xMidYMid meet"
+                        initial={{ opacity: 0, scale: 1.2 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    >
+                        {/* SVG Definitions (same as above) */}
+                        <defs>
+                            <linearGradient id="gradientLow" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#2563EB" stopOpacity="1" />
+                                <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.95" />
+                                <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.9" />
+                            </linearGradient>
+                            <linearGradient id="gradientMedium" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#16A34A" stopOpacity="1" />
+                                <stop offset="50%" stopColor="#22C55E" stopOpacity="0.95" />
+                                <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.9" />
+                            </linearGradient>
+                            <linearGradient id="gradientHigh" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#DC2626" stopOpacity="1" />
+                                <stop offset="50%" stopColor="#EF4444" stopOpacity="0.95" />
+                                <stop offset="100%" stopColor="#F87171" stopOpacity="0.9" />
+                            </linearGradient>
+
+                            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        {/* District paths */}
+                        <g className={styles.districtsGroup}>
+                            {districtGeoData.features.map((feature, i) => {
+                                const districtName = getDistrictName(feature);
+                                const districtData = getDistrictData(districtName);
+                                const isHovered = hoveredDistrict === districtName;
+                                const isSelected = selectedDistrict === districtName;
+                                const pathD = districtPathGenerator(feature as any) || '';
+                                const centroid = districtPathGenerator.centroid(feature as any);
+
+                                return (
+                                    <DistrictPath
+                                        key={`district-${districtName}-${i}`}
+                                        feature={feature}
+                                        pathD={pathD}
+                                        districtName={districtName}
+                                        districtData={districtData}
+                                        isHovered={isHovered}
+                                        isSelected={isSelected}
+                                        centroid={centroid}
+                                        onMouseEnter={handleDistrictMouseEnter}
+                                        onMouseLeave={handleDistrictMouseLeave}
+                                        onClick={() => handleDistrictClick(districtName)}
+                                    />
+                                );
+                            })}
+                        </g>
+                    </motion.svg>
+                )}
+            </AnimatePresence>
 
             {/* Tooltip */}
             <AnimatePresence mode="wait">
@@ -279,7 +553,8 @@ export default function IndiaMap() {
                     <MapTooltip
                         x={tooltipData.x}
                         y={tooltipData.y}
-                        data={tooltipData.state}
+                        data={tooltipData.state || tooltipData.district}
+                        isDistrict={!!tooltipData.district}
                     />
                 )}
             </AnimatePresence>
@@ -289,15 +564,15 @@ export default function IndiaMap() {
                 <h4>Demand Intensity</h4>
                 <div className={styles.legendItems}>
                     <div className={styles.legendItem}>
-                        <span className={styles.legendDot} style={{ background: 'var(--hotspot-low)' }} />
+                        <span className={styles.legendDot} style={{ background: '#3B82F6' }} />
                         <span>Low</span>
                     </div>
                     <div className={styles.legendItem}>
-                        <span className={styles.legendDot} style={{ background: 'var(--hotspot-medium)' }} />
+                        <span className={styles.legendDot} style={{ background: '#22C55E' }} />
                         <span>Medium</span>
                     </div>
                     <div className={styles.legendItem}>
-                        <span className={styles.legendDot} style={{ background: 'var(--hotspot-high)' }} />
+                        <span className={styles.legendDot} style={{ background: '#EF4444' }} />
                         <span>High</span>
                     </div>
                 </div>

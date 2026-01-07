@@ -1,6 +1,6 @@
 /* 
-  Chronos-X Dashboard Page Styles
-  Premium Light Theme with Strategic Dark Accents
+  Chronos-X Landing Page - TissueDeck Inspired Dark Theme
+  Premium Dark Glassmorphic Design with Aurora Effects
 */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -9,21 +9,72 @@
 
 .main {
   min-height: 100vh;
-  background: var(--bg-base);
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(208, 188, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(77, 182, 172, 0.12) 0%, transparent 50%),
+    linear-gradient(180deg, #14141A 0%, #1C1B1F 40%, #1C1B1F 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Aurora Glow - Exact TissueDeck */
+.main::before {
+  content: '';
+  position: fixed;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140vw;
+  height: 140vh;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(66, 133, 244, 0.4) 0%, rgba(138, 180, 248, 0.1) 40%, transparent 80%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.8;
+  animation: auroraPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes auroraPulse {
+  0% {
+    opacity: 0.7;
+    transform: translateX(-50%) scale(1);
+  }
+
+  100% {
+    opacity: 0.9;
+    transform: translateX(-50%) scale(1.05);
+  }
+}
+
+/* Grid Overlay - Exact TissueDeck */
+.main::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(circle at 60% 50%, black 0%, transparent 90%);
+  -webkit-mask-image: radial-gradient(circle at 60% 50%, black 0%, transparent 90%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   HEADER
+   HEADER - Dark Glassmorphic
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .header {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  background: var(--glass-bg-light);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border-bottom: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%),
+    rgba(10, 15, 26, 0.8);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .headerContent {
@@ -33,6 +84,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  z-index: 1;
 }
 
 .logo {
@@ -42,19 +95,20 @@
 }
 
 .logoIcon {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--gradient-brand);
   border-radius: var(--radius-lg);
   color: white;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
 }
 
 .logoIcon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .logoText {
@@ -92,7 +146,7 @@
   left: 0;
   width: 0;
   height: 2px;
-  background: var(--brand-primary);
+  background: var(--gradient-brand);
   transition: width var(--duration-normal) var(--ease-out-expo);
 }
 
@@ -109,6 +163,8 @@
   text-align: center;
   max-width: 900px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .heroContent {
@@ -118,13 +174,16 @@
 .badge {
   display: inline-block;
   padding: var(--space-2) var(--space-4);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
+    rgba(28, 27, 31, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text-secondary);
   margin-bottom: var(--space-6);
+  backdrop-filter: blur(10px);
 }
 
 .heroTitle {
@@ -160,7 +219,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   STATS ROW
+   STATS ROW - Premium Dark Glass Card
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .statsRow {
@@ -169,11 +228,20 @@
   justify-content: center;
   gap: var(--space-8);
   padding: var(--space-8);
-  background: var(--bg-surface);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%),
+    rgba(10, 15, 26, 0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border-subtle);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
 }
 
 .stat {
@@ -200,7 +268,7 @@
 .statDivider {
   width: 1px;
   height: 40px;
-  background: var(--border-default);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -212,6 +280,8 @@
   max-width: 1200px;
   margin: 0 auto;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .sectionTitle {
@@ -235,18 +305,47 @@
 }
 
 .signalCard {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%),
+    rgba(28, 27, 31, 0.6);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   text-align: left;
-  box-shadow: var(--shadow-sm);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: all var(--duration-normal) var(--ease-out-expo);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Gradient top border on hover */
+.signalCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4DB6AC 0%, #D0BCFF 50%, #EFB8C8 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .signalCard:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-xl);
+  transform: translateY(-6px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(208, 188, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.signalCard:hover::before {
+  opacity: 1;
 }
 
 .signalIcon {
@@ -271,7 +370,7 @@
 
 .signalBar {
   height: 8px;
-  background: var(--bg-muted);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
@@ -279,23 +378,33 @@
 .signalFill {
   height: 100%;
   border-radius: var(--radius-full);
+  box-shadow: 0 0 20px currentColor;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   DASHBOARD PREVIEW
+   DASHBOARD PREVIEW - Dark Glass Panel
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .dashboardPreview {
   padding: var(--space-16) var(--space-6);
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .previewCard {
-  background: var(--bg-dark);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%),
+    rgba(10, 10, 14, 0.8);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
   border-radius: var(--radius-2xl);
   overflow: hidden;
-  box-shadow: var(--shadow-xl);
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .previewHeader {
@@ -303,8 +412,8 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-6);
-  background: var(--bg-dark-surface);
-  border-bottom: 1px solid var(--border-on-dark);
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .previewDots {
@@ -316,24 +425,27 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--bg-dark-elevated);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .previewDots span:nth-child(1) {
   background: #EF4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
 .previewDots span:nth-child(2) {
   background: #F59E0B;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
 }
 
 .previewDots span:nth-child(3) {
   background: #10B981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
 }
 
 .previewTitle {
   font-size: var(--text-sm);
-  color: var(--text-on-dark-muted);
+  color: var(--text-muted);
 }
 
 .previewContent {
@@ -342,12 +454,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .mapPlaceholder {
   text-align: center;
-  color: var(--text-on-dark-muted);
+  color: var(--text-muted);
   position: relative;
+  z-index: 1;
 }
 
 .mapPlaceholder span {
@@ -364,8 +478,21 @@
 .mapGradient {
   position: absolute;
   inset: -100px;
-  background: radial-gradient(circle at center, rgba(37, 99, 235, 0.2), transparent 70%);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.2) 0%, transparent 50%);
   pointer-events: none;
+  animation: gradientPulse 6s ease-in-out infinite alternate;
+}
+
+@keyframes gradientPulse {
+  0% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 0.8;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -375,7 +502,9 @@
 .footer {
   padding: var(--space-8) var(--space-6);
   text-align: center;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  z-index: 1;
 }
 
 .footerContent p {
@@ -399,6 +528,7 @@
 
   .statsRow {
     gap: var(--space-4);
+    padding: var(--space-6);
   }
 
   .statDivider {
