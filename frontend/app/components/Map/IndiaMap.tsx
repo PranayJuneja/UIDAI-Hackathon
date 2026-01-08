@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as d3 from 'd3-geo';
@@ -8,6 +6,9 @@ import { useMapData, getStateIdFromGeoJSON } from '../../hooks/useMapData';
 import { useDistrictData } from '../../hooks/useDistrictData';
 import MapTooltip from './MapTooltip';
 import styles from './IndiaMap.module.css';
+import { useRipple } from '../UI/Ripple';
+import { useToast } from '../UI/ToastProvider';
+
 
 // Traffic-light style color palette
 function getIntensityColor(intensity: number): string {
@@ -29,10 +30,10 @@ interface MapVisualsProps {
     // Removed hoveredState/District to prevent re-renders
     onStateHover: (e: React.MouseEvent, feature: GeoFeature) => void;
     onStateLeave: () => void;
-    onStateClick: (stateId: string | undefined, stateName: string) => void;
+    onStateClick: (e: React.MouseEvent, stateId: string | undefined, stateName: string) => void;
     onDistrictHover: (e: React.MouseEvent, feature: GeoFeature, districtName: string) => void;
     onDistrictLeave: () => void;
-    onDistrictClick: (districtName: string) => void;
+    onDistrictClick: (e: React.MouseEvent, districtName: string) => void;
     getStateName: (feature: GeoFeature) => string;
     getStateData: (geoName: string) => any;
     getDistrictName: (feature: GeoFeature) => string;
@@ -114,7 +115,7 @@ const MapVisuals = memo(function MapVisuals({
                                     className={`${styles.stateGroup} ${isSelected ? styles.selectedGroup : ''}`}
                                     onMouseEnter={(e) => onStateHover(e, feature)}
                                     onMouseLeave={onStateLeave}
-                                    onClick={() => onStateClick(stateId, name)}
+                                    onClick={(e) => onStateClick(e, stateId, name)}
                                 >
                                     <path
                                         d={pathD}
@@ -171,7 +172,7 @@ const MapVisuals = memo(function MapVisuals({
                                     className={`${styles.districtGroup} ${isSelected ? styles.selectedGroup : ''}`}
                                     onMouseEnter={(e) => onDistrictHover(e, feature, districtName)}
                                     onMouseLeave={onDistrictLeave}
-                                    onClick={() => onDistrictClick(districtName)}
+                                    onClick={(e) => onDistrictClick(e, districtName)}
                                 >
                                     <path
                                         d={pathD}
@@ -259,6 +260,10 @@ export default function IndiaMap() {
     useMapData();
     const { districts, districtGeoData, getDistrictName, getDistrictData } = useDistrictData();
 
+    // UI Effects
+    const { createRipple, RippleElements } = useRipple(containerRef);
+    const toast = useToast();
+
     useEffect(() => {
         fetch('/india-new.geojson')
             .then(res => {
@@ -316,13 +321,19 @@ export default function IndiaMap() {
         setTooltipData(null);
     }, [setHoveredState]);
 
-    const handleStateClick = useCallback((stateId: string | undefined, stateName: string) => {
+    const handleStateClick = useCallback((e: React.MouseEvent, stateId: string | undefined, stateName: string) => {
         if (stateId && stateName) {
+            // Ripple
+            createRipple(e.clientX, e.clientY);
+
+            // Toast
+            toast.info(`Drilling into ${stateName}`, "Fetching district data...");
+
             setTooltipData(null);
             setHoveredState(null);
             drillIntoState(stateId, stateName);
         }
-    }, [drillIntoState, setHoveredState]);
+    }, [drillIntoState, setHoveredState, createRipple, toast]);
 
     const handleDistrictMouseEnter = useCallback((e: React.MouseEvent, feature: GeoFeature, districtName: string) => {
         setHoveredDistrict(districtName);
@@ -346,13 +357,16 @@ export default function IndiaMap() {
         setTooltipData(null);
     }, [setHoveredDistrict]);
 
-    const handleDistrictClick = useCallback((districtName: string) => {
+    const handleDistrictClick = useCallback((e: React.MouseEvent, districtName: string) => {
+        createRipple(e.clientX, e.clientY);
+
         if (selectedDistrict === districtName) {
             setSelectedDistrict(null);
         } else {
             setSelectedDistrict(districtName);
+            toast.success("District Selected", `Showing details for ${districtName}`);
         }
-    }, [selectedDistrict, setSelectedDistrict]);
+    }, [selectedDistrict, setSelectedDistrict, createRipple, toast]);
 
     if (geoError || error) {
         return <div className={styles.mapError}><span>⚠️</span><span>{geoError || error}</span></div>;
@@ -364,6 +378,7 @@ export default function IndiaMap() {
 
     return (
         <div ref={containerRef} className={styles.mapContainer}>
+            <RippleElements />
             <AnimatePresence>
                 {viewMode === 'state' && (
                     <motion.button

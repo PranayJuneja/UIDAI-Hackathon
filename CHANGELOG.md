@@ -1,6 +1,18 @@
 # Changelog
 
-## [2.9.2] - 2026-01-08 - THE BULLETPROOF VISUALIZATIONS UPDATE
+
+## [2.9.3] - 2026-01-08 - THE HYDRATION & STYLING PATCH
+> *"Smooth rendering. Crystal clear architecture."*
+
+### Fixed
+- **Hydration Mismatch Error**: Added `suppressHydrationWarning` to `layout.tsx` to resolve server/client rendering inconsistencies, ensuring a stable initial load.
+
+### Changed
+- **System Architecture Styling**: Applied premium glassmorphism and "TissueDeck" styling to the `SystemArchitectureSection` for better visual integration with the homepage.
+- **Home Page Layout**: Minor adjustments to spacing and responsive alignment in `frontend/app/page.tsx`.
+
+---
+
 > *"Handle the edge cases. Trust the data. Predict the future."*
 
 ### Edge Case Hardening

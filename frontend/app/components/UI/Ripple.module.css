@@ -1,0 +1,73 @@
+/* Ripple Effect Component Styles */
+
+.rippleContainer {
+    position: relative;
+    overflow: hidden;
+    /* Ensure ripples stay within bounds */
+}
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: rippleEffect 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    pointer-events: none;
+}
+
+/* Color variants */
+.ripple.primary {
+    background: radial-gradient(circle, rgba(208, 188, 255, 0.4) 0%, rgba(208, 188, 255, 0) 70%);
+}
+
+.ripple.secondary {
+    background: radial-gradient(circle, rgba(77, 182, 172, 0.4) 0%, rgba(77, 182, 172, 0) 70%);
+}
+
+.ripple.light {
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+.ripple.subtle {
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+@keyframes rippleEffect {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* Map-specific ripple - larger scale for SVG elements */
+.mapRipple {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle,
+            rgba(208, 188, 255, 0.5) 0%,
+            rgba(77, 182, 172, 0.3) 40%,
+            transparent 70%);
+    animation: mapRippleEffect 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    z-index: 100;
+}
+
+@keyframes mapRippleEffect {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+
+    60% {
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(3);
+        opacity: 0;
+    }
+}

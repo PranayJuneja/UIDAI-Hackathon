@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import styles from '../../dashboard.module.css';
+import { SkeletonHotspotsList, Ripple } from '../UI';
 
 interface DashboardHotspotsProps {
     title: string;
@@ -24,33 +25,40 @@ const DashboardHotspots = memo(function DashboardHotspots({
             <h3 className={styles.cardTitle}>{title}</h3>
 
             {loading ? (
-                <div className={styles.loadingState}>Loading rankings...</div>
+                <SkeletonHotspotsList count={8} />
             ) : (
                 <div className={styles.hotspotsList}>
                     {items.map((item: any, i) => (
                         <motion.div
                             key={item.state_id || item.district_id}
-                            className={styles.hotspotItem}
                             initial={{ opacity: 0, x: 10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.5 + (i * 0.1) }}
-                            onClick={() => onItemClick?.(item)}
-                            style={{ cursor: onItemClick ? 'pointer' : 'default' }}
                         >
-                            <span className={styles.hotspotRank}>{i + 1}</span>
-                            <span className={styles.hotspotName}>
-                                {item.name || item.district_name}
-                            </span>
-                            <span
-                                className={styles.hotspotIntensity}
+                            <Ripple
+                                className={styles.hotspotItem}
+                                onClick={() => onItemClick?.(item)}
+                                color="subtle"
                                 style={{
-                                    color: (item.hotspot?.intensity || 0) > 0.66 ? 'var(--hotspot-high)' :
-                                        (item.hotspot?.intensity || 0) > 0.33 ? 'var(--hotspot-medium)' :
-                                            'var(--hotspot-low)'
+                                    cursor: onItemClick ? 'pointer' : 'default',
+                                    width: '100%'
                                 }}
                             >
-                                {Math.round((item.hotspot?.intensity || 0) * 100)}%
-                            </span>
+                                <span className={styles.hotspotRank}>{i + 1}</span>
+                                <span className={styles.hotspotName}>
+                                    {item.name || item.district_name}
+                                </span>
+                                <span
+                                    className={styles.hotspotIntensity}
+                                    style={{
+                                        color: (item.hotspot?.intensity || 0) > 0.66 ? 'var(--hotspot-high)' :
+                                            (item.hotspot?.intensity || 0) > 0.33 ? 'var(--hotspot-medium)' :
+                                                'var(--hotspot-low)'
+                                    }}
+                                >
+                                    {Math.round((item.hotspot?.intensity || 0) * 100)}%
+                                </span>
+                            </Ripple>
                         </motion.div>
                     ))}
                 </div>

@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import styles from '../../dashboard.module.css'; // Using the same module for now to avoid breaking styles
 import { DistrictData, StateData } from '../../stores/mapStore';
+import { SkeletonStatsCard } from '../UI/Skeleton';
 
 interface DashboardStatsProps {
     title: string;
@@ -34,7 +35,7 @@ const DashboardStats = memo(function DashboardStats({
             <h2 className={styles.cardTitle}>{title}</h2>
 
             {loading ? (
-                <div className={styles.loadingState}>Loading details...</div>
+                <SkeletonStatsCard />
             ) : (selectedDistrictData) ? (
                 // District Details View
                 <div className={styles.stateDetails}>
