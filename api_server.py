@@ -20,6 +20,7 @@ import asyncio
 import json
 import logging
 import sys
+import unicodedata
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -44,6 +45,32 @@ logging.basicConfig(
     datefmt="%H:%M:%S"
 )
 logger = logging.getLogger("ChronosAPI")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECURITY CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+MAX_INPUT_LENGTH = 1000
+
+def sanitize_input(text: str) -> str:
+    """
+    Sanitize user input to prevent issues.
+
+    Handles:
+    - Control characters (except newlines)
+    - Unicode normalization (fancy quotes → regular quotes)
+    - Multiple spaces collapsed
+    - Leading/trailing whitespace
+    """
+    if not text:
+        return ""
+
+    # Remove control characters (except newlines and tabs)
+    text = ''.join(c for c in text if c.isprintable() or c in '\n\t')
+
+    # Normalize unicode (handle fancy quotes, etc.)
+    text = unicodedata.normalize('NFKC', text)
+
+    return text.strip()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATA MODELS (Pydantic)
@@ -977,8 +1004,13 @@ async def search_locations(
     limit: int = Query(10, ge=1, le=50, description="Max results")
 ):
     """Search for states, districts, or PIN codes."""
-    results = data_engine.search_locations(q, limit)
-    return {"query": q, "results": results, "count": len(results)}
+    # Sanitize search query
+    safe_q = sanitize_input(q)
+    if not safe_q:
+        return {"query": q, "results": [], "count": 0}
+
+    results = data_engine.search_locations(safe_q, limit)
+    return {"query": safe_q, "results": results, "count": len(results)}
 
 # ───────────────────────────────────────────────────────────────────────────────
 # COMPARISON ENDPOINT
@@ -1350,6 +1382,20 @@ async def websocket_chat(websocket: WebSocket):
             if not user_content or not user_content.strip():
                 continue
             
+            # Security: Prevent DoS/Resource Exhaustion
+            if len(user_content) > MAX_INPUT_LENGTH:
+                await manager.send_json(websocket, {
+                    "type": "response",
+                    "content": f"Error: Input too long. Please limit your query to {MAX_INPUT_LENGTH} characters.",
+                    "action": None
+                })
+                continue
+
+            # Security: Sanitize input
+            user_content = sanitize_input(user_content)
+            if not user_content:
+                continue
+
             # Send typing indicator
             try:
                 await manager.send_json(websocket, {
