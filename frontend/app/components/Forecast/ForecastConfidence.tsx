@@ -31,8 +31,15 @@ const ForecastConfidence = memo(function ForecastConfidence({
     horizon = '1m',
     showDetails = true,
 }: ForecastConfidenceProps) {
+    // Handle null/undefined/NaN confidence
+    const isInvalidConfidence = confidence === null || confidence === undefined || !Number.isFinite(confidence);
+
     // Clamp confidence between 0 and 1
-    const safeConfidence = Math.max(0, Math.min(1, confidence));
+    const safeConfidence = isInvalidConfidence ? 0 : Math.max(0, Math.min(1, confidence as number));
+
+    // Special states
+    const isPerfect = safeConfidence >= 0.99;
+    const isInsufficient = safeConfidence < 0.1 || isInvalidConfidence;
 
     // Calculate gauge parameters
     const gaugeParams = useMemo(() => {
@@ -59,19 +66,24 @@ const ForecastConfidence = memo(function ForecastConfidence({
 
     // Determine confidence level and color
     const confidenceLevel = useMemo(() => {
+        if (isInvalidConfidence) return { label: 'No Data', color: '#938F99', class: styles.insufficient };
+        if (isPerfect) return { label: 'Perfect', color: '#4DB6AC', class: styles.perfect };
         if (safeConfidence >= 0.8) return { label: 'High', color: '#4DB6AC', class: styles.high };
         if (safeConfidence >= 0.5) return { label: 'Medium', color: '#FFE082', class: styles.medium };
         if (safeConfidence >= 0.2) return { label: 'Low', color: '#EFB8C8', class: styles.low };
         return { label: 'Insufficient', color: '#938F99', class: styles.insufficient };
-    }, [safeConfidence]);
+    }, [safeConfidence, isInvalidConfidence, isPerfect]);
 
     // Calculate forecast accuracy if both forecast and actual are provided
     const accuracy = useMemo(() => {
         if (!forecast || !actual) return null;
 
-        const calculateError = (pred: number, act: number) => {
+        const calculateError = (pred: number | null | undefined, act: number | null | undefined) => {
+            // Handle null/undefined/NaN values
+            if (pred === null || pred === undefined || !Number.isFinite(pred)) return 1;
+            if (act === null || act === undefined || !Number.isFinite(act)) return 1;
             if (act === 0) return pred === 0 ? 0 : 1;
-            return Math.abs(pred - act) / act;
+            return Math.abs(pred - act) / Math.abs(act);
         };
 
         const growthError = calculateError(forecast.growth, actual.growth);
@@ -79,13 +91,14 @@ const ForecastConfidence = memo(function ForecastConfidence({
         const laborError = calculateError(forecast.labor, actual.labor);
 
         const avgError = (growthError + flowError + laborError) / 3;
-        const accuracyPercent = Math.max(0, (1 - avgError) * 100);
+        // Clamp accuracy to 0-100% range
+        const accuracyPercent = Math.max(0, Math.min(100, (1 - avgError) * 100));
 
         return {
             overall: accuracyPercent,
-            growth: (1 - growthError) * 100,
-            flow: (1 - flowError) * 100,
-            labor: (1 - laborError) * 100,
+            growth: Math.max(0, Math.min(100, (1 - growthError) * 100)),
+            flow: Math.max(0, Math.min(100, (1 - flowError) * 100)),
+            labor: Math.max(0, Math.min(100, (1 - laborError) * 100)),
         };
     }, [forecast, actual]);
 

@@ -82,6 +82,43 @@
     padding: var(--space-2) 0;
 }
 
+.selectorControls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+}
+
+.swapButton {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(208, 188, 255, 0.1);
+    border: 1px solid rgba(208, 188, 255, 0.3);
+    border-radius: 50%;
+    color: var(--brand-primary);
+    font-size: var(--text-lg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.swapButton:hover:not(:disabled) {
+    background: rgba(208, 188, 255, 0.2);
+    border-color: rgba(208, 188, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.swapButton:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.swapButton:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 /* States */
 .error {
     margin: var(--space-4) var(--space-6);

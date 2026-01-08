@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.9.2] - 2026-01-08 - THE BULLETPROOF VISUALIZATIONS UPDATE
+> *"Handle the edge cases. Trust the data. Predict the future."*
+
+### Edge Case Hardening
+
+#### Signal Components
+- **NaN/Infinity Guards**: SignalCard now displays "N/A" for invalid values instead of crashing
+- **Value Clamping**: Extreme signal values clamped to [-10, +10] range
+- **Stale Data Indicators**: 24-hour threshold triggers visual warning
+- **Percentage Change Badges**: Dynamic badges with positive/negative/significant states
+- **Composite Intensity**: SignalBreakdown calculates weighted intensity score
+
+#### TrendChart Robustness
+- **Single Point Handling**: Displays dedicated UI instead of empty chart
+- **Gap Detection**: D3 `defined()` skips null values, creating proper gaps
+- **Dynamic Y-Scale**: Handles all-zero data and extreme ranges gracefully
+- **Nullable Interface**: `DataPoint` now supports `number | null` for all signals
+
+#### ComparisonPanel Resilience
+- **AbortController**: Cancels pending requests when locations change rapidly
+- **Retry Logic**: Exponential backoff (3 attempts, 500ms → 2s delays)
+- **Swap Button**: One-click location swap (⇄) with disabled state
+- **Network Error Detection**: User-friendly error messages
+
+#### ForecastConfidence
+- **0/1 Confidence**: "No Data" and "Perfect" states with animations
+- **Accuracy Clamping**: Values constrained to 0-100% range
+- **Null Handling**: Invalid confidence displays graceful fallback
+
+### Backend API Enhancements
+
+#### New Endpoints
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/trends/{location_id}` | Time-series data for charts |
+| `GET /api/forecast/{location_id}` | Forecasts with confidence bounds |
+
+- **Location Formats**: PIN (6 digits), State (2 chars), District (STATE_DIST)
+- **Parameters**: `months` (1-36), `signals` filter, `horizon` (1m/3m/6m)
+- **Pydantic Models**: `TrendDataPoint`, `TrendResponse`, `ForecastResponse`
+
+---
+
 ## [2.9.1] - 2026-01-08 - THE CHATBOT RESURRECTION
 > *"Fixing the broken to make it unbreakable."*
 

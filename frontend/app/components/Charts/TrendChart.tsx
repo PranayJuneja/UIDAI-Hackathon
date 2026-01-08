@@ -7,9 +7,27 @@ import styles from './TrendChart.module.css';
 
 export interface DataPoint {
     month: string;
-    growth: number;
-    flow: number;
-    labor: number;
+    growth: number | null;
+    flow: number | null;
+    labor: number | null;
+}
+
+// Helper to safely get numeric value
+function safeNumber(value: number | null | undefined): number | null {
+    if (value === null || value === undefined) return null;
+    if (!Number.isFinite(value)) return null;
+    return value;
+}
+
+// Check if data point has valid values
+function hasValidData(point: DataPoint, series: SeriesKey): boolean {
+    const val = point[series];
+    return val !== null && val !== undefined && Number.isFinite(val);
+}
+
+// Filter data points to only those with valid values for a series
+function getValidPoints(data: DataPoint[], series: SeriesKey): DataPoint[] {
+    return data.filter(d => hasValidData(d, series));
 }
 
 export interface TrendChartProps {
@@ -18,6 +36,8 @@ export interface TrendChartProps {
     showLegend?: boolean;
     animationDuration?: number;
     onPointHover?: (point: DataPoint | null) => void;
+    showExport?: boolean;
+    title?: string;
 }
 
 interface TooltipData {
@@ -97,36 +117,72 @@ const TrendChart = memo(function TrendChart({
             .range([0, innerWidth])
             .padding(0.1);
 
-        // Find max value across all visible series
-        let maxVal = 0;
+        // Find min/max values across all visible series (handling nulls)
+        let minVal = Infinity;
+        let maxVal = -Infinity;
+        let hasData = false;
+
         data.forEach(d => {
-            if (visibleSeries.has('growth')) maxVal = Math.max(maxVal, d.growth);
-            if (visibleSeries.has('flow')) maxVal = Math.max(maxVal, d.flow);
-            if (visibleSeries.has('labor')) maxVal = Math.max(maxVal, d.labor);
+            if (visibleSeries.has('growth') && hasValidData(d, 'growth')) {
+                const val = d.growth as number;
+                minVal = Math.min(minVal, val);
+                maxVal = Math.max(maxVal, val);
+                hasData = true;
+            }
+            if (visibleSeries.has('flow') && hasValidData(d, 'flow')) {
+                const val = d.flow as number;
+                minVal = Math.min(minVal, val);
+                maxVal = Math.max(maxVal, val);
+                hasData = true;
+            }
+            if (visibleSeries.has('labor') && hasValidData(d, 'labor')) {
+                const val = d.labor as number;
+                minVal = Math.min(minVal, val);
+                maxVal = Math.max(maxVal, val);
+                hasData = true;
+            }
         });
 
+        // Handle edge case: all zero or no data
+        if (!hasData || !Number.isFinite(minVal) || !Number.isFinite(maxVal)) {
+            minVal = 0;
+            maxVal = 1;
+        } else if (minVal === maxVal) {
+            // Single value - create a range
+            const padding = Math.abs(minVal) * 0.1 || 0.5;
+            minVal -= padding;
+            maxVal += padding;
+        }
+
+        // Ensure we include 0 in the range for better visualization
+        const yMin = Math.min(0, minVal * 0.9);
+        const yMax = maxVal * 1.1;
+
         const yScale = d3.scaleLinear()
-            .domain([0, maxVal * 1.1 || 1])
+            .domain([yMin, yMax])
             .range([innerHeight, 0])
             .nice();
 
         return { xScale, yScale };
     }, [data, dimensions, margin, visibleSeries]);
 
-    // Line generators
+    // Line generators with gap handling (defined() skips null points)
     const lineGenerators = useMemo(() => {
         return {
             growth: d3.line<DataPoint>()
+                .defined(d => hasValidData(d, 'growth'))
                 .x(d => xScale(d.month) || 0)
-                .y(d => yScale(d.growth))
+                .y(d => yScale(safeNumber(d.growth) ?? 0))
                 .curve(d3.curveMonotoneX),
             flow: d3.line<DataPoint>()
+                .defined(d => hasValidData(d, 'flow'))
                 .x(d => xScale(d.month) || 0)
-                .y(d => yScale(d.flow))
+                .y(d => yScale(safeNumber(d.flow) ?? 0))
                 .curve(d3.curveMonotoneX),
             labor: d3.line<DataPoint>()
+                .defined(d => hasValidData(d, 'labor'))
                 .x(d => xScale(d.month) || 0)
-                .y(d => yScale(d.labor))
+                .y(d => yScale(safeNumber(d.labor) ?? 0))
                 .curve(d3.curveMonotoneX),
         };
     }, [xScale, yScale]);
@@ -197,6 +253,46 @@ const TrendChart = memo(function TrendChart({
             return month;
         }
     };
+
+    // Handle single data point - show as centered dot with value
+    if (data.length === 1) {
+        const point = data[0];
+        return (
+            <div className={styles.container} ref={containerRef}>
+                <div className={styles.singlePoint}>
+                    <div className={styles.singlePointHeader}>
+                        {formatMonth(point.month)}
+                    </div>
+                    <div className={styles.singlePointValues}>
+                        {(['growth', 'flow', 'labor'] as const).map(key => {
+                            const val = safeNumber(point[key]);
+                            if (val === null) return null;
+                            return (
+                                <div key={key} className={styles.singlePointValue}>
+                                    <span
+                                        className={styles.singlePointDot}
+                                        style={{ background: SERIES_CONFIG[key].colorRaw }}
+                                    />
+                                    <span className={styles.singlePointLabel}>
+                                        {SERIES_CONFIG[key].label}:
+                                    </span>
+                                    <span
+                                        className={styles.singlePointNumber}
+                                        style={{ color: SERIES_CONFIG[key].colorRaw }}
+                                    >
+                                        {val.toFixed(2)}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className={styles.singlePointNote}>
+                        Only one data point available
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (!data || data.length === 0) {
         return (
@@ -303,9 +399,10 @@ const TrendChart = memo(function TrendChart({
                         if (!visibleSeries.has(key)) return null;
 
                         const areaGenerator = d3.area<DataPoint>()
+                            .defined(d => hasValidData(d, key))
                             .x(d => xScale(d.month) || 0)
                             .y0(innerHeight)
-                            .y1(d => yScale(d[key]))
+                            .y1(d => yScale(safeNumber(d[key]) ?? 0))
                             .curve(d3.curveMonotoneX);
 
                         return (
@@ -354,28 +451,34 @@ const TrendChart = memo(function TrendChart({
                         );
                     })}
 
-                    {/* Data points */}
+                    {/* Data points - only render for valid values */}
                     {(Object.keys(SERIES_CONFIG) as SeriesKey[]).map((key) => {
                         if (!visibleSeries.has(key)) return null;
 
-                        return data.map((d, i) => (
-                            <motion.circle
-                                key={`point-${key}-${i}`}
-                                cx={xScale(d.month) || 0}
-                                cy={yScale(d[key])}
-                                r={4}
-                                fill={SERIES_CONFIG[key].colorRaw}
-                                stroke="var(--bg-base)"
-                                strokeWidth={2}
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{
-                                    delay: (animationDuration / 1000) + (i * 0.05),
-                                    duration: 0.2
-                                }}
-                                className={styles.dataPoint}
-                            />
-                        ));
+                        return data.map((d, i) => {
+                            // Skip null/invalid values
+                            if (!hasValidData(d, key)) return null;
+                            const val = d[key] as number;
+
+                            return (
+                                <motion.circle
+                                    key={`point-${key}-${i}`}
+                                    cx={xScale(d.month) || 0}
+                                    cy={yScale(val)}
+                                    r={4}
+                                    fill={SERIES_CONFIG[key].colorRaw}
+                                    stroke="var(--bg-base)"
+                                    strokeWidth={2}
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{
+                                        delay: (animationDuration / 1000) + (i * 0.05),
+                                        duration: 0.2
+                                    }}
+                                    className={styles.dataPoint}
+                                />
+                            );
+                        });
                     })}
 
                     {/* Tooltip line */}
@@ -412,7 +515,7 @@ const TrendChart = memo(function TrendChart({
                             {formatMonth(tooltip.point.month)}
                         </div>
                         <div className={styles.tooltipContent}>
-                            {visibleSeries.has('growth') && (
+                            {visibleSeries.has('growth') && hasValidData(tooltip.point, 'growth') && (
                                 <div className={styles.tooltipRow}>
                                     <span
                                         className={styles.tooltipDot}
@@ -420,11 +523,11 @@ const TrendChart = memo(function TrendChart({
                                     />
                                     <span>Growth:</span>
                                     <span className={styles.tooltipValue}>
-                                        {tooltip.point.growth.toFixed(2)}
+                                        {(tooltip.point.growth as number).toFixed(2)}
                                     </span>
                                 </div>
                             )}
-                            {visibleSeries.has('flow') && (
+                            {visibleSeries.has('flow') && hasValidData(tooltip.point, 'flow') && (
                                 <div className={styles.tooltipRow}>
                                     <span
                                         className={styles.tooltipDot}
@@ -432,11 +535,11 @@ const TrendChart = memo(function TrendChart({
                                     />
                                     <span>Flow:</span>
                                     <span className={styles.tooltipValue}>
-                                        {tooltip.point.flow.toFixed(2)}
+                                        {(tooltip.point.flow as number).toFixed(2)}
                                     </span>
                                 </div>
                             )}
-                            {visibleSeries.has('labor') && (
+                            {visibleSeries.has('labor') && hasValidData(tooltip.point, 'labor') && (
                                 <div className={styles.tooltipRow}>
                                     <span
                                         className={styles.tooltipDot}
@@ -444,7 +547,7 @@ const TrendChart = memo(function TrendChart({
                                     />
                                     <span>Labor:</span>
                                     <span className={styles.tooltipValue}>
-                                        {tooltip.point.labor.toFixed(2)}
+                                        {(tooltip.point.labor as number).toFixed(2)}
                                     </span>
                                 </div>
                             )}

@@ -113,6 +113,32 @@ class MapDataResponse(BaseModel):
     month: str
     generated_at: str
 
+class TrendDataPoint(BaseModel):
+    """Single point in time series."""
+    month: str
+    growth: Optional[float] = None
+    flow: Optional[float] = None
+    labor: Optional[float] = None
+
+class TrendResponse(BaseModel):
+    """Time series data for trend charts."""
+    location_id: str
+    location_name: str
+    location_type: str
+    data: List[TrendDataPoint]
+    data_range: Dict[str, str]
+
+class ForecastResponse(BaseModel):
+    """Forecast data with confidence bounds."""
+    location_id: str
+    location_name: str
+    horizon: str
+    forecast: SignalData
+    confidence: float
+    lower_bound: SignalData
+    upper_bound: SignalData
+    historical_accuracy: Optional[float] = None
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # STATE GEOMETRY MAPPINGS (India specific)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -998,6 +1024,255 @@ async def compare_locations(
         "location2": data2,
         "month": month or data_engine.get_timeline_data().current_month
     }
+
+# ───────────────────────────────────────────────────────────────────────────────
+# TRENDS ENDPOINT (Time Series)
+# ───────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/trends/{location_id}", response_model=TrendResponse, tags=["Analysis"])
+async def get_trends(
+    location_id: str,
+    months: int = Query(default=12, ge=1, le=36, description="Number of months of data"),
+    signals: Optional[str] = Query(None, description="Comma-separated signals to include: growth,flow,labor")
+):
+    """
+    Get time series data for trend charts.
+    
+    Returns historical data points for the specified location.
+    """
+    # Parse signals filter
+    signal_list = None
+    if signals:
+        signal_list = [s.strip().lower() for s in signals.split(",")]
+        valid_signals = {"growth", "flow", "labor"}
+        if not all(s in valid_signals for s in signal_list):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid signals. Must be comma-separated list of: growth, flow, labor"
+            )
+    
+    # Determine location type and get data
+    location_name = ""
+    location_type = ""
+    
+    # PIN code (6 digits)
+    if location_id.isdigit() and len(location_id) == 6:
+        location_type = "pin"
+        location_name = f"PIN {location_id}"
+        series = data_engine.get_time_series(location_id)
+        if not series:
+            raise HTTPException(status_code=404, detail=f"No data for PIN: {location_id}")
+            
+        # Convert series to TrendDataPoint format
+        trend_data = [
+            TrendDataPoint(
+                month=s["month"] if isinstance(s["month"], str) else s["month"].strftime("%Y-%m") if hasattr(s["month"], 'strftime') else str(s["month"]),
+                growth=s.get("growth") if not signal_list or "growth" in signal_list else None,
+                flow=s.get("flow") if not signal_list or "flow" in signal_list else None,
+                labor=s.get("labor") if not signal_list or "labor" in signal_list else None
+            )
+            for s in series[-months:]
+        ]
+        
+    # State ID (2 characters)
+    elif len(location_id) == 2:
+        location_type = "state"
+        state_id = location_id.upper()
+        
+        # Find state name
+        for name, sid in STATE_ID_MAP.items():
+            if sid == state_id:
+                location_name = name
+                break
+        
+        if not location_name:
+            raise HTTPException(status_code=404, detail=f"State not found: {location_id}")
+        
+        # Get monthly aggregations for this state
+        timeline = data_engine.get_timeline_data()
+        trend_data = []
+        
+        for month in timeline.months[-months:]:
+            states = data_engine.aggregate_by_state(month)
+            state_data = next((s for s in states if s.state_id == state_id), None)
+            
+            if state_data:
+                trend_data.append(TrendDataPoint(
+                    month=month,
+                    growth=state_data.signals.growth if not signal_list or "growth" in signal_list else None,
+                    flow=state_data.signals.flow if not signal_list or "flow" in signal_list else None,
+                    labor=state_data.signals.labor if not signal_list or "labor" in signal_list else None
+                ))
+                
+    # District ID (STATE_DIST format)
+    elif "_" in location_id:
+        location_type = "district"
+        parts = location_id.split("_")
+        if len(parts) != 2:
+            raise HTTPException(status_code=400, detail="Invalid district ID format. Use STATE_DISTRICT")
+        
+        state_code = parts[0].upper()
+        district_code = parts[1].upper()
+        
+        # Find state name
+        state_name = None
+        for name, sid in STATE_ID_MAP.items():
+            if sid == state_code:
+                state_name = name
+                break
+        
+        if not state_name:
+            raise HTTPException(status_code=404, detail=f"State not found: {state_code}")
+        
+        location_name = f"{district_code}, {state_name}"
+        
+        # Get monthly aggregations for this district
+        timeline = data_engine.get_timeline_data()
+        trend_data = []
+        
+        for month in timeline.months[-months:]:
+            districts = data_engine.aggregate_by_district(state_name, month)
+            district_data = next((d for d in districts if d.district_id == location_id.upper()), None)
+            
+            if district_data:
+                trend_data.append(TrendDataPoint(
+                    month=month,
+                    growth=district_data.signals.growth if not signal_list or "growth" in signal_list else None,
+                    flow=district_data.signals.flow if not signal_list or "flow" in signal_list else None,
+                    labor=district_data.signals.labor if not signal_list or "labor" in signal_list else None
+                ))
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid location ID. Use 6-digit PIN, 2-char state ID, or STATE_DISTRICT format"
+        )
+    
+    if not trend_data:
+        raise HTTPException(status_code=404, detail=f"No trend data for location: {location_id}")
+    
+    return TrendResponse(
+        location_id=location_id.upper(),
+        location_name=location_name,
+        location_type=location_type,
+        data=trend_data,
+        data_range={
+            "start": trend_data[0].month if trend_data else "",
+            "end": trend_data[-1].month if trend_data else ""
+        }
+    )
+
+# ───────────────────────────────────────────────────────────────────────────────
+# FORECAST ENDPOINT
+# ───────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/forecast/{location_id}", response_model=ForecastResponse, tags=["Analysis"])
+async def get_forecast(
+    location_id: str,
+    horizon: str = Query(default="1m", description="Forecast horizon: 1m, 3m, 6m")
+):
+    """
+    Get forecast data with confidence bounds for a location.
+    
+    Returns predicted signals and uncertainty estimates.
+    """
+    # Validate horizon
+    valid_horizons = {"1m", "3m", "6m"}
+    if horizon not in valid_horizons:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid horizon. Must be one of: {', '.join(valid_horizons)}"
+        )
+    
+    # PIN code forecast
+    if location_id.isdigit() and len(location_id) == 6:
+        data = data_engine.get_pin_data(location_id)
+        if not data:
+            raise HTTPException(status_code=404, detail=f"No data for PIN: {location_id}")
+        
+        if data.forecast is None:
+            raise HTTPException(status_code=404, detail=f"No forecast available for PIN: {location_id}")
+        
+        # Calculate bounds based on confidence
+        confidence = data.confidence or 0.5
+        margin = (1 - confidence) * 1.5  # Higher uncertainty = wider bounds
+        
+        return ForecastResponse(
+            location_id=location_id,
+            location_name=f"PIN {location_id}",
+            horizon=horizon,
+            forecast=data.forecast,
+            confidence=confidence,
+            lower_bound=SignalData(
+                growth=data.forecast.growth - margin,
+                flow=data.forecast.flow - margin,
+                labor=data.forecast.labor - margin
+            ),
+            upper_bound=SignalData(
+                growth=data.forecast.growth + margin,
+                flow=data.forecast.flow + margin,
+                labor=data.forecast.labor + margin
+            ),
+            historical_accuracy=None
+        )
+    
+    # State/District forecasts - aggregate from underlying PINs
+    elif len(location_id) == 2:
+        # State forecast
+        state_id = location_id.upper()
+        state_name = None
+        for name, sid in STATE_ID_MAP.items():
+            if sid == state_id:
+                state_name = name
+                break
+        
+        if not state_name:
+            raise HTTPException(status_code=404, detail=f"State not found: {location_id}")
+        
+        # Get state aggregation for forecast estimate
+        states = data_engine.aggregate_by_state()
+        state_data = next((s for s in states if s.state_id == state_id), None)
+        
+        if not state_data:
+            raise HTTPException(status_code=404, detail=f"No data for state: {location_id}")
+        
+        # Estimate forecast as slight variation based on trend
+        trend_factor = 1.05 if state_data.trend == "rising" else (0.95 if state_data.trend == "falling" else 1.0)
+        
+        forecast = SignalData(
+            growth=round(state_data.signals.growth * trend_factor, 3),
+            flow=round(state_data.signals.flow * trend_factor, 3),
+            labor=round(state_data.signals.labor * trend_factor, 3)
+        )
+        
+        # Confidence decreases with horizon
+        horizon_confidence = {"1m": 0.75, "3m": 0.60, "6m": 0.45}
+        confidence = horizon_confidence.get(horizon, 0.5)
+        margin = (1 - confidence) * 1.5
+        
+        return ForecastResponse(
+            location_id=state_id,
+            location_name=state_name,
+            horizon=horizon,
+            forecast=forecast,
+            confidence=confidence,
+            lower_bound=SignalData(
+                growth=round(forecast.growth - margin, 3),
+                flow=round(forecast.flow - margin, 3),
+                labor=round(forecast.labor - margin, 3)
+            ),
+            upper_bound=SignalData(
+                growth=round(forecast.growth + margin, 3),
+                flow=round(forecast.flow + margin, 3),
+                labor=round(forecast.labor + margin, 3)
+            ),
+            historical_accuracy=0.72  # Placeholder
+        )
+    
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid location ID. Use 6-digit PIN or 2-char state ID"
+        )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT (Real-time Chat)

@@ -154,6 +154,58 @@
     color: var(--text-primary);
 }
 
+/* Single Point Display */
+.singlePoint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: var(--space-8);
+    min-height: 200px;
+}
+
+.singlePointHeader {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.singlePointValues {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.singlePointValue {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.singlePointDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.singlePointLabel {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.singlePointNumber {
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    font-weight: 600;
+}
+
+.singlePointNote {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 /* Empty state */
 .empty {
     display: flex;
