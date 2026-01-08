@@ -704,14 +704,6 @@ class ChatbotBridge:
                 "client_action": None
             }
             
-        except Exception as e:
-            logger.error(f"Chatbot error: {e}")
-            return {
-                "response": f"I encountered an error: {str(e)}",
-                "locations": [],
-                "action": None
-            }
-            
     def _extract_locations(self, text: str) -> List[str]:
         """Extract location mentions from text."""
         locations = []
@@ -1037,82 +1029,86 @@ async def websocket_chat(websocket: WebSocket):
     """
     WebSocket endpoint for real-time AI chat.
     
-    Message format:
+    Message format (from client):
     {
         "type": "message",
         "content": "What's happening in Mumbai?"
     }
     
-    Response format:
+    Response format (to client):
     {
-        "type": "response",
+        "type": "response" | "system" | "typing",
         "content": "Mumbai is showing...",
-        "locations": ["Mumbai", "Maharashtra"],
-        "action": {"type": "highlight"}
+        "action": {"type": "FLY_TO", "payload": "Delhi"}
     }
     """
     await manager.connect(websocket)
     
     # Send welcome message
-    await manager.send_json(websocket, {
-        "type": "system",
-        "content": "Connected to Chronos-X AI. Ask me anything about migration patterns, forecasts, or regional analysis!",
-        "timestamp": datetime.now().isoformat()
-    })
+    try:
+        await manager.send_json(websocket, {
+            "type": "system",
+            "content": "Connected to Chronos-X AI. Ask me anything about migration patterns, forecasts, or regional analysis!",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Failed to send welcome message: {e}")
+        manager.disconnect(websocket)
+        return
     
     try:
         while True:
-            # Receive message
-            data = await websocket.receive_json()
+            # Receive raw text from client (single receive call to avoid deadlock)
+            raw_data = await websocket.receive_text()
             
-            if data.get("type") == "message":
-                message = data.get("content", "")
-                
-                # Send typing indicator
+            # Parse JSON or fallback to plain text
+            user_content = ""
+            try:
+                message_data = json.loads(raw_data)
+                # Support both {type: "message", content: "..."} and {content: "..."}
+                user_content = message_data.get("content", "")
+            except json.JSONDecodeError:
+                # Plain text fallback
+                user_content = raw_data
+            
+            # Skip empty messages
+            if not user_content or not user_content.strip():
+                continue
+            
+            # Send typing indicator
+            try:
                 await manager.send_json(websocket, {
                     "type": "typing",
                     "timestamp": datetime.now().isoformat()
                 })
-                
-                # Process with chatbot
-                result = await chatbot_bridge.process_message(message)
-                
-                # Send response
-            # Receive text from client (expecting JSON structure)
-            data_text = await websocket.receive_text()
+            except Exception:
+                pass  # Non-critical, continue processing
             
+            # Process with chatbot (handles both LangChain and legacy)
             try:
-                message_data = json.loads(data_text)
-                user_content = message_data.get("content", "")
-            except json.JSONDecodeError:
-                # Fallback for plain text if any
-                user_content = data_text
+                result = await chatbot_bridge.process_message(user_content)
+            except Exception as e:
+                logger.error(f"Chatbot processing error: {e}")
+                result = {
+                    "text": "I encountered an error processing your request. Please try again.",
+                    "client_action": None
+                }
             
-            if not user_content:
-                continue
-
-            # Process via LangChain Bot
-            # The bot returns { "text": "...", "client_action": ... }
-            result = await chatbot_bridge.process_message(user_content)
-            
-            # Map to Frontend Protocol: { "type": "response", "content": "...", "action": ... }
+            # Send response to client
             response_payload = {
                 "type": "response",
-                "content": result.get("text"),
+                "content": result.get("text", "No response generated."),
                 "action": result.get("client_action")
             }
             
-            # Send back JSON
             await websocket.send_json(response_payload)
             
     except WebSocketDisconnect:
         logger.info("Client disconnected from chat")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
-        try:
-            await websocket.close()
-        except:
-            pass
+    finally:
+        manager.disconnect(websocket)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN ENTRY POINT

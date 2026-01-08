@@ -158,6 +158,12 @@
     box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2);
 }
 
+.input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02);
+}
+
 .sendBtn {
     position: absolute;
     right: 6px;
