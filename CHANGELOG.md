@@ -1,6 +1,35 @@
 # Changelog
 
-## [2.9.0] - 2026-01-08 - 📊 THE DATA VISUALIZATION PANELS RELEASE
+## [2.9.1] - 2026-01-08 - THE CHATBOT RESURRECTION
+> *"Fixing the broken to make it unbreakable."*
+
+### Critical Bug Fixes
+
+#### Backend WebSocket (`api_server.py`)
+- **Fixed WebSocket Deadlock**: Removed dual `receive_json()` + `receive_text()` calls that caused the connection to hang after the first message.
+- **Removed Duplicate Exception Handlers**: Cleaned up unreachable code block (lines 707-713).
+- **Proper Connection Cleanup**: Added `finally` block to ensure `manager.disconnect()` is always called.
+- **Graceful Error Handling**: Added per-message error handling so one bad message doesn't crash the connection.
+
+#### Frontend Chatbot (`Chatbot.tsx`)
+- **Complete Rewrite**: Replaced broken implementation with production-ready code.
+- **Connection State Management**: Added `connectionStatus` state (connecting/connected/disconnected/error).
+- **Exponential Backoff Reconnection**: Auto-reconnects with delays: 1s, 2s, 4s, 8s, 16s (max 5 attempts).
+- **Full Message Type Handling**: Now properly handles `system`, `typing`, and `response` messages.
+- **Input Blocking**: Disabled input field when not connected.
+- **Complete Action Dispatch**: Added handlers for `FLY_TO`, `ZOOM`, `COMPARE`, `RESET` actions.
+
+#### Chat Bubble (`ChatBubble.tsx`)
+- **System Message Styling**: Added distinct blue styling for system messages.
+- **Error Message Styling**: Added red styling for error messages.
+- **Icon Support**: Added `AlertCircle` and `Info` icons for message types.
+
+### Changed
+- `Chatbot.module.css`: Added `.input:disabled` styling for when WebSocket is disconnected.
+
+---
+
+## [2.9.0] - 2026-01-08 - THE DATA VISUALIZATION PANELS RELEASE
 > *"See the signals. Compare the regions. Trust the forecast."*
 
 ### Headline Features
