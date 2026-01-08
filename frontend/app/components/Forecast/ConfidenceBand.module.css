@@ -1,0 +1,5 @@
+/* ConfidenceBand - Chart Confidence Interval Overlay */
+
+.confidenceBand {
+    pointer-events: none;
+}

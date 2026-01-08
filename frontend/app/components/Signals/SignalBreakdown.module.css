@@ -1,0 +1,26 @@
+/* SignalBreakdown - Container for Signal Cards */
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+}
+
+/* Compact mode - single column */
+.container.compact {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1200px) {
+    .container:not(.compact) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .container:not(.compact) {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,6 +1,58 @@
 # Changelog
 
-## [2.8.0] - 2026-01-08 - 🏛️ THE HOMEPAGE MASTERPIECE
+## [2.9.0] - 2026-01-08 - 📊 THE DATA VISUALIZATION PANELS RELEASE
+> *"See the signals. Compare the regions. Trust the forecast."*
+
+### Headline Features
+
+#### 1. Signal Breakdown Cards (Growth/Flow/Labor)
+> *Premium glassmorphic cards that make data beautiful.*
+- **Animated Value Display**: Signal values animate on change using Framer Motion.
+- **Trend Indicators**: Dynamic up/down/stable arrows with color coding (Teal rising, Pink falling).
+- **Sparkline Mini-Charts**: SVG sparklines showing last 6 months of signal history.
+- **TissueDeck Styling**: Full glassmorphism with glow effects and hover animations.
+
+#### 2. Interactive Trend Charts
+> *D3.js meets Framer Motion.*
+- **Multi-Line Chart**: Growth, Flow, and Labor signals on a single animated chart.
+- **Toggleable Legend**: Click to show/hide individual series.
+- **Interactive Tooltips**: Hover to see exact values at any point.
+- **Responsive Design**: ResizeObserver ensures perfect sizing at any viewport.
+- **Gradient Fills**: Subtle area fills under each line for visual depth.
+
+#### 3. Region Comparison Mode
+> *Side-by-side intelligence.*
+- **Compare Button**: New header action opens the comparison drawer.
+- **Location Selector**: Autocomplete search across states, districts, and PIN codes.
+- **Side-by-Side View**: Compare any two regions with signal breakdown cards.
+- **Difference Analysis**: Automatic calculation showing positive/negative deltas.
+- **Cross-Type Support**: Compare states to districts, districts to PINs, etc.
+
+#### 4. Forecast Confidence Visualizations
+> *Know when to trust the prediction.*
+- **Circular Gauge**: SVG gauge showing 0-100% confidence with color gradients.
+- **Confidence Levels**: High (Teal), Medium (Yellow), Low (Pink), Insufficient (Gray).
+- **Accuracy Metrics**: When actual data available, shows prediction accuracy per signal.
+- **Confidence Bands**: SVG overlay for charts showing prediction intervals.
+- **Low Confidence Warning**: Pulsing animation warns when confidence drops below 50%.
+
+### Added
+- `frontend/app/components/Signals/SignalCard.tsx` - Individual signal card component
+- `frontend/app/components/Signals/SignalBreakdown.tsx` - Container for all three signal cards
+- `frontend/app/components/Charts/TrendChart.tsx` - D3.js multi-line trend chart
+- `frontend/app/components/Comparison/ComparisonPanel.tsx` - Slide-out comparison drawer
+- `frontend/app/components/Comparison/LocationSelector.tsx` - Autocomplete location search
+- `frontend/app/components/Forecast/ForecastConfidence.tsx` - Confidence gauge visualization
+- `frontend/app/components/Forecast/ConfidenceBand.tsx` - Chart confidence interval overlay
+
+### Changed
+- `dashboard.tsx`: Added Compare button and ComparisonPanel integration
+- `dashboard.module.css`: Added header actions and compare button styles
+- `package.json`: Added D3.js and @types/d3 dependencies
+
+---
+
+## [2.8.0] - 2026-01-08 - THE HOMEPAGE MASTERPIECE
 > *"First impressions matter. We just made ours unforgettable."*
 
 ### 🔥 Headline Features

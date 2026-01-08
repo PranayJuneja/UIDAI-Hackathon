@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import IndiaMap from "./components/Map/IndiaMap";
 import DashboardStats from "./components/Dashboard/DashboardStats";
 import DashboardHotspots from "./components/Dashboard/DashboardHotspots";
 import Timeline from "./components/Timeline/Timeline";
 import { useMapStore } from "./stores/mapStore";
 import Chatbot from "./components/Chatbot/Chatbot";
+import { ComparisonPanel } from "./components/Comparison";
 import styles from "./dashboard.module.css";
 
 interface Particle {
@@ -30,6 +31,9 @@ export default function Dashboard() {
         loadingDistricts,
         selectedDistrict
     } = useMapStore();
+
+    // Comparison mode state
+    const [isComparisonOpen, setIsComparisonOpen] = useState(false);
 
     // Generate particles only on client side to avoid hydration mismatch
     const [particles, setParticles] = useState<Particle[]>([]);
@@ -94,6 +98,11 @@ export default function Dashboard() {
             .slice(0, 15);
     }, [viewMode, districts, states]);
 
+    // Toggle comparison panel
+    const handleCompareToggle = useCallback(() => {
+        setIsComparisonOpen(prev => !prev);
+    }, []);
+
     return (
         <main className={styles.dashboard}>
             {/* Floating Particles */}
@@ -127,9 +136,22 @@ export default function Dashboard() {
                         <span className={styles.cursor}>_</span>
                     </motion.div>
 
-                    <div className={styles.monthBadge}>
-                        <span className={styles.monthLabel}>Viewing</span>
-                        <span className={styles.monthValue}>{selectedMonth}</span>
+                    <div className={styles.headerActions}>
+                        {/* Compare Button */}
+                        <motion.button
+                            className={styles.compareButton}
+                            onClick={handleCompareToggle}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <span className={styles.compareIcon}>⚖️</span>
+                            <span>Compare</span>
+                        </motion.button>
+
+                        <div className={styles.monthBadge}>
+                            <span className={styles.monthLabel}>Viewing</span>
+                            <span className={styles.monthValue}>{selectedMonth}</span>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -180,6 +202,13 @@ export default function Dashboard() {
                     />
                 </aside>
             </div>
+
+            {/* Comparison Panel */}
+            <ComparisonPanel
+                isOpen={isComparisonOpen}
+                onClose={() => setIsComparisonOpen(false)}
+            />
+
             {/* Chatbot */}
             <Chatbot />
         </main>
