@@ -1,11 +1,19 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useMapStore, DistrictData, GeoJSON } from '../stores/mapStore';
+import { API_BASE, GEOJSON_CDN_BASE, REQUEST_TIMEOUT_MS, CACHE_TTL_MS } from '../lib/config';
 
-const API_BASE = 'http://127.0.0.1:8000';
-const GEOJSON_CDN_BASE = 'https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@main/geojson/states';
+// Cache for district GeoJSON data with TTL
+interface CacheEntry {
+    data: GeoJSON;
+    timestamp: number;
+}
+const geoJsonCache = new Map<string, CacheEntry>();
 
-// Cache for district GeoJSON data
-const geoJsonCache = new Map<string, GeoJSON>();
+// Check if cache entry is still valid
+function isCacheValid(entry: CacheEntry | undefined): entry is CacheEntry {
+    if (!entry) return false;
+    return Date.now() - entry.timestamp < CACHE_TTL_MS;
+}
 
 // Map state names to CDN file names
 const stateNameToFileName: Record<string, string> = {
@@ -94,12 +102,13 @@ export function useDistrictData() {
                     return res.json();
                 });
 
-                // Check cache for GeoJSON, or fetch from CDN
+                // Check cache for GeoJSON (with TTL), or fetch from CDN
                 const fileName = getGeoJSONFileName(selectedStateName!);
                 let geoJsonPromise: Promise<GeoJSON>;
 
-                if (geoJsonCache.has(fileName)) {
-                    geoJsonPromise = Promise.resolve(geoJsonCache.get(fileName)!);
+                const cachedEntry = geoJsonCache.get(fileName);
+                if (isCacheValid(cachedEntry)) {
+                    geoJsonPromise = Promise.resolve(cachedEntry.data);
                 } else {
                     geoJsonPromise = fetch(`${GEOJSON_CDN_BASE}/${fileName}.geojson`)
                         .then(res => {
@@ -107,7 +116,7 @@ export function useDistrictData() {
                             return res.json();
                         })
                         .then((data: GeoJSON) => {
-                            geoJsonCache.set(fileName, data);
+                            geoJsonCache.set(fileName, { data, timestamp: Date.now() });
                             return data;
                         });
                 }

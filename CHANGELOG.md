@@ -1,6 +1,56 @@
 # Changelog
 
 
+## [2.9.5] - 2026-01-09 - THE API HARDENING UPDATE
+> *"Fix the edge cases. Trust the connection."*
+
+### Backend Fixes (`api_server.py`)
+
+| Fix | Description |
+|-----|-------------|
+| **Environment-based CORS** | Replaced wildcard `allow_origins=["*"]` with `ALLOWED_ORIGINS` from environment variable |
+| **Month Validation** | Added regex pattern `YYYY-MM` validation with HTTP 400 errors for invalid formats |
+| **WebSocket Message Limit** | Added 10KB max message size check with error response |
+| **Forecast Bounds Clamping** | Clamped forecast lower/upper bounds to `[-5, 5]` range |
+| **Error Handling** | Added try-except for ValueError in map endpoints |
+
+### Frontend Fixes
+
+| File | Changes |
+|------|---------|
+| `frontend/app/lib/config.ts` | **NEW** - Centralized API configuration with environment variables |
+| `frontend/app/hooks/useMapData.ts` | Added AbortController for 10s timeout, request deduplication |
+| `frontend/app/hooks/useDistrictData.ts` | Added cache TTL (5 min), config imports |
+| `frontend/app/components/Chatbot/Chatbot.tsx` | WS_CHAT_URL from config |
+| `frontend/.env.local.example` | **NEW** - Environment variable documentation |
+
+### Added
+- `verify_api_comprehensive.py` - 12-test verification suite (all passing)
+- `frontend/app/lib/config.ts` - Centralized API URLs and timeouts
+- `frontend/.env.local.example` - Frontend environment template
+
+### Changed
+- `.env.example` - Added `ALLOWED_ORIGINS`, `RATE_LIMIT_PER_MINUTE`
+- `requirements.txt` - Added `pandas`, `pydantic`, `requests`, `httpx`, `python-dotenv`
+
+### Verification
+```
+12/12 tests passed:
+✅ Health, ✅ Month Validation (2), ✅ Districts, ✅ UT States,
+✅ Search, ✅ Compare, ✅ Trends, ✅ Forecast Bounds, ✅ PIN, ✅ WebSocket
+```
+
+---
+
+## [2.9.4] - 2026-01-08 - THE DATA RECOVERY UPDATE
+> *"No data left behind."*
+
+### Fixed
+- **Duplicate Key Error**: Resolved `HR_YAMUNANAGAR` collision by implementing robust district ID generation (preserving uniqueness for "Yamunanagar" vs "Yamuna Nagar") in `api_server.py`.
+- **UT Data Retrieval**: Fixed 404s for "Daman & Diu" and "Dadra & Nagar Haveli" by correcting CSV data parsing and mapping logic to split merged UT entries.
+- **WebSocket Timeout**: Fixed Chatbot connection timeout by implementing lazy loading for the `LangChainBot` module, preventing heavy AI initialization from blocking server startup.
+- **Location Search**: Fixed duplicate key error `HR_YAM` in `LocationSelector` by removing aggressive 3-character truncation of district IDs in search results.
+
 ## [2.9.3] - 2026-01-08 - THE HYDRATION & STYLING PATCH
 > *"Smooth rendering. Crystal clear architecture."*
 

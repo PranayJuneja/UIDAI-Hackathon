@@ -1,32 +1,25 @@
 "use client";
 
 import { motion } from "framer-motion";
-import SiteHeader from "../components/SiteHeader";
+import { PageLayout, SubPageHero } from "../components/UI";
 import styles from "../components/Home/Home.module.css";
-import { BrainCircuit, GitBranch, Search, Zap, MessageSquare, MapPin, Terminal as TerminalIcon } from "lucide-react";
+import { BrainCircuit, MapPin, MessageSquare, Zap, Terminal as TerminalIcon } from "lucide-react";
 
 export default function MLPage() {
     return (
-        <main className="min-h-screen bg-[#1c1b1f] text-white">
-            <div className="aurora" style={{ background: 'radial-gradient(at 50% 50%, rgba(244, 63, 94, 0.15) 0%, transparent 70%)' }} />
-            <div className="gridOverlay" />
-            <SiteHeader />
-
-            <section className={styles.heroSection} style={{ minHeight: '50vh', paddingBottom: 0 }}>
-                <motion.div className={styles.heroContent} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                    <div className={styles.heroBadge}><BrainCircuit size={14} /> ARTIFICIAL INTELLIGENCE</div>
-                    <h1 className={styles.heroTitle}>The Intelligence Layer</h1>
-                    <p className={styles.heroSubtitle}>
-                        Zero-shot time series prediction using <span className="text-[#F43F5E]">Amazon Chronos</span> and our proprietary <span className="text-[#A78BFA]">Spatial Parallel Search</span>.
-                    </p>
-                </motion.div>
-            </section>
+        <PageLayout showParticles={true}>
+            <SubPageHero
+                title="The Intelligence Layer"
+                subtitle={<>Zero-shot time series prediction using <span className="text-[#F43F5E]">Amazon Chronos</span> and our proprietary <span className="text-[#A78BFA]">Spatial Parallel Search</span>.</>}
+                badge="ARTIFICIAL INTELLIGENCE"
+                icon={BrainCircuit}
+            />
 
             <section className={styles.section}>
                 <div className={styles.container}>
 
                     {/* Section 1: Spatial Parallel Search */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-24">
                         <motion.div>
                             <h2 className="text-3xl font-bold mb-6">Spatial Parallel Search</h2>
                             <p className="text-gray-400 text-lg mb-6">
@@ -36,7 +29,7 @@ export default function MLPage() {
                                 If Region A (Target) matches Region B (Source) in November, then Region B's December outcome is a strong predictor for Region A's future.
                             </p>
 
-                            <div className="bg-[#1a1a1c] border border-white/5 rounded-xl p-6">
+                            <div className={styles.vectorCard}>
                                 <h3 className="font-bold text-white mb-4 flex items-center gap-2">
                                     <MapPin size={18} className="text-[#A78BFA]" />
                                     Algorithm: find_spatial_parallels
@@ -83,39 +76,10 @@ export default function MLPage() {
 
 
                     {/* Section 2: The Chatbot Bridge & Attestor */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16" style={{ direction: 'rtl' }}>
-                        <motion.div style={{ direction: 'ltr' }}>
-                            <h2 className="text-3xl font-bold mb-6">The Attestor Engine</h2>
-                            <p className="text-gray-400 text-lg mb-6">
-                                The <code>Attestor</code> class (src/attestation.py) is the brain of the chatbot. It uses a specialized <strong>System Prompt</strong> to enforce a "Weather Forecast" persona.
-                            </p>
-
-                            <div className="space-y-6">
-                                <div className="vector-card bg-[#0f0f11] p-6 rounded-xl border-l-4 border-l-[#F43F5E]">
-                                    <h4 className="font-bold text-[#F43F5E] mb-2 flex items-center gap-2"><MessageSquare size={16} /> Intent Parsing</h4>
-                                    <p className="text-sm text-gray-400 mb-2">
-                                        Uses regex/LLM to extract structured intents from natural language.
-                                    </p>
-                                    <code className="text-xs bg-black/40 p-2 rounded block text-gray-500">
-                                        "What about Delhi?" → {"{ location: 'Delhi', intent: 'forecast' }"}
-                                    </code>
-                                </div>
-
-                                <div className="vector-card bg-[#0f0f11] p-6 rounded-xl border-l-4 border-l-[#3B82F6]">
-                                    <h4 className="font-bold text-[#3B82F6] mb-2 flex items-center gap-2"><Zap size={16} /> Context Injection</h4>
-                                    <p className="text-sm text-gray-400 mb-2">
-                                        The <code>ContextEngine</code> injects seasonality drivers into the LLM prompt.
-                                    </p>
-                                    <code className="text-xs bg-black/40 p-2 rounded block text-gray-500">
-                                        System: "It is Harvest Season in Punjab. Expect high labor movement."
-                                    </code>
-                                </div>
-                            </div>
-                        </motion.div>
-
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
                         <motion.div
                             className={styles.terminalBoot}
-                            style={{ width: '100%', height: 'fit-content', direction: 'ltr' }}
+                            style={{ width: '100%', height: 'fit-content' }}
                         >
                             <div className={styles.terminalHeader}>
                                 <TerminalIcon size={16} />
@@ -140,16 +104,45 @@ export default function MLPage() {
                                     {"  "}<span style={{ color: '#6a9955' }}># 3. LLM Generation (High Temp for creativity)</span>
                                     {"  "}return self.client.chat.completions.create(
                                     {"      "}model="minimax-m2.1",
-                                    {"      "}messages=[{"{"}"role": "user", "content": full_prompt{"}"}],
+                                    {"      "}messages=[{"{"}{"\"role\": \"user\", \"content\": full_prompt"}{"}"}],
                                     {"      "}temperature=0.4
                                     {"  "})
                                 </code></pre>
+                            </div>
+                        </motion.div>
+
+                        <motion.div>
+                            <h2 className="text-3xl font-bold mb-6">The Attestor Engine</h2>
+                            <p className="text-gray-400 text-lg mb-6">
+                                The <code>Attestor</code> class (src/attestation.py) is the brain of the chatbot. It uses a specialized <strong>System Prompt</strong> to enforce a "Weather Forecast" persona.
+                            </p>
+
+                            <div className="space-y-6">
+                                <div className={`${styles.vectorCard} border-l-4 border-l-[#F43F5E]`}>
+                                    <h4 className="font-bold text-[#F43F5E] mb-2 flex items-center gap-2"><MessageSquare size={16} /> Intent Parsing</h4>
+                                    <p className="text-sm text-gray-400 mb-2">
+                                        Uses regex/LLM to extract structured intents from natural language.
+                                    </p>
+                                    <code className="text-xs bg-black/40 p-2 rounded block text-gray-500">
+                                        "What about Delhi?" → {"{ location: 'Delhi', intent: 'forecast' }"}
+                                    </code>
+                                </div>
+
+                                <div className={`${styles.vectorCard} border-l-4 border-l-[#3B82F6]`}>
+                                    <h4 className="font-bold text-[#3B82F6] mb-2 flex items-center gap-2"><Zap size={16} /> Context Injection</h4>
+                                    <p className="text-sm text-gray-400 mb-2">
+                                        The <code>ContextEngine</code> injects seasonality drivers into the LLM prompt.
+                                    </p>
+                                    <code className="text-xs bg-black/40 p-2 rounded block text-gray-500">
+                                        System: "It is Harvest Season in Punjab. Expect high labor movement."
+                                    </code>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
 
                 </div>
             </section>
-        </main>
+        </PageLayout>
     );
 }

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Sparkles, WifiOff, Loader2 } from 'lucide-react';
 import ChatBubble from './ChatBubble';
 import { useMapStore } from '../../stores/mapStore';
+import { WS_CHAT_URL } from '../../lib/config';
 import styles from './Chatbot.module.css';
 
 interface Message {
@@ -111,7 +112,7 @@ const Chatbot = () => {
         setConnectionStatus('connecting');
 
         try {
-            const ws = new WebSocket('ws://localhost:8000/ws/chat');
+            const ws = new WebSocket(WS_CHAT_URL);
 
             ws.onopen = () => {
                 console.log('Connected to Chronos Chat');

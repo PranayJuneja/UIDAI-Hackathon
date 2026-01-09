@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useMapStore, StateData } from '../stores/mapStore';
-
-const API_BASE = 'http://127.0.0.1:8000';
+import { API_BASE, REQUEST_TIMEOUT_MS } from '../lib/config';
 
 export function useMapData() {
     const {
@@ -12,12 +11,33 @@ export function useMapData() {
         states
     } = useMapStore();
 
+    const abortControllerRef = useRef<AbortController | null>(null);
+
     useEffect(() => {
+        // Cancel previous request if still pending
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        // Set timeout for the request
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, REQUEST_TIMEOUT_MS);
+
         async function fetchData() {
             setLoading(true);
             try {
-                const response = await fetch(`${API_BASE}/api/states?month=${selectedMonth}`);
-                if (!response.ok) throw new Error('Failed to fetch states');
+                const response = await fetch(`${API_BASE}/api/states?month=${selectedMonth}`, {
+                    signal: controller.signal
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `Failed to fetch states: ${response.status}`);
+                }
 
                 const data = await response.json();
 
@@ -41,12 +61,23 @@ export function useMapData() {
 
                 setStates(stateData);
             } catch (err) {
+                if (err instanceof Error && err.name === 'AbortError') {
+                    console.log('Request was cancelled');
+                    return; // Don't set error for cancelled requests
+                }
                 console.error('Failed to fetch states:', err);
                 setError(err instanceof Error ? err.message : 'Unknown error');
+            } finally {
+                clearTimeout(timeoutId);
             }
         }
 
         fetchData();
+
+        return () => {
+            clearTimeout(timeoutId);
+            controller.abort();
+        };
     }, [selectedMonth, setStates, setLoading, setError]);
 
     return { states, loading: useMapStore.getState().loading };

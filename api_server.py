@@ -19,6 +19,8 @@ Author: Chronos-X Team
 import asyncio
 import json
 import logging
+import os
+import re
 import sys
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -44,6 +46,17 @@ logging.basicConfig(
     datefmt="%H:%M:%S"
 )
 logger = logging.getLogger("ChronosAPI")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURATION (from environment)
+# ═══════════════════════════════════════════════════════════════════════════════
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS", 
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000"
+).split(",")
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+MAX_WS_MESSAGE_SIZE = 10 * 1024  # 10KB max WebSocket message
+MONTH_PATTERN = re.compile(r'^\d{4}-(0[1-9]|1[0-2])$')
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATA MODELS (Pydantic)
@@ -274,6 +287,9 @@ class ChronosDataEngine:
         # Build district mapping from demographic data
         self._build_district_mapping()
         
+        # Correct merged UT state names in pulse_vectors based on district mapping
+        self._correct_pulse_vectors_states()
+        
         self._initialized = True
         logger.info("═" * 60)
         logger.info("Chronos Data Engine initialized successfully")
@@ -288,14 +304,27 @@ class ChronosDataEngine:
         csv_files = list(demo_dir.glob("*.csv"))
         if not csv_files:
             return
+        
+        # Districts belonging to Daman & Diu (DD)
+        DD_DISTRICTS = {"daman", "diu"}
             
         try:
             df = pl.read_csv(csv_files[0])
             if all(col in df.columns for col in ["state", "district", "pincode"]):
                 for row in df.select(["state", "district", "pincode"]).unique().iter_rows(named=True):
-                    state = self._normalize_state(str(row["state"]))
+                    raw_state = str(row["state"]).lower().strip()
                     district = str(row["district"]).strip().title()
                     pincode = str(row["pincode"])
+                    
+                    # Handle merged UT state: split based on district
+                    if "dadra" in raw_state and "daman" in raw_state:
+                        # This is the merged state - split based on district name
+                        if district.lower() in DD_DISTRICTS:
+                            state = "Daman & Diu"
+                        else:
+                            state = "Dadra & Nagar Haveli"
+                    else:
+                        state = self._normalize_state(str(row["state"]))
                     
                     if state not in self.district_mapping:
                         self.district_mapping[state] = {}
@@ -307,6 +336,59 @@ class ChronosDataEngine:
                 logger.info(f"✓ Built district mapping: {len(self.district_mapping)} states")
         except Exception as e:
             logger.warning(f"Could not build district mapping: {e}")
+    
+    def _correct_pulse_vectors_states(self):
+        """
+        Correct the merged UT state names in pulse_vectors based on pincode mapping.
+        
+        The source parquet may contain 'Dadra and Nagar Haveli and Daman and Diu' as
+        a merged state name. We use the district mapping (which was built with proper
+        splits) to find the correct state for each pincode.
+        """
+        if self.pulse_vectors is None:
+            return
+        
+        # Build pincode -> corrected state mapping from district_mapping
+        pincode_to_state = {}
+        for state_name, districts in self.district_mapping.items():
+            for district, pincodes in districts.items():
+                for pin in pincodes:
+                    pincode_to_state[pin] = state_name
+        
+        if not pincode_to_state:
+            return
+        
+        # Check if we have any merged UT state entries to fix
+        merged_ut_pattern = "dadra and nagar haveli and daman"
+        
+        states_in_data = self.pulse_vectors["state"].unique().to_list()
+        has_merged_ut = any(merged_ut_pattern in str(s).lower() for s in states_in_data)
+        
+        if not has_merged_ut:
+            return  # No correction needed
+        
+        try:
+            # Create corrected state column based on pincode lookup
+            def correct_state(row):
+                pincode = str(row["pincode"])
+                state = row["state"]
+                if merged_ut_pattern in str(state).lower():
+                    # Use mapping to get correct state
+                    return pincode_to_state.get(pincode, state)
+                return state
+            
+            # Apply correction using map
+            corrected_states = []
+            for row in self.pulse_vectors.iter_rows(named=True):
+                corrected_states.append(correct_state(row))
+            
+            self.pulse_vectors = self.pulse_vectors.with_columns(
+                pl.Series("state", corrected_states)
+            )
+            
+            logger.info("✓ Corrected merged UT state names in pulse_vectors")
+        except Exception as e:
+            logger.warning(f"Could not correct pulse_vectors states: {e}")
             
     def _normalize_state(self, state: str) -> str:
         """Normalize state name to consistent format."""
@@ -388,13 +470,18 @@ class ChronosDataEngine:
         
     def _parse_month_filter(self, month_str: str):
         """Parse month string (YYYY-MM) to match the month column type."""
+        if not month_str:
+            return None
+        # Validate format with regex
+        if not MONTH_PATTERN.match(month_str):
+            raise ValueError(f"Invalid month format: '{month_str}'. Expected YYYY-MM (e.g., 2025-01)")
         try:
             from datetime import date
             # Parse YYYY-MM format to first day of month
             year, mon = month_str.split('-')
             return date(int(year), int(mon), 1)
-        except:
-            return month_str  # Fallback to string comparison
+        except Exception as e:
+            raise ValueError(f"Could not parse month '{month_str}': {e}")
             
     def get_national_averages(self, month: Optional[str] = None) -> SignalData:
         """Calculate national averages for signals."""
@@ -506,7 +593,7 @@ class ChronosDataEngine:
             )
             
             results.append(DistrictAggregation(
-                district_id=f"{STATE_ID_MAP.get(state_normalized, 'XX')}_{district_name.replace(' ', '').upper()}",
+                district_id=f"{STATE_ID_MAP.get(state_normalized, 'XX')}_{district_name.strip().upper().replace(' ', '_')}",
                 district_name=district_name,
                 state_name=state_normalized,
                 signals=signals,
@@ -624,12 +711,12 @@ class ChronosDataEngine:
             for district in districts.keys():
                 if query_lower in district.lower():
                     results.append({
-                        "type": "district",
-                        "id": f"{STATE_ID_MAP.get(state, 'XX')}_{district[:3].upper()}",
-                        "name": district,
-                        "state": state,
-                        "match_score": 1.0 if district.lower().startswith(query_lower) else 0.8
-                    })
+                    "type": "district",
+                    "id": f"{STATE_ID_MAP.get(state, 'XX')}_{district.strip().upper().replace(' ', '_')}",
+                    "name": district,
+                    "state": state,
+                    "match_score": 1.0 if district.lower().startswith(query_lower) else 0.8
+                })
                     
         # Search PIN codes
         if query.isdigit() and self.pulse_vectors is not None:
@@ -802,11 +889,12 @@ app = FastAPI(
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure properly in production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+logger.info(f"CORS enabled for origins: {ALLOWED_ORIGINS}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # REST ENDPOINTS
@@ -855,8 +943,11 @@ async def get_map_data(
     
     Returns all states with aggregated signals and hotspot data.
     """
-    states = data_engine.aggregate_by_state(month)
-    national_avg = data_engine.get_national_averages(month)
+    try:
+        states = data_engine.aggregate_by_state(month)
+        national_avg = data_engine.get_national_averages(month)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     
     # Determine which month we're returning
     timeline = data_engine.get_timeline_data()
@@ -874,7 +965,10 @@ async def get_states(
     month: Optional[str] = Query(None, description="Filter by month")
 ):
     """Get all states with aggregated data."""
-    return data_engine.aggregate_by_state(month)
+    try:
+        return data_engine.aggregate_by_state(month)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/states/{state_id}", tags=["Map"])
 async def get_state_detail(
@@ -914,9 +1008,9 @@ async def get_district_detail(
     month: Optional[str] = Query(None, description="Filter by month")
 ):
     """Get detailed data for a specific district."""
-    # Parse district ID (format: STATE_DIST)
-    parts = district_id.split("_")
-    if len(parts) != 2:
+    # Parse district ID (format: STATE_DISTRICT_NAME where district name may contain underscores)
+    parts = district_id.split("_", 1)  # Split only on first underscore
+    if len(parts) < 2:
         raise HTTPException(status_code=400, detail="Invalid district ID format")
         
     state_code = parts[0]
@@ -1002,8 +1096,8 @@ async def compare_locations(
             return next((s for s in states if s.state_id == loc.upper()), None)
         # Try as district ID
         if "_" in loc:
-            parts = loc.split("_")
-            if len(parts) == 2:
+            parts = loc.split("_", 1)  # Split only on first underscore
+            if len(parts) >= 2:
                 # Find state and get district
                 for name, sid in STATE_ID_MAP.items():
                     if sid == parts[0].upper():
@@ -1104,11 +1198,11 @@ async def get_trends(
                     labor=state_data.signals.labor if not signal_list or "labor" in signal_list else None
                 ))
                 
-    # District ID (STATE_DIST format)
+    # District ID (STATE_DIST format where district name may contain underscores)
     elif "_" in location_id:
         location_type = "district"
-        parts = location_id.split("_")
-        if len(parts) != 2:
+        parts = location_id.split("_", 1)  # Split only on first underscore
+        if len(parts) < 2:
             raise HTTPException(status_code=400, detail="Invalid district ID format. Use STATE_DISTRICT")
         
         state_code = parts[0].upper()
@@ -1196,6 +1290,10 @@ async def get_forecast(
         confidence = data.confidence or 0.5
         margin = (1 - confidence) * 1.5  # Higher uncertainty = wider bounds
         
+        # Helper to clamp values to reasonable range
+        def clamp(val: float, min_val: float = -5.0, max_val: float = 5.0) -> float:
+            return max(min_val, min(max_val, val))
+        
         return ForecastResponse(
             location_id=location_id,
             location_name=f"PIN {location_id}",
@@ -1203,14 +1301,14 @@ async def get_forecast(
             forecast=data.forecast,
             confidence=confidence,
             lower_bound=SignalData(
-                growth=data.forecast.growth - margin,
-                flow=data.forecast.flow - margin,
-                labor=data.forecast.labor - margin
+                growth=round(clamp(data.forecast.growth - margin), 3),
+                flow=round(clamp(data.forecast.flow - margin), 3),
+                labor=round(clamp(data.forecast.labor - margin), 3)
             ),
             upper_bound=SignalData(
-                growth=data.forecast.growth + margin,
-                flow=data.forecast.flow + margin,
-                labor=data.forecast.labor + margin
+                growth=round(clamp(data.forecast.growth + margin), 3),
+                flow=round(clamp(data.forecast.flow + margin), 3),
+                labor=round(clamp(data.forecast.labor + margin), 3)
             ),
             historical_accuracy=None
         )
@@ -1335,6 +1433,15 @@ async def websocket_chat(websocket: WebSocket):
         while True:
             # Receive raw text from client (single receive call to avoid deadlock)
             raw_data = await websocket.receive_text()
+            
+            # Check message size limit
+            if len(raw_data) > MAX_WS_MESSAGE_SIZE:
+                await manager.send_json(websocket, {
+                    "type": "error",
+                    "content": f"Message too large. Maximum size is {MAX_WS_MESSAGE_SIZE // 1024}KB.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                continue
             
             # Parse JSON or fallback to plain text
             user_content = ""
