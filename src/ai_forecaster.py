@@ -399,7 +399,16 @@ def predict_from_parallels(
     
     # Weighted average prediction
     weights = np.array(weights)
-    weights = weights / weights.sum()  # Normalize
+    
+    # Guard against division by zero - ensure weights sum is non-zero
+    weight_sum = weights.sum()
+    if weight_sum == 0 or len(weights) == 0:
+        return {
+            "prediction": None,
+            "confidence": 0,
+            "message": "No valid weights for prediction"
+        }
+    weights = weights / weight_sum  # Normalize
     
     prediction = {
         "growth": sum(w * o["growth"] for w, o in zip(weights, parallel_outcomes)),

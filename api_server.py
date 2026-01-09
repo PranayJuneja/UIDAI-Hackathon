@@ -22,10 +22,12 @@ import logging
 import os
 import re
 import sys
+import threading
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
+import time
 from typing import Any, Dict, List, Optional
 
 import polars as pl
@@ -253,47 +255,58 @@ class ChronosDataEngine:
     Loads pulse vectors and predictions, provides aggregations at various levels.
     """
     
+    # Class-level lock for thread-safe initialization
+    _init_lock = threading.Lock()
+    
     def __init__(self):
         self.pulse_vectors: Optional[pl.DataFrame] = None
         self.predictions: Optional[pl.DataFrame] = None
         self.district_mapping: Dict[str, Dict[str, List[str]]] = {}  # state -> {district -> [pins]}
         self._cache: Dict[str, Any] = {}
         self._cache_ttl = 300  # 5 minutes
+        self._cache_timestamps: Dict[str, float] = {}  # Track cache entry times for TTL
         self._initialized = False
         
     def initialize(self):
-        """Load all data sources."""
+        """Load all data sources. Thread-safe to prevent race conditions."""
+        # Quick check before acquiring lock (double-checked locking pattern)
         if self._initialized:
             return
             
-        base_path = Path(__file__).parent / "data" / "output"
-        
-        # Load pulse vectors
-        pulse_path = base_path / "pulse_vectors.parquet"
-        if pulse_path.exists():
-            self.pulse_vectors = pl.read_parquet(pulse_path)
-            logger.info(f"✓ Loaded pulse_vectors: {self.pulse_vectors.shape[0]:,} rows")
-        else:
-            logger.warning(f"✗ pulse_vectors.parquet not found at {pulse_path}")
+        with ChronosDataEngine._init_lock:
+            # Re-check after acquiring lock
+            if self._initialized:
+                return
+                
+            base_path = Path(__file__).parent / "data" / "output"
             
-        # Load predictions
-        pred_path = base_path / "predictions.parquet"
-        if pred_path.exists():
-            self.predictions = pl.read_parquet(pred_path)
-            logger.info(f"✓ Loaded predictions: {self.predictions.shape[0]:,} rows")
-        else:
-            logger.warning(f"✗ predictions.parquet not found at {pred_path}")
+            # Load pulse vectors
+            pulse_path = base_path / "pulse_vectors.parquet"
+            if pulse_path.exists():
+                self.pulse_vectors = pl.read_parquet(pulse_path)
+                logger.info(f"✓ Loaded pulse_vectors: {self.pulse_vectors.shape[0]:,} rows")
+            else:
+                logger.warning(f"✗ pulse_vectors.parquet not found at {pulse_path}")
+                
+            # Load predictions
+            pred_path = base_path / "predictions.parquet"
+            if pred_path.exists():
+                self.predictions = pl.read_parquet(pred_path)
+                logger.info(f"✓ Loaded predictions: {self.predictions.shape[0]:,} rows")
+            else:
+                logger.warning(f"✗ predictions.parquet not found at {pred_path}")
+                
+            # Build district mapping from demographic data
+            self._build_district_mapping()
             
-        # Build district mapping from demographic data
-        self._build_district_mapping()
-        
-        # Correct merged UT state names in pulse_vectors based on district mapping
-        self._correct_pulse_vectors_states()
-        
-        self._initialized = True
-        logger.info("═" * 60)
-        logger.info("Chronos Data Engine initialized successfully")
-        logger.info("═" * 60)
+            # Correct merged UT state names in pulse_vectors based on district mapping
+            self._correct_pulse_vectors_states()
+            
+            self._initialized = True
+            logger.info("═" * 60)
+            logger.info("Chronos Data Engine initialized successfully")
+            logger.info("═" * 60)
+
         
     def _build_district_mapping(self):
         """Build state -> district -> pincodes mapping."""
@@ -406,13 +419,17 @@ class ChronosDataEngine:
         """
         # Normalize signals to 0-1 range (assuming they're already z-scores)
         # Clamp to reasonable range [-3, 3] then normalize
+        # Handle None values safely - default to 0 (neutral, becomes 0.5 after normalization)
         def normalize(val: float) -> float:
+            if val is None:
+                return 0.5  # Neutral default when data is missing
             clamped = max(-3, min(3, val))
             return (clamped + 3) / 6
             
         g = normalize(signals.growth)
         f = normalize(signals.flow)
         l = normalize(signals.labor)
+
         
         # Weighted intensity
         intensity = 0.3 * g + 0.4 * f + 0.3 * l
@@ -507,9 +524,16 @@ class ChronosDataEngine:
         Aggregate data at state level for map rendering.
         
         Returns list of state aggregations with signals, hotspots, and metadata.
+        Uses caching with TTL to optimize repeated calls (important for trends).
         """
         if self.pulse_vectors is None:
             return []
+        
+        # Check cache first
+        cache_key = f"state_agg_{month or 'latest'}"
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
             
         df = self.pulse_vectors
         
@@ -557,7 +581,27 @@ class ChronosDataEngine:
                 trend="stable"  # Would calculate from previous month
             ))
             
-        return sorted(results, key=lambda x: x.hotspot.intensity, reverse=True)
+        results = sorted(results, key=lambda x: x.hotspot.intensity, reverse=True)
+        
+        # Cache the result
+        self._set_cached(cache_key, results)
+        return results
+    
+    def _get_cached(self, key: str) -> Optional[Any]:
+        """Get cached value if not expired."""
+        if key in self._cache and key in self._cache_timestamps:
+            if time.time() - self._cache_timestamps[key] < self._cache_ttl:
+                return self._cache[key]
+            else:
+                # Expired, cleanup
+                del self._cache[key]
+                del self._cache_timestamps[key]
+        return None
+    
+    def _set_cached(self, key: str, value: Any):
+        """Set cached value with timestamp."""
+        self._cache[key] = value
+        self._cache_timestamps[key] = time.time()
         
     def aggregate_by_district(self, state: str, month: Optional[str] = None) -> List[DistrictAggregation]:
         """Aggregate data at district level for a specific state."""
@@ -692,9 +736,14 @@ class ChronosDataEngine:
         ]
         
     def search_locations(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
-        """Search for locations matching query."""
+        """Search for locations matching query. Input is sanitized for safety."""
         results = []
-        query_lower = query.lower().strip()
+        
+        # Input sanitization - limit length and clean
+        query = query[:100].strip()  # Limit to 100 chars
+        if not query:
+            return []
+        query_lower = query.lower()
         
         # Search states
         for state_name, state_id in STATE_ID_MAP.items():
@@ -752,6 +801,7 @@ class ChatbotBridge:
     def __init__(self):
         self.chatbot = None
         self._initialized = False
+        self._init_error: Optional[str] = None  # Track initialization error for better messages
         
     def initialize(self):
         """Initialize the chatbot instance."""
@@ -763,17 +813,21 @@ class ChatbotBridge:
             from src.langchain_bot import LangChainBot
             self.chatbot = LangChainBot()
             self._initialized = True
+            self._init_error = None
             logger.info("✓ LangChain Bot initialized")
-        except ImportError:
-             logger.warning("LangChain dependencies missing, falling back to legacy bot")
+        except ImportError as ie:
+             logger.warning(f"LangChain dependencies missing ({ie}), falling back to legacy bot")
              try:
                  from chronos_chatbot import ChronosChatbot
                  self.chatbot = ChronosChatbot()
                  self._initialized = True
+                 self._init_error = None
                  logger.info("✓ Legacy Chatbot initialized")
              except Exception as e:
+                 self._init_error = f"Legacy chatbot failed: {str(e)[:100]}"
                  logger.error(f"✗ Failed to initialize legacy chatbot: {e}")
         except Exception as e:
+            self._init_error = f"LangChain bot failed: {str(e)[:100]}"
             logger.error(f"✗ Failed to initialize chatbot: {e}")
             
     async def process_message(self, message: str) -> Dict[str, Any]:
@@ -781,8 +835,9 @@ class ChatbotBridge:
         Process a chat message and return response.
         """
         if not self._initialized or self.chatbot is None:
+            error_detail = f" Reason: {self._init_error}" if self._init_error else ""
             return {
-                "text": "Chatbot is not available. Please try again later.",
+                "text": f"Chatbot is not available.{error_detail} Please check server logs or try again later.",
                 "client_action": None
             }
             
@@ -1377,20 +1432,40 @@ async def get_forecast(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class ConnectionManager:
-    """Manage WebSocket connections."""
+    """Manage WebSocket connections with thread-safe operations."""
     
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+        self._lock = threading.Lock()
         
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections.append(websocket)
-        logger.info(f"WebSocket connected. Active: {len(self.active_connections)}")
+        with self._lock:
+            self.active_connections.append(websocket)
+            logger.info(f"WebSocket connected. Active: {len(self.active_connections)}")
         
     def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-        logger.info(f"WebSocket disconnected. Active: {len(self.active_connections)}")
+        """Safely disconnect a WebSocket, handling cases where it may already be removed."""
+        with self._lock:
+            try:
+                if websocket in self.active_connections:
+                    self.active_connections.remove(websocket)
+            except ValueError:
+                pass  # Already removed, ignore
+            logger.info(f"WebSocket disconnected. Active: {len(self.active_connections)}")
+    
+    def cleanup_stale(self):
+        """Remove any stale connections (defensive cleanup)."""
+        with self._lock:
+            # Filter out connections that are no longer open
+            original_count = len(self.active_connections)
+            self.active_connections = [
+                ws for ws in self.active_connections 
+                if ws.client_state.name == "CONNECTED"
+            ]
+            removed = original_count - len(self.active_connections)
+            if removed > 0:
+                logger.info(f"Cleaned up {removed} stale connections")
         
     async def send_json(self, websocket: WebSocket, data: dict):
         await websocket.send_json(data)

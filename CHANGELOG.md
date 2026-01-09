@@ -1,6 +1,43 @@
 # Changelog
 
 
+## [2.9.6] - 2026-01-09 - THE EDGE CASE HARDENING UPDATE
+> *"Handle the edge cases. Trust the stability."*
+
+### 🔴 Critical Fixes
+
+| Fix | File | Description |
+|-----|------|-------------|
+| **Null Value Handling** | `api_server.py` | Signal calculations now safely handle `None` values, defaulting to neutral (0.5) instead of crashing |
+| **Division by Zero Guard** | `ai_forecaster.py` | `predict_from_parallels()` now checks for zero/empty weights before normalization |
+
+### 🟡 Important Fixes
+
+| Fix | File | Description |
+|-----|------|-------------|
+| **Thread-Safe Initialization** | `api_server.py` | Added `threading.Lock()` with double-checked locking pattern to prevent race conditions during startup |
+| **WebSocket Memory Cleanup** | `api_server.py` | `ConnectionManager` now uses thread-safe operations and includes `cleanup_stale()` method for defensive cleanup |
+| **Trend Endpoint Caching** | `api_server.py` | Added TTL-based caching (5 min) to `aggregate_by_state()` to optimize repeated calls in trends endpoint |
+
+### 🟢 Improvements
+
+| Fix | File | Description |
+|-----|------|-------------|
+| **Input Sanitization** | `api_server.py` | Search queries now limited to 100 chars and sanitized before processing |
+| **Error Context** | `api_server.py` | `ChatbotBridge` now tracks initialization errors and provides actionable error messages |
+
+### Verification
+```
+12/12 tests passed:
+✅ Health, ✅ Month Validation (2), ✅ Districts, ✅ UT States,
+✅ Search, ✅ Compare, ✅ Trends, ✅ Forecast Bounds, ✅ PIN, ✅ WebSocket
+```
+
+### API Contract
+✅ **All changes are backward-compatible.** No frontend modifications required.
+
+---
+
 ## [2.9.5] - 2026-01-09 - THE API HARDENING UPDATE
 > *"Fix the edge cases. Trust the connection."*
 
