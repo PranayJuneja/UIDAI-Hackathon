@@ -1,12 +1,12 @@
 # Changelog
 
 
-## [2.9.8] - 2026-01-10 - THE TERMINAL INFO DISPLAY (PHASE 1)
+## [2.9.8] - 2026-01-10 - THE TERMINAL INFO DISPLAY RELEASE
 > *"Data meets drama. Terminal aesthetics for the modern age."*
 
 ### 🔥 Headline Features
 
-#### Terminal-Style State Information Display
+#### Phase 1: Terminal-Style State Information Display
 > *Click a state. See the data unfold like code.*
 
 - **CRT Terminal Aesthetic**: Replaced the boring ripple effect with an immersive terminal-style overlay when clicking on states.
@@ -37,12 +37,24 @@
   [INITIALIZING DISTRICT VIEW...]
   ```
 
-- **Depth & Premium Feel**:
-  - Multi-layer depth shadows for "floating" effect
-  - Glassmorphic container with blur backdrop
-  - Subtle screen flicker for authenticity
-
 - **3-Second Pause**: After animation completes, holds for 3 seconds to let users read the data, then transitions to district view.
+
+#### Phase 2: Split-View District Terminal
+> *Side-by-side intelligence. Map meets data.*
+
+- **60/40 Split Layout**: When a district is clicked, the map smoothly shrinks to 60% width while a terminal panel slides in from the right occupying 40%.
+- **District Data Display**: Shows detailed district information including:
+  - District name and ID
+  - Parent state name
+  - PIN code count
+  - Full signal analysis (Growth/Flow/Labor)
+  - Hotspot intensity level
+- **Interactive Breadcrumb**: Now shows full path: 🇮🇳 › State › District
+- **Close Button**: Click ✕ or the same district to close the terminal and expand the map
+- **Responsive Design**:
+  - Desktop: 60/40 horizontal split
+  - Tablet: 55/45 horizontal split
+  - Mobile: 50/50 vertical stack
 
 ### Added
 | File | Purpose |
@@ -54,10 +66,11 @@
 | File | Changes |
 |------|---------|
 | `mapStore.ts` | Added `terminalInfo` state, `showTerminal()`, `hideTerminal()` actions |
-| `IndiaMap.tsx` | Replaced ripple effect with terminal display on state click |
+| `IndiaMap.tsx` | Replaced ripple with terminal, added split-view layout logic |
+| `IndiaMap.module.css` | Added split-view container and responsive styles |
 
 ### Removed
-- **Ripple Effect**: Removed the `useRipple` hook usage from state clicks (cleaner, more thematic interaction)
+- **Ripple Effect**: Removed the `useRipple` hook usage from state/district clicks
 
 ---
 

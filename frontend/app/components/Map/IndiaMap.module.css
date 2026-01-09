@@ -543,3 +543,74 @@
         opacity: 0;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SPLIT VIEW LAYOUT - Phase 2 District Terminal
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Container for split view mode */
+.splitViewContainer {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Map section - shrinks to 60% when terminal is visible */
+.mapSection {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.mapSection.shrunk {
+    width: 60%;
+}
+
+/* Terminal panel section - 40% width */
+.terminalSection {
+    width: 40%;
+    height: 100%;
+    position: relative;
+    border-left: 1px solid rgba(74, 222, 128, 0.2);
+
+    /* Subtle gradient separator */
+    background:
+        linear-gradient(90deg, rgba(74, 222, 128, 0.05) 0%, transparent 20%);
+}
+
+/* Responsive adjustments for split view */
+@media (max-width: 1024px) {
+    .mapSection.shrunk {
+        width: 55%;
+    }
+
+    .terminalSection {
+        width: 45%;
+    }
+}
+
+@media (max-width: 768px) {
+    .splitViewContainer {
+        flex-direction: column;
+    }
+
+    .mapSection.shrunk {
+        width: 100%;
+        height: 50%;
+    }
+
+    .terminalSection {
+        width: 100%;
+        height: 50%;
+        border-left: none;
+        border-top: 1px solid rgba(74, 222, 128, 0.2);
+        background:
+            linear-gradient(180deg, rgba(74, 222, 128, 0.05) 0%, transparent 20%);
+    }
+}

@@ -380,14 +380,45 @@ export default function IndiaMap() {
     }, [setHoveredDistrict]);
 
     const handleDistrictClick = useCallback((e: React.MouseEvent, districtName: string) => {
-        // For Phase 1, just select/deselect district (Phase 2 will add terminal)
+        // Get district data for terminal display
+        const districtData = getDistrictData(districtName);
+
         if (selectedDistrict === districtName) {
+            // Clicking same district closes the terminal
             setSelectedDistrict(null);
+            hideTerminal();
         } else {
             setSelectedDistrict(districtName);
-            toast.success("District Selected", `Showing details for ${districtName}`);
+
+            if (districtData) {
+                // Show terminal with district data in split view
+                showTerminal('district', districtData as DistrictData, 'split');
+            } else {
+                // Create minimal district data if not found
+                const minimalData: DistrictData = {
+                    district_id: `${selectedState}_${districtName.toUpperCase().replace(/ /g, '_')}`,
+                    district_name: districtName,
+                    state_name: selectedStateName || '',
+                    signals: { growth: 0.5, flow: 0.5, labor: 0.5 },
+                    hotspot: { intensity: 0.5 },
+                    pin_count: 0,
+                    pincodes: []
+                };
+                showTerminal('district', minimalData, 'split');
+            }
+
+            setTooltipData(null);
         }
-    }, [selectedDistrict, setSelectedDistrict, toast]);
+    }, [selectedDistrict, setSelectedDistrict, getDistrictData, showTerminal, hideTerminal, selectedState, selectedStateName]);
+
+    // Handle closing the district terminal
+    const handleDistrictTerminalClose = useCallback(() => {
+        setSelectedDistrict(null);
+        hideTerminal();
+    }, [setSelectedDistrict, hideTerminal]);
+
+    // Determine if we're in split view mode (district terminal visible)
+    const isSplitView = viewMode === 'state' && terminalInfo.visible && terminalInfo.type === 'district';
 
     if (geoError || error) {
         return <div className={styles.mapError}><span>⚠️</span><span>{geoError || error}</span></div>;
@@ -411,100 +442,136 @@ export default function IndiaMap() {
                 )}
             </AnimatePresence>
 
-            <AnimatePresence>
-                {viewMode === 'state' && (
-                    <motion.button
-                        className={styles.backButton}
-                        onClick={() => { setTooltipData(null); drillBackToIndia(); }}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <BackArrowIcon />
-                        <span>Back to India</span>
-                    </motion.button>
-                )}
-            </AnimatePresence>
+            {/* Split View Container for Phase 2 */}
+            <div className={styles.splitViewContainer}>
+                {/* Map Section - shrinks when district terminal is visible */}
+                <div className={`${styles.mapSection} ${isSplitView ? styles.shrunk : ''}`}>
+                    <AnimatePresence>
+                        {viewMode === 'state' && (
+                            <motion.button
+                                className={styles.backButton}
+                                onClick={() => { setTooltipData(null); hideTerminal(); drillBackToIndia(); }}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <BackArrowIcon />
+                                <span>Back to India</span>
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
 
-            <div className={styles.breadcrumb}>
-                <span
-                    className={`${styles.breadcrumbItem} ${viewMode === 'india' ? styles.active : styles.clickable}`}
-                    onClick={viewMode === 'state' ? () => { setTooltipData(null); drillBackToIndia(); } : undefined}
-                >
-                    🇮🇳
-                </span>
-                {viewMode === 'state' && selectedStateName && (
-                    <>
-                        <span className={styles.breadcrumbSeparator}>›</span>
-                        <span className={`${styles.breadcrumbItem} ${styles.active}`}>
-                            {selectedStateName}
+                    <div className={styles.breadcrumb}>
+                        <span
+                            className={`${styles.breadcrumbItem} ${viewMode === 'india' ? styles.active : styles.clickable}`}
+                            onClick={viewMode === 'state' ? () => { setTooltipData(null); hideTerminal(); drillBackToIndia(); } : undefined}
+                        >
+                            🇮🇳
                         </span>
-                    </>
-                )}
-            </div>
+                        {viewMode === 'state' && selectedStateName && (
+                            <>
+                                <span className={styles.breadcrumbSeparator}>›</span>
+                                <span className={`${styles.breadcrumbItem} ${selectedDistrict ? styles.clickable : styles.active}`}
+                                    onClick={selectedDistrict ? handleDistrictTerminalClose : undefined}
+                                >
+                                    {selectedStateName}
+                                </span>
+                            </>
+                        )}
+                        {selectedDistrict && (
+                            <>
+                                <span className={styles.breadcrumbSeparator}>›</span>
+                                <span className={`${styles.breadcrumbItem} ${styles.active}`}>
+                                    {selectedDistrict}
+                                </span>
+                            </>
+                        )}
+                    </div>
 
-            <AnimatePresence>
-                {loadingDistricts && (
-                    <motion.div
-                        className={styles.loadingOverlay}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                    >
-                        <div className={styles.loadingPulse}></div>
-                        <span>Loading districts...</span>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    <AnimatePresence>
+                        {loadingDistricts && (
+                            <motion.div
+                                className={styles.loadingOverlay}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                <div className={styles.loadingPulse}></div>
+                                <span>Loading districts...</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-            {/* Render Visuals with Memoization */}
-            <MapVisuals
-                viewMode={viewMode}
-                geoData={geoData}
-                districtGeoData={districtGeoData}
-                selectedState={selectedState}
-                selectedDistrict={selectedDistrict}
-                onStateHover={handleStateMouseEnter}
-                onStateLeave={handleStateMouseLeave}
-                onStateClick={handleStateClick}
-                onDistrictHover={handleDistrictMouseEnter}
-                onDistrictLeave={handleDistrictMouseLeave}
-                onDistrictClick={handleDistrictClick}
-                getStateName={getStateName}
-                getStateData={getStateData}
-                getDistrictName={getDistrictName}
-                getDistrictData={getDistrictData}
-                stateAbbreviations={stateAbbreviations}
-            />
-
-            <AnimatePresence mode="wait">
-                {tooltipData && (
-                    <MapTooltip
-                        x={tooltipData.x}
-                        y={tooltipData.y}
-                        data={tooltipData.state || tooltipData.district}
-                        isDistrict={!!tooltipData.district}
+                    {/* Render Visuals with Memoization */}
+                    <MapVisuals
+                        viewMode={viewMode}
+                        geoData={geoData}
+                        districtGeoData={districtGeoData}
+                        selectedState={selectedState}
+                        selectedDistrict={selectedDistrict}
+                        onStateHover={handleStateMouseEnter}
+                        onStateLeave={handleStateMouseLeave}
+                        onStateClick={handleStateClick}
+                        onDistrictHover={handleDistrictMouseEnter}
+                        onDistrictLeave={handleDistrictMouseLeave}
+                        onDistrictClick={handleDistrictClick}
+                        getStateName={getStateName}
+                        getStateData={getStateData}
+                        getDistrictName={getDistrictName}
+                        getDistrictData={getDistrictData}
+                        stateAbbreviations={stateAbbreviations}
                     />
-                )}
-            </AnimatePresence>
 
-            <div className={styles.legend}>
-                <h4>Demand Intensity</h4>
-                <div className={styles.legendItems}>
-                    <div className={styles.legendItem}>
-                        <span className={styles.legendDot} style={{ background: '#3B82F6' }} />
-                        <span>Low</span>
-                    </div>
-                    <div className={styles.legendItem}>
-                        <span className={styles.legendDot} style={{ background: '#22C55E' }} />
-                        <span>Medium</span>
-                    </div>
-                    <div className={styles.legendItem}>
-                        <span className={styles.legendDot} style={{ background: '#EF4444' }} />
-                        <span>High</span>
+                    <AnimatePresence mode="wait">
+                        {tooltipData && (
+                            <MapTooltip
+                                x={tooltipData.x}
+                                y={tooltipData.y}
+                                data={tooltipData.state || tooltipData.district}
+                                isDistrict={!!tooltipData.district}
+                            />
+                        )}
+                    </AnimatePresence>
+
+                    <div className={styles.legend}>
+                        <h4>Demand Intensity</h4>
+                        <div className={styles.legendItems}>
+                            <div className={styles.legendItem}>
+                                <span className={styles.legendDot} style={{ background: '#3B82F6' }} />
+                                <span>Low</span>
+                            </div>
+                            <div className={styles.legendItem}>
+                                <span className={styles.legendDot} style={{ background: '#22C55E' }} />
+                                <span>Medium</span>
+                            </div>
+                            <div className={styles.legendItem}>
+                                <span className={styles.legendDot} style={{ background: '#EF4444' }} />
+                                <span>High</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                {/* District Terminal Section - Phase 2 */}
+                <AnimatePresence>
+                    {isSplitView && terminalInfo.data && (
+                        <motion.div
+                            className={styles.terminalSection}
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: '40%', opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                        >
+                            <TerminalInfoDisplay
+                                type="district"
+                                data={terminalInfo.data as DistrictData}
+                                layout="side"
+                                onClose={handleDistrictTerminalClose}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
