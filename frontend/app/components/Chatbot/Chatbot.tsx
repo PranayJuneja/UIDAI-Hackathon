@@ -19,7 +19,7 @@ interface Message {
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_BASE_DELAY = 1000; // 1 second
+const RECONNECT_BASE_DELAY = 1000;
 
 const Chatbot = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -32,6 +32,7 @@ const Chatbot = () => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const reconnectAttempts = useRef(0);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+    const messageQueueRef = useRef<string[]>([]);
 
     // Map Store Actions
     const drillIntoState = useMapStore(state => state.drillIntoState);
@@ -50,7 +51,10 @@ const Chatbot = () => {
     const handleClientAction = useCallback((action: { type: string; payload?: string | null }) => {
         if (!action || !action.type) return;
 
-        console.log("Executing Action:", action);
+        // Debug logging only in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log("Executing Action:", action);
+        }
 
         switch (action.type) {
             case 'FLY_TO':
@@ -58,7 +62,6 @@ const Chatbot = () => {
             case 'highlight': {
                 const target = action.payload || "India";
                 const states = useMapStore.getState().states;
-                // Fuzzy match for location
                 const state = states.find(s =>
                     s.name.toLowerCase().includes(target.toString().toLowerCase())
                 );
@@ -72,11 +75,9 @@ const Chatbot = () => {
             }
 
             case 'COMPARE': {
-                // Parse "Location1 vs Location2"
                 if (action.payload && typeof action.payload === 'string') {
                     const parts = action.payload.split(/\s+vs\s+/i);
                     if (parts.length >= 2) {
-                        console.log('Compare requested:', parts[0], 'vs', parts[1]);
                         // Future: trigger comparison mode in dashboard
                     }
                 }
@@ -91,13 +92,11 @@ const Chatbot = () => {
 
     // WebSocket connection logic
     const connect = useCallback(() => {
-        // Clear any pending reconnect
         if (reconnectTimeout.current) {
             clearTimeout(reconnectTimeout.current);
             reconnectTimeout.current = null;
         }
 
-        // Don't exceed max attempts
         if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
             setConnectionStatus('error');
             setMessages(prev => [...prev, {
@@ -115,9 +114,27 @@ const Chatbot = () => {
             const ws = new WebSocket(WS_CHAT_URL);
 
             ws.onopen = () => {
-                console.log('Connected to Chronos Chat');
                 setConnectionStatus('connected');
                 reconnectAttempts.current = 0;
+
+                // Process any queued messages
+                if (messageQueueRef.current.length > 0) {
+                    const queuedMessages = [...messageQueueRef.current];
+                    messageQueueRef.current = [];
+                    queuedMessages.forEach(msg => {
+                        try {
+                            ws.send(JSON.stringify({
+                                type: 'message',
+                                content: msg
+                            }));
+                        } catch (e) {
+                            console.error('Failed to send queued message', e);
+                        }
+                    });
+                    if (queuedMessages.length > 0) {
+                        setIsThinking(true);
+                    }
+                }
             };
 
             ws.onmessage = (event) => {
@@ -126,7 +143,6 @@ const Chatbot = () => {
 
                     switch (data.type) {
                         case 'system':
-                            // Welcome or system message
                             setMessages(prev => [...prev, {
                                 id: `sys-${Date.now()}`,
                                 text: data.content,
@@ -154,7 +170,6 @@ const Chatbot = () => {
                             break;
 
                         default:
-                            // Legacy format fallback
                             if (data.text) {
                                 setIsThinking(false);
                                 setMessages(prev => [...prev, {
@@ -179,19 +194,16 @@ const Chatbot = () => {
             };
 
             ws.onclose = () => {
-                console.log('WebSocket closed');
                 wsRef.current = null;
                 setConnectionStatus('disconnected');
                 setIsThinking(false);
 
-                // Only reconnect if chat is still open
                 if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
                     const delay = Math.min(
                         RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts.current),
-                        16000 // Max 16 seconds
+                        16000
                     );
                     reconnectAttempts.current++;
-                    console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current})`);
                     reconnectTimeout.current = setTimeout(connect, delay);
                 }
             };
@@ -203,13 +215,11 @@ const Chatbot = () => {
         }
     }, [handleClientAction]);
 
-    // Connect when chat opens, disconnect when closed
     useEffect(() => {
         if (isOpen) {
             reconnectAttempts.current = 0;
             connect();
         } else {
-            // Clean up on close
             if (reconnectTimeout.current) {
                 clearTimeout(reconnectTimeout.current);
                 reconnectTimeout.current = null;
@@ -235,25 +245,29 @@ const Chatbot = () => {
         const trimmedInput = inputValue.trim();
         if (!trimmedInput) return;
 
-        // Check WebSocket is ready
+        // Queue message if not connected
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+            messageQueueRef.current.push(trimmedInput);
             setMessages(prev => [...prev, {
-                id: `error-${Date.now()}`,
-                text: "Not connected to the server. Please wait for reconnection.",
+                id: Date.now().toString(),
+                text: trimmedInput,
+                isUser: true
+            }, {
+                id: `queued-${Date.now()}`,
+                text: "Message queued. Will be sent when connection is restored.",
                 isUser: false,
-                isError: true
+                isSystem: true
             }]);
+            setInputValue('');
             return;
         }
 
-        // Add user message to UI
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             text: trimmedInput,
             isUser: true
         }]);
 
-        // Send to backend
         try {
             wsRef.current.send(JSON.stringify({
                 type: 'message',
@@ -280,7 +294,6 @@ const Chatbot = () => {
         }
     };
 
-    // Connection status indicator
     const ConnectionIndicator = () => {
         switch (connectionStatus) {
             case 'connecting':
@@ -316,7 +329,6 @@ const Chatbot = () => {
 
     return (
         <>
-            {/* Floating Toggle Button */}
             <motion.button
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -328,7 +340,6 @@ const Chatbot = () => {
                 {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
             </motion.button>
 
-            {/* Chat Window */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -338,7 +349,6 @@ const Chatbot = () => {
                         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                         className={styles.chatContainer}
                     >
-                        {/* Header */}
                         <div className={styles.header}>
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)]">
@@ -367,7 +377,6 @@ const Chatbot = () => {
                             </button>
                         </div>
 
-                        {/* Messages Area */}
                         <div className={styles.messagesArea}>
                             {messages.map((msg) => (
                                 <ChatBubble
@@ -381,9 +390,7 @@ const Chatbot = () => {
 
                             {isThinking && (
                                 <div className="flex justify-start">
-                                    <div
-                                        className="px-3 py-2 rounded-[10px] backdrop-blur-md flex items-center gap-2 border border-white/5"
-                                    >
+                                    <div className="px-3 py-2 rounded-[10px] backdrop-blur-md flex items-center gap-2 border border-white/5">
                                         <div className="flex space-x-1">
                                             <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
                                             <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
@@ -395,7 +402,6 @@ const Chatbot = () => {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input Area */}
                         <div className={styles.inputArea}>
                             <div className={styles.inputWrapper}>
                                 <input

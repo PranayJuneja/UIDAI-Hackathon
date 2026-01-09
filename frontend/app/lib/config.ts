@@ -11,8 +11,8 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:80
 // WebSocket base URL
 export const WS_BASE = process.env.NEXT_PUBLIC_WS_BASE || 'ws://localhost:8000';
 
-// WebSocket chat endpoint
-export const WS_CHAT_URL = `${WS_BASE}/ws/chat`;
+// WebSocket chat endpoint (handle trailing slash in WS_BASE)
+export const WS_CHAT_URL = `${WS_BASE.replace(/\/$/, '')}/ws/chat`;
 
 // Request timeout in milliseconds
 export const REQUEST_TIMEOUT_MS = 10000;

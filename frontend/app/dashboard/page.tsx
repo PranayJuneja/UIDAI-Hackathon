@@ -1,10 +1,12 @@
 import Dashboard from "../dashboard";
-import { PageTransition } from "../components/UI";
+import { PageTransition, ErrorBoundary } from "../components/UI";
 
 export default function DashboardPage() {
     return (
         <PageTransition>
-            <Dashboard />
+            <ErrorBoundary>
+                <Dashboard />
+            </ErrorBoundary>
         </PageTransition>
     );
 }

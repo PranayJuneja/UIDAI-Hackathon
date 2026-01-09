@@ -1,6 +1,33 @@
 # Changelog
 
 
+## [2.9.7] - 2026-01-10 - THE CHATBOT MARKDOWN FIX
+> *"Make the AI speak in style."*
+
+### Fixed
+- **Chatbot Markdown Rendering**: AI responses now properly render markdown formatting instead of displaying raw syntax
+
+### Added
+| Package | Purpose |
+|---------|---------|
+| `react-markdown` | Markdown-to-React renderer |
+| `remark-gfm` | GitHub Flavored Markdown support (tables, strikethrough, etc.) |
+
+### Changed
+- **`ChatBubble.tsx`**: Complete rewrite of message rendering to use `ReactMarkdown` with custom component styling:
+  - **Headings** (`#`, `##`, `###`): Styled with blue gradient colors and proper spacing
+  - **Bold/Italic**: Rendered with proper font weights and colors
+  - **Tables**: Full GFM table support with glassmorphic styling, borders, and alternating rows
+  - **Lists**: Bullet and numbered lists with proper indentation
+  - **Code**: Inline code with emerald highlight, code blocks with dark background
+  - **Horizontal Rules**: Visual separators matching the TissueDeck theme
+  - **Blockquotes**: Styled with left border accent
+
+### Dependencies Updated
+- `frontend/package.json`: Added `react-markdown`, `remark-gfm`
+
+---
+
 ## [2.9.6] - 2026-01-09 - THE EDGE CASE HARDENING UPDATE
 > *"Handle the edge cases. Trust the stability."*
 

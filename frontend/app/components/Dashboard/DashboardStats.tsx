@@ -4,6 +4,13 @@ import styles from '../../dashboard.module.css'; // Using the same module for no
 import { DistrictData, StateData } from '../../stores/mapStore';
 import { SkeletonStatsCard } from '../UI/Skeleton';
 
+// Stats item type for hotspot items
+interface StatsItem {
+    hotspot?: {
+        intensity: number;
+    };
+}
+
 interface DashboardStatsProps {
     title: string;
     loading: boolean;
@@ -13,7 +20,7 @@ interface DashboardStatsProps {
     stats: {
         count: number;
         countLabel: string;
-        items: any[];
+        items: StatsItem[];
     };
 }
 
@@ -43,21 +50,21 @@ const DashboardStats = memo(function DashboardStats({
                         <span className={styles.signalIcon}>👶</span>
                         <span className={styles.signalName}>Growth</span>
                         <span className={styles.signalValue}>
-                            {selectedDistrictData.signals.growth.toFixed(2)}
+                            {(selectedDistrictData.signals.growth ?? 0).toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signalRow}>
                         <span className={styles.signalIcon}>🚶</span>
                         <span className={styles.signalName}>Flow</span>
                         <span className={styles.signalValue}>
-                            {selectedDistrictData.signals.flow.toFixed(2)}
+                            {(selectedDistrictData.signals.flow ?? 0).toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signalRow}>
                         <span className={styles.signalIcon}>💪</span>
                         <span className={styles.signalName}>Labor</span>
                         <span className={styles.signalValue}>
-                            {selectedDistrictData.signals.labor.toFixed(2)}
+                            {(selectedDistrictData.signals.labor ?? 0).toFixed(2)}
                         </span>
                     </div>
 
@@ -81,21 +88,21 @@ const DashboardStats = memo(function DashboardStats({
                         <span className={styles.signalIcon}>👶</span>
                         <span className={styles.signalName}>Growth</span>
                         <span className={styles.signalValue}>
-                            {selectedStateData.signals.growth.toFixed(2)}
+                            {(selectedStateData.signals.growth ?? 0).toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signalRow}>
                         <span className={styles.signalIcon}>🚶</span>
                         <span className={styles.signalName}>Flow</span>
                         <span className={styles.signalValue}>
-                            {selectedStateData.signals.flow.toFixed(2)}
+                            {(selectedStateData.signals.flow ?? 0).toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signalRow}>
                         <span className={styles.signalIcon}>💪</span>
                         <span className={styles.signalName}>Labor</span>
                         <span className={styles.signalValue}>
-                            {selectedStateData.signals.labor.toFixed(2)}
+                            {(selectedStateData.signals.labor ?? 0).toFixed(2)}
                         </span>
                     </div>
 

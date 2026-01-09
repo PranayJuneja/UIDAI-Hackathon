@@ -29,7 +29,9 @@ export default function Dashboard() {
         selectedStateName,
         districts,
         loadingDistricts,
-        selectedDistrict
+        selectedDistrict,
+        drillIntoState,
+        setSelectedDistrict
     } = useMapStore();
 
     // Comparison mode state
@@ -66,7 +68,7 @@ export default function Dashboard() {
                 title: selectedDistrictData.district_name,
                 countLabel: 'PIN Codes',
                 count: selectedDistrictData.pin_count,
-                items: [], // No sub-items for district
+                items: [],
                 loading: false
             };
         }
@@ -189,14 +191,10 @@ export default function Dashboard() {
                         loading={stats.loading}
                         items={topItems}
                         onItemClick={(item) => {
-                            if (viewMode === 'india') {
-                                // Drill into state
-                                const stateStore = useMapStore.getState();
-                                stateStore.drillIntoState(item.state_id, item.name);
-                            } else {
-                                // Select district
-                                const stateStore = useMapStore.getState();
-                                stateStore.setSelectedDistrict(item.district_name);
+                            if (viewMode === 'india' && item.state_id && item.name) {
+                                drillIntoState(item.state_id, item.name);
+                            } else if (item.district_name) {
+                                setSelectedDistrict(item.district_name);
                             }
                         }}
                     />

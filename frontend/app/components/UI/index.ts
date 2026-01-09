@@ -6,3 +6,4 @@ export { ToastProvider, useToast } from './ToastProvider';
 export { default as PageTransition } from './PageTransition';
 export { default as PageLayout } from './PageLayout';
 export { default as SubPageHero } from './SubPageHero';
+export { default as ErrorBoundary } from './ErrorBoundary';

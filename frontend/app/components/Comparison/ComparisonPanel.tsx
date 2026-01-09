@@ -4,6 +4,7 @@ import React, { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LocationSelector, { LocationResult } from './LocationSelector';
 import { SignalBreakdown } from '../Signals';
+import { API_BASE } from '../../lib/config';
 import styles from './ComparisonPanel.module.css';
 
 interface ComparisonData {
@@ -27,9 +28,6 @@ export interface ComparisonPanelProps {
     isOpen: boolean;
     onClose: () => void;
 }
-
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Retry configuration
 const MAX_RETRIES = 3;
@@ -138,7 +136,7 @@ const ComparisonPanel = memo(function ComparisonPanel({
                     } : null,
                 });
             } catch (err) {
-                if (signal.aborted) return; // Ignore aborted requests
+                if (signal.aborted) return;
 
                 const message = err instanceof Error ? err.message : 'Unknown error';
                 if (message.includes('NetworkError') || message.includes('Failed to fetch')) {
@@ -156,7 +154,6 @@ const ComparisonPanel = memo(function ComparisonPanel({
 
         fetchComparison();
 
-        // Cleanup on unmount or when locations change
         return () => {
             abortControllerRef.current?.abort();
         };
@@ -165,7 +162,7 @@ const ComparisonPanel = memo(function ComparisonPanel({
     // Calculate difference between two values
     const getDifference = useCallback((val1: number, val2: number) => {
         const diff = val1 - val2;
-        const percentage = val2 !== 0 ? ((diff / val2) * 100).toFixed(1) : '∞';
+        const percentage = val2 !== 0 ? ((diff / val2) * 100).toFixed(1) : 'N/A';
         return {
             value: diff,
             percentage,

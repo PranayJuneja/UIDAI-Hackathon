@@ -62,8 +62,8 @@ export function useMapData() {
                 setStates(stateData);
             } catch (err) {
                 if (err instanceof Error && err.name === 'AbortError') {
-                    console.log('Request was cancelled');
-                    return; // Don't set error for cancelled requests
+                    // Request was cancelled - no action needed
+                    return;
                 }
                 console.error('Failed to fetch states:', err);
                 setError(err instanceof Error ? err.message : 'Unknown error');

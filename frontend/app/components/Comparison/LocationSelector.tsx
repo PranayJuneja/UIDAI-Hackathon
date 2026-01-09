@@ -2,6 +2,7 @@
 
 import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '../../lib/config';
 import styles from './LocationSelector.module.css';
 
 interface LocationResult {
@@ -18,8 +19,6 @@ export interface LocationSelectorProps {
     label?: string;
     excludeId?: string;
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const LocationSelector = memo(function LocationSelector({
     value,
@@ -107,12 +106,13 @@ const LocationSelector = memo(function LocationSelector({
         }, 300);
     }, [searchLocations]);
 
-    // Select location
+    // Select location - clears error state
     const handleSelect = useCallback((location: LocationResult) => {
         onChange(location);
         setQuery(location.name);
         setIsOpen(false);
         setResults([]);
+        setError(null);
     }, [onChange]);
 
     // Clear selection

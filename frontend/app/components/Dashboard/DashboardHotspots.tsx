@@ -3,10 +3,24 @@ import { motion } from 'framer-motion';
 import styles from '../../dashboard.module.css';
 import { SkeletonHotspotsList, Ripple } from '../UI';
 
+// Proper type definitions for hotspot items
+interface HotspotItemData {
+    state_id?: string;
+    district_id?: string;
+    name?: string;
+    district_name?: string;
+    hotspot?: {
+        intensity: number;
+        pulse_speed?: number;
+        level?: string;
+    };
+}
+
 interface DashboardHotspotsProps {
     title: string;
     loading: boolean;
-    items: any[];
+    items: HotspotItemData[];
+    onItemClick?: (item: HotspotItemData) => void;
 }
 
 const DashboardHotspots = memo(function DashboardHotspots({
@@ -14,7 +28,7 @@ const DashboardHotspots = memo(function DashboardHotspots({
     loading,
     items,
     onItemClick
-}: DashboardHotspotsProps & { onItemClick?: (item: any) => void }) {
+}: DashboardHotspotsProps) {
     return (
         <motion.div
             className={styles.hotspotsCard}
@@ -28,9 +42,9 @@ const DashboardHotspots = memo(function DashboardHotspots({
                 <SkeletonHotspotsList count={8} />
             ) : (
                 <div className={styles.hotspotsList}>
-                    {items.map((item: any, i) => (
+                    {items.map((item, i) => (
                         <motion.div
-                            key={item.state_id || item.district_id}
+                            key={item.state_id || item.district_id || `hotspot-item-${i}`}
                             initial={{ opacity: 0, x: 10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.5 + (i * 0.1) }}

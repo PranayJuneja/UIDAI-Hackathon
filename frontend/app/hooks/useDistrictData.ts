@@ -76,7 +76,7 @@ export function useDistrictData() {
         loadingDistricts,
     } = useMapStore();
 
-    const fetchingRef = useRef(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // Fetch district data and GeoJSON when drilling into a state
     useEffect(() => {
@@ -84,19 +84,26 @@ export function useDistrictData() {
             return;
         }
 
-        // Prevent duplicate fetches
-        if (fetchingRef.current) {
-            return;
+        // Cancel previous request if still pending
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
         }
 
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        // Set timeout for the request
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, REQUEST_TIMEOUT_MS);
+
         async function fetchDistrictData() {
-            fetchingRef.current = true;
             setLoadingDistricts(true);
 
             try {
-                // Fetch district data from API
                 const apiPromise = fetch(
-                    `${API_BASE}/api/states/${selectedStateForDrilldown}?month=${selectedMonth}`
+                    `${API_BASE}/api/states/${selectedStateForDrilldown}?month=${selectedMonth}`,
+                    { signal: controller.signal }
                 ).then(res => {
                     if (!res.ok) throw new Error(`API error: ${res.status}`);
                     return res.json();
@@ -147,15 +154,23 @@ export function useDistrictData() {
                 setDistrictGeoData(geoData);
 
             } catch (err) {
+                if (controller.signal.aborted) {
+                    return; // Ignore aborted requests
+                }
                 console.error('Failed to fetch district data:', err);
                 setError(err instanceof Error ? err.message : 'Failed to load district data');
                 setLoadingDistricts(false);
             } finally {
-                fetchingRef.current = false;
+                clearTimeout(timeoutId);
             }
         }
 
         fetchDistrictData();
+
+        return () => {
+            clearTimeout(timeoutId);
+            controller.abort();
+        };
     }, [viewMode, selectedStateForDrilldown, selectedStateName, selectedMonth, setDistricts, setDistrictGeoData, setLoadingDistricts, setError]);
 
     // Get district name from GeoJSON feature
