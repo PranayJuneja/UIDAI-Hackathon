@@ -1,6 +1,47 @@
 # Changelog
 
 
+## [2.9.9] - 2026-01-10 - THE BRAND IDENTITY RELEASE
+> *"A logo that blinks. A font that speaks."*
+
+### 🔥 Headline Features
+
+#### 1. Unified ">Chronos-X_" Brand Logo
+> *Terminal aesthetics everywhere.*
+- **Header Logo** (SiteHeader): Replaced the Activity icon with the terminal-style `>Chronos-X_` branding:
+  - **Teal Prefix** (`#4DB6AC`): The `>` prompt character
+  - **White Text**: Clean "Chronos-X" in JetBrains Mono
+  - **Yellow Blinking Cursor** (`#FFE082`): Animated `_` with 1s blink cycle
+  
+- **Footer Logo** (Homepage): Added matching terminal-style branding replacing the gradient text version
+
+#### 2. DM Sans Typography (Google Sans Alternative)
+> *Clean. Geometric. Modern.*
+- **Font Installation**: Integrated DM Sans via `next/font/google` for optimal loading
+- **CSS Variables**: 
+  - `--font-google-sans`: Primary display and body font
+  - `--font-geist-mono`: Monospace for code/terminal (retained)
+- **Fallback Stack**: DM Sans → system-ui → Apple system fonts
+
+### Added
+| File | Purpose |
+|------|---------|
+| `layout.tsx` | DM Sans font configuration with next/font/google |
+| `globals.css` | `@keyframes blink` animation for cursor |
+| `SiteHeader.module.css` | Terminal logo styles (brandPrefix, cursor, blink) |
+
+### Changed
+| File | Changes |
+|------|---------|
+| `SiteHeader.tsx` | Logo now uses `>Chronos-X_` with spans for styling |
+| `page.tsx` | Footer updated with terminal-style logo, removed Activity import |
+| `globals.css` | Typography tokens updated to use DM Sans (Google Sans alt) |
+
+### Dependencies
+- `geist` package installed for Geist Mono font
+
+---
+
 ## [2.9.8] - 2026-01-10 - THE TERMINAL INFO DISPLAY RELEASE
 > *"Data meets drama. Terminal aesthetics for the modern age."*
 

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Terminal, Code2, Database, BrainCircuit, Box } from "lucide-react";
+import { Terminal, Code2, Database, BrainCircuit, Box, Activity } from "lucide-react";
 import styles from "./SiteHeader.module.css";
 
 export default function SiteHeader() {
@@ -27,8 +27,9 @@ export default function SiteHeader() {
         >
             <div className={styles.container}>
                 <Link href="/" className={styles.logo}>
-                    <Activity size={20} className={styles.logoIcon} />
+                    <span className={styles.brandPrefix}>&gt;</span>
                     <span className={styles.logoText}>Chronos-X</span>
+                    <span className={styles.cursor}>_</span>
                 </Link>
 
                 <nav className={styles.nav}>

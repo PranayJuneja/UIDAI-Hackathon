@@ -400,7 +400,7 @@ export default function IndiaMap() {
                     district_name: districtName,
                     state_name: selectedStateName || '',
                     signals: { growth: 0.5, flow: 0.5, labor: 0.5 },
-                    hotspot: { intensity: 0.5 },
+                    hotspot: { intensity: 0.5, pulse_speed: 0.5 },
                     pin_count: 0,
                     pincodes: []
                 };

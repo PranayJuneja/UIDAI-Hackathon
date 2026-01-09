@@ -128,11 +128,11 @@
   --glass-saturate: 150%;
 
   /* ─────────────────────────────────────────────────────────────────────────────
-     TYPOGRAPHY
+     TYPOGRAPHY - Using DM Sans (Google Sans Alternative)
      ───────────────────────────────────────────────────────────────────────────── */
-  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: var(--font-google-sans), 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-body: var(--font-google-sans), 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Font Sizes */
   --text-xs: 0.75rem;
@@ -596,6 +596,19 @@ body {
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+/* Blink animation for Chronos-X cursor */
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

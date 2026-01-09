@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
+import { DM_Sans } from "next/font/google";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { ToastProvider } from "./components/UI/ToastProvider";
+
+// Using DM Sans as the closest Google Sans alternative available on Google Fonts
+// It has similar clean, geometric characteristics
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-google-sans",
+  weight: ["300", "400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "Chronos-X | UIDAI Demand Forecasting",
@@ -15,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
+    <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${GeistMono.variable}`}>
+      <body className={dmSans.className}>
         <ToastProvider>
           {children}
         </ToastProvider>
@@ -24,4 +35,3 @@ export default function RootLayout({
     </html>
   );
 }
-

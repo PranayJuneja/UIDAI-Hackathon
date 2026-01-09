@@ -6,7 +6,6 @@ import MethodologySection from "./components/Home/MethodologySection";
 import TechStackSection from "./components/Home/TechStackSection";
 import SystemArchitectureSection from "./components/Home/SystemArchitectureSection";
 import { PageLayout } from "./components/UI";
-import { Activity } from "lucide-react";
 
 export default function Home() {
   return (
@@ -27,9 +26,23 @@ export default function Home() {
         position: 'relative',
         marginTop: '0'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '1.5rem', opacity: 0.9 }}>
-          <Activity size={24} className="text-[#A78BFA]" />
-          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '1.2rem', background: 'linear-gradient(90deg, #fff, #aaa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Chronos-X</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', opacity: 0.9 }}>
+          <span style={{
+            fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace",
+            fontSize: '1.4rem',
+            letterSpacing: '-0.5px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <span style={{ color: '#4DB6AC', marginRight: '4px', fontWeight: 500 }}>&gt;</span>
+            <span style={{ color: '#FFFFFF', fontWeight: 500 }}>Chronos-X</span>
+            <span style={{
+              color: '#FFE082',
+              marginLeft: '2px',
+              fontWeight: 500,
+              animation: 'blink 1s step-end infinite'
+            }}>_</span>
+          </span>
         </div>
 
         <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', marginBottom: '2rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
