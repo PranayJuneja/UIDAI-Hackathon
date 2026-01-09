@@ -1,6 +1,66 @@
 # Changelog
 
 
+## [2.9.8] - 2026-01-10 - THE TERMINAL INFO DISPLAY (PHASE 1)
+> *"Data meets drama. Terminal aesthetics for the modern age."*
+
+### 🔥 Headline Features
+
+#### Terminal-Style State Information Display
+> *Click a state. See the data unfold like code.*
+
+- **CRT Terminal Aesthetic**: Replaced the boring ripple effect with an immersive terminal-style overlay when clicking on states.
+  - **Green Phosphor Text**: Classic CRT terminal color scheme (`#4ADE80`) with glow effects
+  - **Scanline Animation**: Authentic CRT scanline overlay that slowly scrolls
+  - **Typewriter Effect**: Data appears character-by-character at high speed (5ms/char)
+  - **Blinking Cursor**: Classic terminal cursor that blinks at the end
+
+- **Rich State Data Display**:
+  ```
+  ▸ CHRONOS-X TERMINAL v2.6.0
+  ═══════════════════════════════════════
+  
+  > ACCESSING: Rajasthan_
+  > STATE_ID: RJ
+  > DISTRICTS: 5
+  > PINCODES: 969
+  
+  ══════ SIGNAL ANALYSIS ══════
+  
+  ├─ GROWTH:  █████░░░░░ 0.47
+  ├─ FLOW:    ████░░░░░░ 0.38
+  └─ LABOR:   ██████░░░░ 0.53
+  
+  > HOTSPOT: MEDIUM (0.53)
+  > TREND: → STABLE
+  
+  [INITIALIZING DISTRICT VIEW...]
+  ```
+
+- **Depth & Premium Feel**:
+  - Multi-layer depth shadows for "floating" effect
+  - Glassmorphic container with blur backdrop
+  - Subtle screen flicker for authenticity
+
+- **3-Second Pause**: After animation completes, holds for 3 seconds to let users read the data, then transitions to district view.
+
+### Added
+| File | Purpose |
+|------|---------|
+| `TerminalInfoDisplay.tsx` | New terminal component with typewriter animation |
+| `TerminalInfoDisplay.module.css` | CRT aesthetic styles (scanlines, glow, depth) |
+
+### Changed
+| File | Changes |
+|------|---------|
+| `mapStore.ts` | Added `terminalInfo` state, `showTerminal()`, `hideTerminal()` actions |
+| `IndiaMap.tsx` | Replaced ripple effect with terminal display on state click |
+
+### Removed
+- **Ripple Effect**: Removed the `useRipple` hook usage from state clicks (cleaner, more thematic interaction)
+
+---
+
 ## [2.9.7] - 2026-01-10 - THE CHATBOT MARKDOWN FIX
 > *"Make the AI speak in style."*
 

@@ -52,6 +52,14 @@ export interface GeoJSON {
 
 export type ViewMode = 'india' | 'state';
 
+// Terminal display state
+export interface TerminalInfo {
+    visible: boolean;
+    type: 'state' | 'district' | null;
+    data: StateData | DistrictData | null;
+    layout: 'overlay' | 'split';
+}
+
 export interface MapState {
     // Current view
     selectedMonth: string;
@@ -76,6 +84,9 @@ export interface MapState {
     isPlaying: boolean;
     playbackSpeed: number;
 
+    // Terminal display state
+    terminalInfo: TerminalInfo;
+
     // Actions
     setSelectedMonth: (month: string) => void;
     setSelectedState: (stateId: string | null) => void;
@@ -97,6 +108,10 @@ export interface MapState {
     setDistricts: (districts: DistrictData[]) => void;
     setDistrictGeoData: (geoData: GeoJSON | null) => void;
     setLoadingDistricts: (loading: boolean) => void;
+
+    // Terminal actions
+    showTerminal: (type: 'state' | 'district', data: StateData | DistrictData, layout: 'overlay' | 'split') => void;
+    hideTerminal: () => void;
 
     // Computed
     getStateById: (id: string) => StateData | undefined;
@@ -124,6 +139,14 @@ export const useMapStore = create<MapState>((set, get) => ({
     isPlaying: false,
     playbackSpeed: 1000, // ms per month
 
+    // Terminal display state
+    terminalInfo: {
+        visible: false,
+        type: null,
+        data: null,
+        layout: 'overlay'
+    },
+
     // Actions
     setSelectedMonth: (month) => set({ selectedMonth: month }),
     setSelectedState: (stateId) => set({ selectedState: stateId }),
@@ -148,6 +171,7 @@ export const useMapStore = create<MapState>((set, get) => ({
         districts: [],
         districtGeoData: null,
         selectedDistrict: null,
+        terminalInfo: { visible: false, type: null, data: null, layout: 'overlay' },
     }),
 
     drillBackToIndia: () => set({
@@ -159,11 +183,20 @@ export const useMapStore = create<MapState>((set, get) => ({
         hoveredDistrict: null,
         loadingDistricts: false,
         selectedDistrict: null,
+        terminalInfo: { visible: false, type: null, data: null, layout: 'overlay' },
     }),
 
     setDistricts: (districts) => set({ districts, loadingDistricts: false }),
     setDistrictGeoData: (geoData) => set({ districtGeoData: geoData }),
     setLoadingDistricts: (loading) => set({ loadingDistricts: loading }),
+
+    // Terminal actions
+    showTerminal: (type, data, layout) => set({
+        terminalInfo: { visible: true, type, data, layout }
+    }),
+    hideTerminal: () => set({
+        terminalInfo: { visible: false, type: null, data: null, layout: 'overlay' }
+    }),
 
     // Computed
     getStateById: (id) => get().states.find(s => s.state_id === id),

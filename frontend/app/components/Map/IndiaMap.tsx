@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as d3 from 'd3-geo';
-import { useMapStore, GeoFeature, GeoJSON, DistrictData } from '../../stores/mapStore';
+import { useMapStore, GeoFeature, GeoJSON, DistrictData, StateData } from '../../stores/mapStore';
 import { useMapData, getStateIdFromGeoJSON } from '../../hooks/useMapData';
 import { useDistrictData } from '../../hooks/useDistrictData';
 import MapTooltip from './MapTooltip';
+import TerminalInfoDisplay from './TerminalInfoDisplay';
 import styles from './IndiaMap.module.css';
-import { useRipple } from '../UI/Ripple';
 import { useToast } from '../UI/ToastProvider';
 
 
@@ -255,14 +255,19 @@ export default function IndiaMap() {
         loadingDistricts,
         selectedDistrict,
         setSelectedDistrict,
+        terminalInfo,
+        showTerminal,
+        hideTerminal,
     } = useMapStore();
 
     useMapData();
     const { districts, districtGeoData, getDistrictName, getDistrictData } = useDistrictData();
 
     // UI Effects
-    const { createRipple, RippleElements } = useRipple(containerRef);
     const toast = useToast();
+
+    // Pending drill-down state (used after terminal animation completes)
+    const [pendingDrill, setPendingDrill] = useState<{ stateId: string; stateName: string } | null>(null);
 
     useEffect(() => {
         fetch('/india-new.geojson')
@@ -323,17 +328,34 @@ export default function IndiaMap() {
 
     const handleStateClick = useCallback((e: React.MouseEvent, stateId: string | undefined, stateName: string) => {
         if (stateId && stateName) {
-            // Ripple
-            createRipple(e.clientX, e.clientY);
+            // Get state data for terminal display
+            const stateData = states.find(s => s.state_id === stateId);
 
-            // Toast
-            toast.info(`Drilling into ${stateName}`, "Fetching district data...");
+            if (stateData) {
+                // Show terminal with state data
+                showTerminal('state', stateData, 'overlay');
+                // Store pending drill-down for after animation
+                setPendingDrill({ stateId, stateName });
+            } else {
+                // Fallback: direct drill if no data (shouldn't happen)
+                toast.info(`Drilling into ${stateName}`, "Fetching district data...");
+                drillIntoState(stateId, stateName);
+            }
 
             setTooltipData(null);
             setHoveredState(null);
-            drillIntoState(stateId, stateName);
         }
-    }, [drillIntoState, setHoveredState, createRipple, toast]);
+    }, [states, showTerminal, drillIntoState, setHoveredState, toast]);
+
+    // Handle terminal completion - proceed with drill-down
+    const handleTerminalComplete = useCallback(() => {
+        if (pendingDrill) {
+            hideTerminal();
+            toast.info(`Drilling into ${pendingDrill.stateName}`, "Fetching district data...");
+            drillIntoState(pendingDrill.stateId, pendingDrill.stateName);
+            setPendingDrill(null);
+        }
+    }, [pendingDrill, hideTerminal, drillIntoState, toast]);
 
     const handleDistrictMouseEnter = useCallback((e: React.MouseEvent, feature: GeoFeature, districtName: string) => {
         setHoveredDistrict(districtName);
@@ -358,15 +380,14 @@ export default function IndiaMap() {
     }, [setHoveredDistrict]);
 
     const handleDistrictClick = useCallback((e: React.MouseEvent, districtName: string) => {
-        createRipple(e.clientX, e.clientY);
-
+        // For Phase 1, just select/deselect district (Phase 2 will add terminal)
         if (selectedDistrict === districtName) {
             setSelectedDistrict(null);
         } else {
             setSelectedDistrict(districtName);
             toast.success("District Selected", `Showing details for ${districtName}`);
         }
-    }, [selectedDistrict, setSelectedDistrict, createRipple, toast]);
+    }, [selectedDistrict, setSelectedDistrict, toast]);
 
     if (geoError || error) {
         return <div className={styles.mapError}><span>⚠️</span><span>{geoError || error}</span></div>;
@@ -378,7 +399,18 @@ export default function IndiaMap() {
 
     return (
         <div ref={containerRef} className={styles.mapContainer}>
-            <RippleElements />
+            {/* Terminal Info Display - Phase 1: State overlay */}
+            <AnimatePresence>
+                {terminalInfo.visible && terminalInfo.type === 'state' && terminalInfo.data && (
+                    <TerminalInfoDisplay
+                        type="state"
+                        data={terminalInfo.data as StateData}
+                        layout="overlay"
+                        onComplete={handleTerminalComplete}
+                    />
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {viewMode === 'state' && (
                     <motion.button
