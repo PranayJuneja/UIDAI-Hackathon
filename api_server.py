@@ -39,6 +39,8 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from src.security import sanitize_input
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -740,7 +742,9 @@ class ChronosDataEngine:
         results = []
         
         # Input sanitization - limit length and clean
-        query = query[:100].strip()  # Limit to 100 chars
+        # Uses src.security.sanitize_input which handles control chars and unicode
+        query = sanitize_input(query[:100])
+
         if not query:
             return []
         query_lower = query.lower()
@@ -1126,8 +1130,15 @@ async def search_locations(
     limit: int = Query(10, ge=1, le=50, description="Max results")
 ):
     """Search for states, districts, or PIN codes."""
+    # XSS Prevention: We must return a safe version of the query if reflecting it
+    # We strip control characters and escape HTML to prevent reflected XSS
+    safe_q = sanitize_input(q, escape_html=True)
+
+    # We use the sanitized (but not necessarily HTML-escaped) version for search logic
+    # (data_engine.search_locations handles its own sanitization for matching)
     results = data_engine.search_locations(q, limit)
-    return {"query": q, "results": results, "count": len(results)}
+
+    return {"query": safe_q, "results": results, "count": len(results)}
 
 # ───────────────────────────────────────────────────────────────────────────────
 # COMPARISON ENDPOINT
@@ -1528,8 +1539,11 @@ async def websocket_chat(websocket: WebSocket):
                 # Plain text fallback
                 user_content = raw_data
             
+            # Sanitize input (remove control chars, normalize unicode)
+            user_content = sanitize_input(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Send typing indicator
