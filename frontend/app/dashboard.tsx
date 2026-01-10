@@ -152,7 +152,6 @@ export default function Dashboard() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
-                            <span className={styles.compareIcon}>⚖️</span>
                             <span>Compare</span>
                         </motion.button>
 

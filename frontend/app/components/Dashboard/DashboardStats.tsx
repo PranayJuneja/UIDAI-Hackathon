@@ -47,21 +47,18 @@ const DashboardStats = memo(function DashboardStats({
                 // District Details View
                 <div className={styles.stateDetails}>
                     <div className={styles.signalRow}>
-                        <span className={styles.signalIcon}>👶</span>
                         <span className={styles.signalName}>Growth</span>
                         <span className={styles.signalValue}>
                             {(selectedDistrictData.signals.growth ?? 0).toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signalRow}>
-                        <span className={styles.signalIcon}>🚶</span>
                         <span className={styles.signalName}>Flow</span>
                         <span className={styles.signalValue}>
                             {(selectedDistrictData.signals.flow ?? 0).toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signalRow}>
-                        <span className={styles.signalIcon}>💪</span>
                         <span className={styles.signalName}>Labor</span>
                         <span className={styles.signalValue}>
                             {(selectedDistrictData.signals.labor ?? 0).toFixed(2)}
@@ -85,21 +82,18 @@ const DashboardStats = memo(function DashboardStats({
                 // State Details in India View
                 <div className={styles.stateDetails}>
                     <div className={styles.signalRow}>
-                        <span className={styles.signalIcon}>👶</span>
                         <span className={styles.signalName}>Growth</span>
                         <span className={styles.signalValue}>
                             {(selectedStateData.signals.growth ?? 0).toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signalRow}>
-                        <span className={styles.signalIcon}>🚶</span>
                         <span className={styles.signalName}>Flow</span>
                         <span className={styles.signalValue}>
                             {(selectedStateData.signals.flow ?? 0).toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signalRow}>
-                        <span className={styles.signalIcon}>💪</span>
                         <span className={styles.signalName}>Labor</span>
                         <span className={styles.signalValue}>
                             {(selectedStateData.signals.labor ?? 0).toFixed(2)}

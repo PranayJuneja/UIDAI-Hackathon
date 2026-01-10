@@ -72,21 +72,18 @@ export default function MapTooltip({ x, y, data, isDistrict }: TooltipProps) {
             {data.signals && (
                 <div className={styles.signals}>
                     <div className={styles.signal}>
-                        <span className={styles.signalIcon}>👶</span>
                         <span className={styles.signalLabel}>Growth</span>
                         <span className={styles.signalValue} style={{ color: 'var(--signal-growth)' }}>
                             {data.signals.growth.toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signal}>
-                        <span className={styles.signalIcon}>🚶</span>
                         <span className={styles.signalLabel}>Flow</span>
                         <span className={styles.signalValue} style={{ color: 'var(--signal-flow)' }}>
                             {data.signals.flow.toFixed(2)}
                         </span>
                     </div>
                     <div className={styles.signal}>
-                        <span className={styles.signalIcon}>💪</span>
                         <span className={styles.signalLabel}>Labor</span>
                         <span className={styles.signalValue} style={{ color: 'var(--signal-labor)' }}>
                             {data.signals.labor.toFixed(2)}
