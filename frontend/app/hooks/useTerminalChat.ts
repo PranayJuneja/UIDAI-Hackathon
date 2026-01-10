@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { WS_CHAT_URL } from '../lib/config';
+import { WS_TERMINAL_URL } from '../lib/config';
 
 export interface ChatMessage {
     id: string;
@@ -14,9 +14,12 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'er
 
 interface UseTerminalChatOptions {
     enabled?: boolean;
+    /** Session ID for chat history scoping (typically district_id) */
+    sessionId?: string;
     locationContext?: {
         name: string;
         type: 'state' | 'district';
+        state?: string;
         signals?: { growth: number; flow: number; labor: number };
     };
 }
@@ -30,7 +33,7 @@ interface UseTerminalChatReturn {
 }
 
 export function useTerminalChat(options: UseTerminalChatOptions = {}): UseTerminalChatReturn {
-    const { enabled = true, locationContext } = options;
+    const { enabled = true, sessionId = 'default', locationContext } = options;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isStreaming, setIsStreaming] = useState(false);
@@ -48,7 +51,7 @@ export function useTerminalChat(options: UseTerminalChatOptions = {}): UseTermin
         setConnectionStatus('connecting');
 
         try {
-            const ws = new WebSocket(WS_CHAT_URL);
+            const ws = new WebSocket(WS_TERMINAL_URL);
 
             ws.onopen = () => {
                 setConnectionStatus('connected');
@@ -150,7 +153,7 @@ export function useTerminalChat(options: UseTerminalChatOptions = {}): UseTermin
         };
     }, [enabled, connect]);
 
-    // Send message with location context
+    // Send message with location context and session ID
     const sendMessage = useCallback((text: string) => {
         if (!text.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
             return;
@@ -163,25 +166,40 @@ export function useTerminalChat(options: UseTerminalChatOptions = {}): UseTermin
             text: text.trim()
         }]);
 
-        // Build context-enhanced message
-        let contextualMessage = text;
+        // Build message with session_id and context for new terminal endpoint
+        const payload: {
+            type: string;
+            content: string;
+            session_id: string;
+            context?: {
+                location: string;
+                type: string;
+                state: string;
+                signals: { growth: number; flow: number; labor: number };
+            };
+        } = {
+            type: 'message',
+            content: text.trim(),
+            session_id: sessionId
+        };
+
+        // Add context if available
         if (locationContext) {
-            const signalInfo = locationContext.signals
-                ? ` Signals: Growth=${locationContext.signals.growth.toFixed(2)}, Flow=${locationContext.signals.flow.toFixed(2)}, Labor=${locationContext.signals.labor.toFixed(2)}.`
-                : '';
-            contextualMessage = `[Context: User is viewing ${locationContext.name} (${locationContext.type}).${signalInfo}] ${text}`;
+            payload.context = {
+                location: locationContext.name,
+                type: locationContext.type,
+                state: locationContext.state || '',
+                signals: locationContext.signals || { growth: 0, flow: 0, labor: 0 }
+            };
         }
 
         try {
-            wsRef.current.send(JSON.stringify({
-                type: 'message',
-                content: contextualMessage
-            }));
+            wsRef.current.send(JSON.stringify(payload));
             setIsStreaming(true);
         } catch (e) {
             console.error('Terminal chat: Failed to send message', e);
         }
-    }, [locationContext]);
+    }, [sessionId, locationContext]);
 
     const clearMessages = useCallback(() => {
         setMessages([]);

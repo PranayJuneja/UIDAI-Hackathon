@@ -14,6 +14,9 @@ export const WS_BASE = process.env.NEXT_PUBLIC_WS_BASE || 'ws://localhost:8000';
 // WebSocket chat endpoint (handle trailing slash in WS_BASE)
 export const WS_CHAT_URL = `${WS_BASE.replace(/\/$/, '')}/ws/chat`;
 
+// WebSocket terminal chat endpoint (lightweight, for district view)
+export const WS_TERMINAL_URL = `${WS_BASE.replace(/\/$/, '')}/ws/terminal-chat`;
+
 // Request timeout in milliseconds
 export const REQUEST_TIMEOUT_MS = 10000;
 

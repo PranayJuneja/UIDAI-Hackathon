@@ -785,6 +785,112 @@ class ChronosDataEngine:
         # Sort by match score and limit
         results.sort(key=lambda x: x["match_score"], reverse=True)
         return results[:limit]
+    
+    def get_similar_districts(
+        self, 
+        state_name: str, 
+        district_name: str, 
+        limit: int = 3
+    ) -> List[Dict[str, Any]]:
+        """
+        Find districts with similar pulse vector patterns (spatial similarity).
+        
+        Uses cosine similarity on the three-dimensional pulse vector (growth, flow, labor)
+        to find "twin regions" across other states.
+        
+        Args:
+            state_name: The state of the target district
+            district_name: The target district name
+            limit: Number of similar districts to return
+            
+        Returns:
+            List of similar districts with name, state, signals, and similarity score
+        """
+        if self.pulse_vectors is None:
+            return []
+        
+        # Get target district's signals
+        target_signals = None
+        state_normalized = self._normalize_state(state_name)
+        districts_in_state = self.district_mapping.get(state_normalized, {})
+        target_pincodes = districts_in_state.get(district_name, [])
+        
+        if not target_pincodes:
+            # Try case-insensitive match
+            for d_name, pins in districts_in_state.items():
+                if d_name.lower() == district_name.lower():
+                    target_pincodes = pins
+                    district_name = d_name
+                    break
+        
+        if not target_pincodes:
+            return []
+        
+        # Get latest month data
+        df = self.pulse_vectors
+        latest = df["month"].max()
+        df = df.filter(pl.col("month") == latest)
+        
+        # Calculate target district's mean signals
+        target_df = df.filter(pl.col("pincode").cast(str).is_in(target_pincodes))
+        if target_df.height == 0:
+            return []
+        
+        target_vector = [
+            target_df["growth_norm"].mean(),
+            target_df["flow_norm"].mean(),
+            target_df["labor_norm"].mean()
+        ]
+        
+        # Get all other districts from OTHER states for cross-regional similarity
+        similar_districts = []
+        
+        for other_state, other_districts in self.district_mapping.items():
+            # Skip same state for true cross-regional learning
+            if other_state == state_normalized:
+                continue
+                
+            for other_district_name, other_pincodes in other_districts.items():
+                other_df = df.filter(pl.col("pincode").cast(str).is_in(other_pincodes))
+                
+                if other_df.height == 0:
+                    continue
+                
+                other_vector = [
+                    other_df["growth_norm"].mean(),
+                    other_df["flow_norm"].mean(),
+                    other_df["labor_norm"].mean()
+                ]
+                
+                # Compute cosine similarity
+                import numpy as np
+                target_arr = np.array(target_vector)
+                other_arr = np.array(other_vector)
+                
+                norm_target = np.linalg.norm(target_arr)
+                norm_other = np.linalg.norm(other_arr)
+                
+                if norm_target == 0 or norm_other == 0:
+                    similarity = 0.0
+                else:
+                    similarity = float(np.dot(target_arr, other_arr) / (norm_target * norm_other))
+                
+                # Only include positive similarities
+                if similarity > 0.5:
+                    similar_districts.append({
+                        "district_name": other_district_name,
+                        "state_name": other_state,
+                        "similarity": round(similarity, 3),
+                        "signals": {
+                            "growth": round(other_vector[0], 3),
+                            "flow": round(other_vector[1], 3),
+                            "labor": round(other_vector[2], 3)
+                        }
+                    })
+        
+        # Sort by similarity descending and return top N
+        similar_districts.sort(key=lambda x: x["similarity"], reverse=True)
+        return similar_districts[:limit]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -983,6 +1089,15 @@ class ChatbotBridge:
 data_engine = ChronosDataEngine()
 chatbot_bridge = ChatbotBridge()
 
+# Terminal bot for district-level chat (lightweight, agent-free)
+try:
+    from terminal_bot import terminal_bot
+    TERMINAL_BOT_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Terminal bot not available: {e}")
+    TERMINAL_BOT_AVAILABLE = False
+    terminal_bot = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan - initialize on startup."""
@@ -998,6 +1113,14 @@ async def lifespan(app: FastAPI):
         chatbot_bridge.initialize()
     except Exception as e:
         logger.warning(f"Chatbot initialization skipped: {e}")
+    
+    # Initialize terminal bot (lightweight, for district chat)
+    if TERMINAL_BOT_AVAILABLE and terminal_bot:
+        try:
+            terminal_bot.initialize()
+            logger.info("Terminal bot initialized successfully")
+        except Exception as e:
+            logger.warning(f"Terminal bot initialization skipped: {e}")
     
     yield
     
@@ -1651,6 +1774,168 @@ async def websocket_chat(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
+        manager.disconnect(websocket)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TERMINAL CHAT WEBSOCKET (Lightweight, District-specific)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.websocket("/ws/terminal-chat")
+async def websocket_terminal_chat(websocket: WebSocket):
+    """
+    WebSocket endpoint for terminal chat (district view).
+    Uses lightweight bot with direct LLM streaming - no agent overhead.
+    
+    Message format (from client):
+    {
+        "type": "message",
+        "content": "Why is growth so high?",
+        "session_id": "MH_MUMBAI",  // District ID
+        "context": {
+            "location": "Mumbai",
+            "type": "district",
+            "state": "Maharashtra",
+            "signals": {"growth": 0.82, "flow": 0.45, "labor": 0.67}
+        }
+    }
+    
+    Response format (to client):
+    {
+        "type": "stream_start" | "stream" | "stream_end",
+        "content": "...",
+        "timestamp": "..."
+    }
+    """
+    await manager.connect(websocket)
+    
+    # Check terminal bot availability
+    if not TERMINAL_BOT_AVAILABLE or terminal_bot is None:
+        try:
+            await manager.send_json(websocket, {
+                "type": "system",
+                "content": "Terminal chat is not available. Please use the main chat.",
+                "timestamp": datetime.now().isoformat()
+            })
+        except Exception:
+            pass
+        manager.disconnect(websocket)
+        return
+    
+    # Send welcome message
+    try:
+        await manager.send_json(websocket, {
+            "type": "system",
+            "content": "Terminal ready. Ask about this location's signals and trends.",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Terminal chat: Failed to send welcome: {e}")
+        manager.disconnect(websocket)
+        return
+    
+    current_session_id: Optional[str] = None
+    
+    try:
+        while True:
+            # Receive message
+            raw_data = await websocket.receive_text()
+            
+            # Check message size
+            if len(raw_data) > MAX_WS_MESSAGE_SIZE:
+                await manager.send_json(websocket, {
+                    "type": "error",
+                    "content": f"Message too large. Max size is {MAX_WS_MESSAGE_SIZE // 1024}KB.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                continue
+            
+            # Parse message
+            try:
+                message_data = json.loads(raw_data)
+                user_content = message_data.get("content", "")
+                session_id = message_data.get("session_id", "default")
+                context = message_data.get("context", {})
+            except json.JSONDecodeError:
+                user_content = raw_data
+                session_id = "default"
+                context = {}
+            
+            # Skip empty messages
+            if not user_content or not user_content.strip():
+                continue
+            
+            # Clear session if district changed
+            if current_session_id is not None and current_session_id != session_id:
+                terminal_bot.clear_session(current_session_id)
+                logger.debug(f"Terminal: Session switched from {current_session_id} to {session_id}")
+            
+            current_session_id = session_id
+            
+            # Enrich context with spatial similarity data
+            if context.get("type") == "district" and context.get("location") and context.get("state"):
+                try:
+                    similar_districts = data_engine.get_similar_districts(
+                        state_name=context["state"],
+                        district_name=context["location"],
+                        limit=3
+                    )
+                    if similar_districts:
+                        context["similar_districts"] = similar_districts
+                        logger.debug(f"Terminal: Found {len(similar_districts)} similar districts for {context['location']}")
+                except Exception as e:
+                    logger.warning(f"Could not fetch similar districts: {e}")
+            
+            # Send typing indicator
+            try:
+                await manager.send_json(websocket, {
+                    "type": "typing",
+                    "timestamp": datetime.now().isoformat()
+                })
+            except Exception:
+                pass
+            
+            # Stream response from terminal bot
+            try:
+                # Notify client that streaming started
+                await manager.send_json(websocket, {
+                    "type": "stream_start",
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                # Stream tokens
+                async for chunk in terminal_bot.stream_response(
+                    message=user_content,
+                    context=context,
+                    session_id=session_id
+                ):
+                    if chunk.get("type") == "token":
+                        await manager.send_json(websocket, {
+                            "type": "stream",
+                            "content": chunk.get("content", "")
+                        })
+                    elif chunk.get("type") == "complete":
+                        await manager.send_json(websocket, {
+                            "type": "stream_end",
+                            "content": chunk.get("content", ""),
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+            except Exception as e:
+                logger.error(f"Terminal chat streaming error: {e}")
+                await manager.send_json(websocket, {
+                    "type": "response",
+                    "content": "I encountered an error. Please try again.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+    except WebSocketDisconnect:
+        logger.info("Client disconnected from terminal chat")
+    except Exception as e:
+        logger.error(f"Terminal WebSocket error: {e}")
+    finally:
+        # Clean up session on disconnect
+        if current_session_id:
+            terminal_bot.clear_session(current_session_id)
         manager.disconnect(websocket)
 
 # ═══════════════════════════════════════════════════════════════════════════════

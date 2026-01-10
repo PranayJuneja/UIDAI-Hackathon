@@ -214,21 +214,36 @@ export default function TerminalInfoDisplay({
             return {
                 name: stateData.name,
                 type: 'state' as const,
+                state: stateData.name,
                 signals: stateData.signals
             };
         } else {
             const districtData = data as DistrictTerminalData;
             return {
-                name: `${districtData.district_name}, ${districtData.state_name}`,
+                name: districtData.district_name,
                 type: 'district' as const,
+                state: districtData.state_name,
                 signals: districtData.signals
             };
         }
     }, [type, data]);
 
-    // Initialize chat hook
+    // Session ID based on location for chat history scoping
+    // This ensures chat history is kept per-district but clears when switching
+    const sessionId = useMemo(() => {
+        if (type === 'state') {
+            const stateData = data as StateTerminalData;
+            return stateData.state_id;
+        } else {
+            const districtData = data as DistrictTerminalData;
+            return districtData.district_id;
+        }
+    }, [type, data]);
+
+    // Initialize chat hook with session scoping
     const { messages: chatMessages, isStreaming, connectionStatus, sendMessage } = useTerminalChat({
         enabled: enableChat && isComplete,
+        sessionId,
         locationContext
     });
 
@@ -311,16 +326,31 @@ export default function TerminalInfoDisplay({
         return { mainLines: main, insightLines: insights, finalLine: final };
     }, [type, data]);
 
+    // Get the current streaming message text for scroll dependency
+    const streamingMessageText = chatMessages.find(m => m.isStreaming)?.text || '';
+
     // Auto-scroll content as new lines appear (for district terminal)
     useEffect(() => {
         if (contentRef.current && type === 'district') {
-            // Smooth scroll to bottom
-            contentRef.current.scrollTo({
-                top: contentRef.current.scrollHeight,
-                behavior: 'smooth'
+            // Use requestAnimationFrame for smooth, real-time scrolling during streaming
+            // During streaming, use instant scroll to avoid animation conflicts
+            // When not streaming, use smooth scroll for polished feel
+            requestAnimationFrame(() => {
+                if (contentRef.current) {
+                    if (isStreaming) {
+                        // Instant scroll during streaming - no jitter
+                        contentRef.current.scrollTop = contentRef.current.scrollHeight;
+                    } else {
+                        // Smooth scroll when content settles
+                        contentRef.current.scrollTo({
+                            top: contentRef.current.scrollHeight,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
             });
         }
-    }, [displayedInsightLines, chatMessages, type]);
+    }, [displayedInsightLines, chatMessages, type, isStreaming, streamingMessageText]);
 
     // Animation state machine
     useEffect(() => {
