@@ -148,7 +148,7 @@ export default function Dashboard() {
                     {/* Forecast Badge OR Breadcrumb */}
                     {isForecastMonth ? (
                         <div className={styles.forecastBadge}>
-                            ⚡ Forecasted via Amazon Chronos + Spatial ML
+                            Forecasted via Amazon Chronos + Spatial ML
                         </div>
                     ) : (
                         <DashboardBreadcrumb />

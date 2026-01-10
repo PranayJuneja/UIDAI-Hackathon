@@ -124,6 +124,8 @@ It works disturbingly well for regions with sparse data.
 
 ## Quick Start
 
+> **Want to deploy?** See the [Deployment Guide](./DEPLOYMENT.md) for GCP Cloud Run, Render, and Vercel instructions.
+
 ### Prerequisites
 - Python 3.10+
 - Node.js 20+

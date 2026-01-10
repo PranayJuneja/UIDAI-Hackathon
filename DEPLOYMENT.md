@@ -3,14 +3,78 @@
 This guide outlines how to host the Chronos-X platform. The architecture consists of a Python FastAPI backend and a Next.js frontend.
 
 **Recommended Stack:**
-*   **Backend:** Render, Railway, or any Docker-compatible PaaS.
+*   **Backend:** GCP Cloud Run (recommended if you have free credits), Render, or Railway.
 *   **Frontend:** Vercel (Native support for Next.js).
 
 ---
 
-## 1. Backend Deployment (Render.com)
+## 1. Backend Deployment
 
-We recommend deploying the backend first, as the frontend needs the backend URL to function.
+Deploy the backend first, as the frontend needs the backend URL to function.
+
+### Option A: GCP Cloud Run (Recommended)
+
+Cloud Run is ideal if you have GCP free credits. It scales to zero (no charge when idle) and auto-scales under load.
+
+**Prerequisites:**
+- Google Cloud account with billing enabled (free credits work)
+- [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed
+
+**Step 1: Create a GCP Project**
+```bash
+gcloud projects create chronos-backend --name="Chronos Backend"
+gcloud config set project chronos-backend
+```
+
+**Step 2: Enable Required APIs**
+```bash
+gcloud services enable run.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+```
+
+**Step 3: Deploy to Cloud Run**
+```bash
+# From the project root directory (where Dockerfile is located)
+gcloud run deploy chronos-backend \
+  --source . \
+  --platform managed \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --cpu 1 \
+  --timeout 300 \
+  --set-env-vars "ALLOWED_ORIGINS=*,PORT=8080"
+```
+
+> **Note:** Replace `asia-south1` with your preferred region. Use `asia-south1` (Mumbai) for lowest latency in India.
+
+**Step 4: Set Environment Variables**
+```bash
+gcloud run services update chronos-backend \
+  --region asia-south1 \
+  --set-env-vars "OPENAI_API_KEY=your-key-here,ALLOWED_ORIGINS=https://your-frontend.vercel.app"
+```
+
+**Step 5: Get Your Backend URL**
+```bash
+gcloud run services describe chronos-backend --region asia-south1 --format="value(status.url)"
+```
+
+Your URL will look like: `https://chronos-backend-xxxxx-el.a.run.app`
+
+**Cloud Run Pricing (with Free Tier):**
+| Resource | Free Tier | Beyond Free |
+|----------|-----------|-------------|
+| Requests | 2M/month | $0.40/million |
+| CPU | 180K vCPU-sec | $0.000024/vCPU-sec |
+| Memory | 360K GB-sec | $0.0000025/GB-sec |
+
+*With light usage, expect ~$0-10/month after free tier.*
+
+---
+
+### Option B: Render.com
 
 1.  **Push your code to GitHub.**
 2.  **Create a Render Account** at [render.com](https://render.com).
