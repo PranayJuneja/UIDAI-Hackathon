@@ -116,7 +116,7 @@ export default function PageLayout({ children, showParticles = true, showAurora 
 
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: '1.6' }}>
                         Engineered for <strong style={{ color: 'var(--text-primary)' }}>UIDAI Hackathon 2026</strong><br />
-                        Team Antigravity • Project ID: <span className="font-mono text-[#4DB6AC]">UIDAI-HACK-2026-CHRONOS</span>
+                        Team CVPL • TeamID: <span className="font-mono text-[#4DB6AC]">UIDAI_7</span>
                     </p>
                 </footer>
             </main>
