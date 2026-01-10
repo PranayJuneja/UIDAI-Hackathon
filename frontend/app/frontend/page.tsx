@@ -7,7 +7,7 @@ import { Layers, Zap, Smartphone, Palette, MousePointer2, Layout, Terminal as Te
 
 export default function FrontendPage() {
     return (
-        <PageLayout showParticles={true}>
+        <PageLayout showParticles={true} showAurora={false}>
             <SubPageHero
                 title="The Interface Layer"
                 subtitle={<>Engineered with <span className="text-[#A78BFA]">TissueDeck</span> design tokens. 60fps animations. Zero layout shift.</>}

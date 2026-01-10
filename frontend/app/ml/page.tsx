@@ -7,7 +7,7 @@ import { BrainCircuit, MapPin, MessageSquare, Zap, Terminal as TerminalIcon } fr
 
 export default function MLPage() {
     return (
-        <PageLayout showParticles={true}>
+        <PageLayout showParticles={true} showAurora={false}>
             <SubPageHero
                 title="The Intelligence Layer"
                 subtitle={<>Zero-shot time series prediction using <span className="text-[#F43F5E]">Amazon Chronos</span> and our proprietary <span className="text-[#A78BFA]">Spatial Parallel Search</span>.</>}

@@ -14,7 +14,7 @@ interface SubPageHeroProps {
 
 export default function SubPageHero({ title, subtitle, badge, icon: Icon }: SubPageHeroProps) {
     return (
-        <section className={styles.heroSection} style={{ minHeight: '45vh', paddingBottom: '2rem' }}>
+        <section className={styles.heroSection} style={{ minHeight: '45vh', paddingBottom: '2rem', paddingTop: '6rem' }}>
             <motion.div
                 className={styles.heroContent}
                 initial={{ opacity: 0, y: 20 }}

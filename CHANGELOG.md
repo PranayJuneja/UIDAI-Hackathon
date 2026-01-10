@@ -1,6 +1,35 @@
 # Changelog
 
 
+## [2.9.16] - 2026-01-10 - UI POLISH & FOOTER UNIFICATION
+> *"Aurora out. Footer in. Pages unified."*
+
+### Changed
+- **Aurora Glow Removed**: Disabled the pulsing radial aurora glow effect from all subpages (Backend, Frontend, ML, Visualization) and the homepage while keeping the floating particles intact
+  - Added `showAurora` prop to `PageLayout` component for granular control
+  - Particles continue to float across pages for ambient visual interest
+  - Dashboard remains unaffected (uses separate layout)
+
+- **Unified Footer**: Moved the Chronos-X footer from homepage into `PageLayout` component
+  - Footer now appears on: Home, Backend, Frontend, ML, Visualization pages
+  - Footer excluded from Dashboard (doesn't use PageLayout)
+  - Contains: Terminal-style logo, navigation links, hackathon credits
+
+- **SubPageHero Padding Fix**: Added `paddingTop: 6rem` to prevent hero badge from being hidden under the fixed navbar
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `PageLayout.tsx` | Added `showAurora` prop, conditional aurora rendering, integrated footer |
+| `SubPageHero.tsx` | Added top padding to prevent navbar overlap |
+| `page.tsx` | Removed duplicate footer, added `showAurora={false}` |
+| `backend/page.tsx` | Added `showAurora={false}` |
+| `frontend/page.tsx` | Added `showAurora={false}` |
+| `ml/page.tsx` | Added `showAurora={false}` |
+| `visualization/page.tsx` | Added `showAurora={false}` |
+
+---
+
 ## [2.9.15] - 2026-01-10 - FAVICON UPDATE
 > *"Brand identity, pixel by pixel."*
 

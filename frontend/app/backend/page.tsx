@@ -7,7 +7,7 @@ import { Database, Server, Cpu, Box, Terminal as TerminalIcon, GitMerge, FileCod
 
 export default function BackendPage() {
     return (
-        <PageLayout showParticles={true}>
+        <PageLayout showParticles={true} showAurora={false}>
             <SubPageHero
                 title="The Backend Engine"
                 subtitle={<>A high-performance orchestration layer transforming raw UIDAI logs into actionable intelligence.</>}

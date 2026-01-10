@@ -7,7 +7,7 @@ import { Box, Palette, Eye, Terminal as TerminalIcon } from "lucide-react";
 
 export default function VisualizationPage() {
     return (
-        <PageLayout showParticles={true}>
+        <PageLayout showParticles={true} showAurora={false}>
             <SubPageHero
                 title="Seeing the Unseen"
                 subtitle={<>Transforming abstract signals into human-perceivable patterns using <span className="text-[#FBBF24]">D3.js</span> and <span className="text-[#34D399]">HSL Interpolation</span>.</>}
