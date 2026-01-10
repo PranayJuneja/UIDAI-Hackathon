@@ -36,6 +36,9 @@ export default function Dashboard() {
         setSelectedDistrict
     } = useMapStore();
 
+    // Detect if viewing forecast month (Jan 2026+)
+    const isForecastMonth = selectedMonth > "2025-12";
+
     // Comparison mode state
     const [isComparisonOpen, setIsComparisonOpen] = useState(false);
 
@@ -142,7 +145,14 @@ export default function Dashboard() {
                         </motion.div>
                     </Link>
 
-                    <DashboardBreadcrumb />
+                    {/* Forecast Badge OR Breadcrumb */}
+                    {isForecastMonth ? (
+                        <div className={styles.forecastBadge}>
+                            ⚡ Forecasted via Amazon Chronos + Spatial ML
+                        </div>
+                    ) : (
+                        <DashboardBreadcrumb />
+                    )}
 
                     <div className={styles.headerActions}>
                         {/* Compare Button */}
@@ -155,7 +165,7 @@ export default function Dashboard() {
                             <span>Compare</span>
                         </motion.button>
 
-                        <div className={styles.monthBadge}>
+                        <div className={`${styles.monthBadge} ${isForecastMonth ? styles.forecastMonthBadge : ''}`}>
                             <span className={styles.monthLabel}>Viewing</span>
                             <span className={styles.monthValue}>{selectedMonth}</span>
                         </div>

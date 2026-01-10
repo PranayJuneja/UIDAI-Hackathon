@@ -213,3 +213,71 @@
 .marker.now .markerLabel {
     color: #F59E0B;
 }
+
+/* ==========================================================================
+   FORECAST STYLES - Amber/Orange theme for AI-predicted months
+   ========================================================================== */
+
+/* Forecast Badge - Centered pill above slider */
+.forecastBadge {
+    position: absolute;
+    top: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(234, 88, 12, 0.15));
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #FBBF24;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 16px;
+    white-space: nowrap;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+    animation: forecastPulse 2s ease-in-out infinite;
+    z-index: 10;
+}
+
+@keyframes forecastPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+    }
+}
+
+/* Forecast Track Fill - Amber gradient */
+.forecastTrack {
+    background: linear-gradient(90deg, #F59E0B, #FBBF24) !important;
+}
+
+/* Forecast month markers - hollow ring style */
+.marker.forecast .markerDot {
+    background: transparent;
+    border: 2px solid rgba(251, 191, 36, 0.6);
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.3);
+}
+
+.marker.forecast .markerLabel {
+    color: rgba(251, 191, 36, 0.8);
+}
+
+.marker.forecast:hover .markerLabel {
+    color: #FBBF24;
+}
+
+/* Active forecast marker */
+.marker.forecast.active .markerDot {
+    background: #FBBF24;
+    border-color: #FBBF24;
+    transform: scale(1.5);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+.marker.forecast.active .markerLabel {
+    color: #FBBF24;
+    font-weight: 600;
+}

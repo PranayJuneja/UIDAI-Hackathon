@@ -60,6 +60,10 @@ RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 MAX_WS_MESSAGE_SIZE = 10 * 1024  # 10KB max WebSocket message
 MONTH_PATTERN = re.compile(r'^\d{4}-(0[1-9]|1[0-2])$')
 
+# Forecast configuration
+HISTORICAL_DATA_END = "2025-12"  # Last month with actual data
+FORECAST_MONTHS = ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"]
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATA MODELS (Pydantic)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -587,6 +591,95 @@ class ChronosDataEngine:
         self._set_cached(cache_key, results)
         return results
     
+    def aggregate_forecast_by_state(self, month: str) -> List[StateAggregation]:
+        """
+        Aggregate FORECAST data at state level for future months.
+        
+        Reads from predictions_v2.parquet and extracts the appropriate month index.
+        """
+        import json
+        
+        # Check cache first
+        cache_key = f"forecast_state_agg_{month}"
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+        
+        # Load predictions if not already loaded
+        pred_path = Path(__file__).parent / "data" / "output" / "predictions_v2.parquet"
+        if not pred_path.exists():
+            logger.warning(f"Forecast file not found: {pred_path}")
+            return []
+        
+        try:
+            predictions_df = pl.read_parquet(pred_path)
+        except Exception as e:
+            logger.error(f"Failed to load predictions: {e}")
+            return []
+        
+        # Determine month index (0 = Jan 2026, 5 = Jun 2026)
+        try:
+            month_idx = FORECAST_MONTHS.index(month)
+        except ValueError:
+            logger.warning(f"Month {month} not in forecast range")
+            return []
+        
+        # Parse JSON arrays and extract the correct month value
+        def extract_month_value(json_str, idx):
+            try:
+                arr = json.loads(json_str) if isinstance(json_str, str) else json_str
+                if isinstance(arr, list) and len(arr) > idx:
+                    return float(arr[idx])
+                return 0.0
+            except:
+                return 0.0
+        
+        # Add extracted columns
+        predictions_df = predictions_df.with_columns([
+            pl.col("forecast_growth").map_elements(lambda x: extract_month_value(x, month_idx), return_dtype=pl.Float64).alias("growth_val"),
+            pl.col("forecast_flow").map_elements(lambda x: extract_month_value(x, month_idx), return_dtype=pl.Float64).alias("flow_val"),
+            pl.col("forecast_labor").map_elements(lambda x: extract_month_value(x, month_idx), return_dtype=pl.Float64).alias("labor_val"),
+        ])
+        
+        # Group by state
+        state_agg = predictions_df.group_by("state").agg([
+            pl.col("growth_val").mean().alias("avg_growth"),
+            pl.col("flow_val").mean().alias("avg_flow"),
+            pl.col("labor_val").mean().alias("avg_labor"),
+            pl.count().alias("pin_count"),
+        ])
+        
+        results = []
+        for row in state_agg.iter_rows(named=True):
+            state_name = self._normalize_state(row["state"])
+            state_id = STATE_ID_MAP.get(state_name, state_name[:2].upper())
+            
+            signals = SignalData(
+                growth=round(row["avg_growth"] or 0.0, 3),
+                flow=round(row["avg_flow"] or 0.0, 3),
+                labor=round(row["avg_labor"] or 0.0, 3)
+            )
+            
+            # Get top districts for this state
+            top_districts = list(self.district_mapping.get(state_name, {}).keys())[:5]
+            
+            results.append(StateAggregation(
+                state_id=state_id,
+                state_name=state_name,
+                signals=signals,
+                hotspot=self._calculate_hotspot(signals),
+                pin_count=row["pin_count"],
+                top_districts=top_districts,
+                trend="forecast"  # Mark as forecast data
+            ))
+        
+        results = sorted(results, key=lambda x: x.hotspot.intensity, reverse=True)
+        
+        # Cache the result
+        self._set_cached(cache_key, results)
+        logger.info(f"Served forecast data for {month} ({len(results)} states)")
+        return results
+    
     def _get_cached(self, key: str) -> Optional[Any]:
         """Get cached value if not expired."""
         if key in self._cache and key in self._cache_timestamps:
@@ -646,6 +739,87 @@ class ChronosDataEngine:
                 pincodes=pincodes[:20]  # Limit for response size
             ))
             
+        return sorted(results, key=lambda x: x.hotspot.intensity, reverse=True)
+    
+    def aggregate_forecast_by_district(self, state: str, month: str) -> List[DistrictAggregation]:
+        """
+        Aggregate FORECAST data at district level for future months.
+        """
+        import json
+        
+        state_normalized = self._normalize_state(state)
+        districts = self.district_mapping.get(state_normalized, {})
+        
+        if not districts:
+            return []
+        
+        # Load predictions
+        pred_path = Path(__file__).parent / "data" / "output" / "predictions_v2.parquet"
+        if not pred_path.exists():
+            return []
+        
+        try:
+            predictions_df = pl.read_parquet(pred_path)
+        except:
+            return []
+        
+        # Get month index
+        try:
+            month_idx = FORECAST_MONTHS.index(month)
+        except ValueError:
+            return []
+        
+        # Parse JSON arrays
+        def extract_month_value(json_str, idx):
+            try:
+                arr = json.loads(json_str) if isinstance(json_str, str) else json_str
+                if isinstance(arr, list) and len(arr) > idx:
+                    return float(arr[idx])
+                return 0.0
+            except:
+                return 0.0
+        
+        # Filter to state and add extracted columns
+        state_df = predictions_df.filter(pl.col("state") == state_normalized)
+        if state_df.height == 0:
+            # Try normalized matching
+            state_df = predictions_df.filter(
+                pl.col("state").str.to_lowercase() == state_normalized.lower()
+            )
+        
+        if state_df.height == 0:
+            return []
+        
+        state_df = state_df.with_columns([
+            pl.col("forecast_growth").map_elements(lambda x: extract_month_value(x, month_idx), return_dtype=pl.Float64).alias("growth_val"),
+            pl.col("forecast_flow").map_elements(lambda x: extract_month_value(x, month_idx), return_dtype=pl.Float64).alias("flow_val"),
+            pl.col("forecast_labor").map_elements(lambda x: extract_month_value(x, month_idx), return_dtype=pl.Float64).alias("labor_val"),
+        ])
+        
+        results = []
+        for district_name, pincodes in districts.items():
+            # Filter to district's pincodes
+            district_df = state_df.filter(pl.col("pincode").cast(str).is_in(pincodes))
+            
+            if district_df.height == 0:
+                continue
+            
+            signals = SignalData(
+                growth=round(district_df["growth_val"].mean() or 0.0, 3),
+                flow=round(district_df["flow_val"].mean() or 0.0, 3),
+                labor=round(district_df["labor_val"].mean() or 0.0, 3)
+            )
+            
+            results.append(DistrictAggregation(
+                district_id=f"{STATE_ID_MAP.get(state_normalized, 'XX')}_{district_name.strip().upper().replace(' ', '_')}",
+                district_name=district_name,
+                state_name=state_normalized,
+                signals=signals,
+                hotspot=self._calculate_hotspot(signals),
+                pin_count=district_df.height,
+                pincodes=pincodes[:20]
+            ))
+        
         return sorted(results, key=lambda x: x.hotspot.intensity, reverse=True)
         
     def get_pin_data(self, pincode: str) -> Optional[PinCodeData]:
@@ -1213,8 +1387,11 @@ async def get_map_data(
 async def get_states(
     month: Optional[str] = Query(None, description="Filter by month")
 ):
-    """Get all states with aggregated data."""
+    """Get all states with aggregated data (historical or forecast)."""
     try:
+        # Route to forecast aggregation for future months
+        if month and month > HISTORICAL_DATA_END:
+            return data_engine.aggregate_forecast_by_state(month)
         return data_engine.aggregate_by_state(month)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1234,21 +1411,32 @@ async def get_state_detail(
             
     if not state_name:
         raise HTTPException(status_code=404, detail=f"State not found: {state_id}")
-        
+    
+    # Route to forecast or historical based on month
+    is_forecast = month and month > HISTORICAL_DATA_END
+    
     # Get state aggregation
-    states = data_engine.aggregate_by_state(month)
+    if is_forecast:
+        states = data_engine.aggregate_forecast_by_state(month)
+    else:
+        states = data_engine.aggregate_by_state(month)
+    
     state_data = next((s for s in states if s.state_id == state_id.upper()), None)
     
     if not state_data:
         raise HTTPException(status_code=404, detail=f"No data for state: {state_id}")
-        
-    # Get districts
-    districts = data_engine.aggregate_by_district(state_name, month)
+    
+    # Get districts (forecast or historical)
+    if is_forecast:
+        districts = data_engine.aggregate_forecast_by_district(state_name, month)
+    else:
+        districts = data_engine.aggregate_by_district(state_name, month)
     
     return {
         "state": state_data,
         "districts": districts,
-        "district_count": len(districts)
+        "district_count": len(districts),
+        "is_forecast": is_forecast
     }
 
 @app.get("/api/districts/{district_id}", response_model=DistrictAggregation, tags=["Map"])

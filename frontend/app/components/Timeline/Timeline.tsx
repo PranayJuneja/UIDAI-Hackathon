@@ -40,23 +40,25 @@ export default function Timeline() {
         terminalInfo
     } = useMapStore();
 
-    // Generate months from Nov 2025 to Oct 2026 (12 months)
+    // Generate months from Nov 2025 to Jun 2026 (8 months: 2 historical + 6 forecast)
     const months = useMemo(() => {
         const result = [];
         const startDate = new Date(2025, 10, 1); // Nov 2025 (Month is 0-indexed)
 
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 8; i++) {
             const d = new Date(startDate);
             d.setMonth(startDate.getMonth() + i);
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const label = d.toLocaleString('default', { month: 'short' });
+            const monthValue = `${year}-${month}`;
 
             result.push({
-                value: `${year}-${month}`,
+                value: monthValue,
                 label: label,
                 year: year.toString(),
-                isYearStart: d.getMonth() === 0
+                isYearStart: d.getMonth() === 0,
+                isForecast: monthValue > "2025-12"  // Jan 2026+ is forecast
             });
         }
         return result;
@@ -114,6 +116,9 @@ export default function Timeline() {
     // Calculate progress percentage for track fill
     const progress = (currentIndex / (months.length - 1)) * 100;
 
+    // Detect if current month is a forecast month
+    const isForecastMonth = selectedMonth > "2025-12";
+
     // Hide timeline when terminal is open (to prevent overlap)
     const isVisible = !terminalInfo.visible;
 
@@ -160,7 +165,7 @@ export default function Timeline() {
                     <div className={styles.sliderArea}>
                         <div className={styles.sliderTrack}>
                             <div
-                                className={styles.trackFill}
+                                className={`${styles.trackFill} ${isForecastMonth ? styles.forecastTrack : ''}`}
                                 style={{ width: `${progress}%` }}
                             />
                             <input
@@ -178,7 +183,7 @@ export default function Timeline() {
                             {months.map((m, i) => (
                                 <div
                                     key={m.value}
-                                    className={`${styles.marker} ${m.value === selectedMonth ? styles.active : ''}`}
+                                    className={`${styles.marker} ${m.value === selectedMonth ? styles.active : ''} ${m.isForecast ? styles.forecast : ''}`}
                                     onClick={() => handleMonthClick(m.value)}
                                 >
                                     <div className={styles.markerDot} />

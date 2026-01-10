@@ -1,6 +1,96 @@
 # Changelog
 
 
+## [2.10.0] - 2026-01-10 - THE CHRONOS FORECAST TIMELINE INTEGRATION
+> *"The future, cached. The predictions, live."*
+
+### 🔥 Headline Features
+
+#### 1. Pre-Computed 6-Month Chronos Forecasts
+> *GPU-optimized pipeline. 18,827 PINs. Zero wait time.*
+- **Colab Notebook**: New `chronos_colab_v2.ipynb` for batch forecasting on Google Colab Pro (T4 GPU).
+- **Batched Tensor Inference**: Process 1024 PINs per batch with shared Chronos model on GPU.
+- **Output**: `predictions_v2.parquet` with 6-month forecast arrays for Growth, Flow, Labor signals.
+- **Checkpointing**: Auto-saves every 50 batches for long-running jobs.
+
+#### 2. Timeline Slider Redesigned
+> *8 months. Historical to forecasted. Visually distinct.*
+- **Range**: Nov 2025 → Jun 2026 (2 historical + 6 forecast months).
+- **Forecast Month Markers**: Amber/orange hollow ring style for Jan-Jun 2026.
+- **Amber Track Fill**: Progress bar uses amber gradient when viewing forecast data.
+
+#### 3. Header Forecast Indicator
+> *Know when you're looking at the future.*
+- **Forecast Badge**: "⚡ Forecasted via Amazon Chronos + Spatial ML" appears in header center.
+- **Replaces Breadcrumb**: Badge shown instead of navigation breadcrumb when viewing forecast months.
+- **Pulsing Glow**: Subtle amber glow animation indicates forecast mode.
+
+#### 4. Styled "Viewing" Badge
+> *Context at a glance.*
+- **Amber Theme**: "Viewing: 2026-01" pill styled with amber background and border on forecast months.
+- **Blue Theme**: Original styling retained for historical months (Nov-Dec 2025).
+
+### Backend Changes (`api_server.py`)
+
+| Component | Description |
+|-----------|-------------|
+| **Forecast Constants** | `HISTORICAL_DATA_END = "2025-12"`, `FORECAST_MONTHS = ["2026-01", ...]` |
+| **`aggregate_forecast_by_state()`** | Reads `predictions_v2.parquet`, extracts JSON arrays, aggregates by state |
+| **`aggregate_forecast_by_district()`** | District-level forecast aggregation for drill-down view |
+| **`/api/states` Routing** | Routes to forecast aggregation for months > 2025-12 |
+| **`/api/states/{id}` Routing** | Returns `is_forecast: true` flag when serving forecast data |
+
+### Frontend Changes
+
+| File | Changes |
+|------|---------|
+| `Timeline.tsx` | 8-month range, `isForecast` flag per month, amber marker styling |
+| `Timeline.module.css` | Forecast marker styles, amber track gradient, hollow ring dots |
+| `dashboard.tsx` | `isForecastMonth` detection, conditional forecast badge vs breadcrumb |
+| `dashboard.module.css` | `.forecastBadge`, `.forecastMonthBadge` amber styling with pulse animation |
+
+### Data Pipeline
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  1. COLAB GPU INFERENCE (chronos_colab_v2.ipynb)        │
+│     → Load pulse_vectors.parquet (74k rows)             │
+│     → Group by PIN (18,827 unique)                      │
+│     → Batch 1024 PINs → Chronos T5 → JSON arrays        │
+│     → Output: predictions_v2.parquet                    │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│  2. BACKEND API (api_server.py)                         │
+│     → Load predictions_v2.parquet on startup            │
+│     → Parse JSON arrays, extract month index (0-5)      │
+│     → Aggregate by state/district                       │
+│     → Return with trend: "forecast" marker              │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│  3. FRONTEND TIMELINE (Timeline.tsx + dashboard.tsx)    │
+│     → selectedMonth > "2025-12" triggers forecast mode  │
+│     → Amber styling on timeline markers                 │
+│     → Header badge + styled viewing indicator           │
+│     → Map displays forecast data for India + districts  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Added
+| File | Purpose |
+|------|---------|
+| `chronos_colab_v2.ipynb` | GPU-optimized Colab notebook for batch Chronos inference |
+| `predictions_v2.parquet` | 18,827 PINs × 6-month forecast arrays (Growth/Flow/Labor) |
+
+### Technical Details
+- **Forecast Array Format**: JSON strings `"[0.72, 0.68, 0.71, 0.69, 0.73, 0.75]"` for 6 months
+- **Month Index Mapping**: 0=Jan 2026, 1=Feb 2026, ..., 5=Jun 2026
+- **Cache TTL**: 5 minutes for aggregated forecast data
+- **String Comparison**: Month routing uses lexicographic comparison (`"2026-01" > "2025-12"`)
+
+---
+
 ## [2.9.19] - 2026-01-10 - DISTRICT HIGHLIGHT FIX
 > *"Select it. See it. Keep it in focus."*
 
