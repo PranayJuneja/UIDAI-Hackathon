@@ -1,6 +1,22 @@
 # Changelog
 
 
+## [2.9.19] - 2026-01-10 - DISTRICT HIGHLIGHT FIX
+> *"Select it. See it. Keep it in focus."*
+
+### Fixed
+- **Persistent District Highlight**: Fixed an issue where the selected district would not visually highlight when the terminal panel opened.
+  - **CSS Class Application**: Correctly applied the existing `.districtPath.selected` class to the SVG path element in `IndiaMap.tsx`.
+  - **Visual Feedback**: Selected districts now maintain a brand-primary glow and border while the terminal is active.
+  - **Interaction Logic**: Highlight persists until the terminal is closed or another district is selected.
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `IndiaMap.tsx` | Conditionally applied `styles.selected` class based on `isSelected` prop |
+
+---
+
 ## [2.9.18] - 2026-01-10 - THE TERMINAL INTELLIGENCE ENGINE
 > *"Faster chat. Smarter context. Real spatial similarity."*
 

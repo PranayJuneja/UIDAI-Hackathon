@@ -176,7 +176,7 @@ const MapVisuals = memo(function MapVisuals({
                                 >
                                     <path
                                         d={pathD}
-                                        className={styles.districtPath}
+                                        className={`${styles.districtPath} ${isSelected ? styles.selected : ''}`}
                                         style={{
                                             fill: fill,
                                             fillOpacity: hasData ? 0.85 : 0.4,
