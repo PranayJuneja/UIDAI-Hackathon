@@ -1,50 +1,30 @@
 # Changelog
 
 
-## [2.9.11] - 2026-01-10 - THE NAVIGATION SUBLINKS RELEASE
-> *"Navigate with clarity. Drill down with purpose."*
+## [2.9.11] - 2026-01-10 - THE DASHBOARD NAVIGATION FIX
+> *"Click the logo. Go home."*
 
 ### 🔥 Headline Features
 
-#### 1. Dropdown Navigation with Sublinks
-> *Hover to explore. Click to navigate.*
-- **NavDropdown Component**: New reusable dropdown component with hover-activated menus
-- **Sublinks for All Sections**: Backend, Frontend, Visualization, ML, and Dashboard now have contextual sublinks:
-  - **Backend**: API Architecture, Data Pipeline, Pulse Vectors
-  - **Frontend**: Component Architecture, State Management, Design System  
-  - **Visualization**: Chart Components, Map Visualization, Signal Rendering
-  - **ML**: Chronos Model, Forecasting Engine, LLM Attestation
-  - **Dashboard**: India Overview, State View, District View
-- **Glassmorphism Styling**: Dropdowns feature blur backdrop, subtle gradients, and smooth animations
+#### 1. Clickable Dashboard Logo
+- **Home Navigation**: Chronos-X logo in dashboard header now links to homepage
+- **No Underline**: Fixed styling to remove link underline from logo
 
 #### 2. Dashboard Breadcrumb Navigation
 > *Always know where you are.*
 - **Hierarchical Breadcrumb**: Shows `India → State → District` navigation path
 - **Clickable Navigation**: Click any level to navigate back up the hierarchy
-- **Animated Transitions**: Framer Motion entrance animations
 - **Context-Aware**: Only appears when drilled into state/district view
-
-#### 3. URL-Based Routing for Dashboard Views
-- **Dynamic Routes**: `/dashboard/state/[stateId]` and `/dashboard/state/[stateId]/district/[districtId]`
-- **Deep Linking**: Direct URL access to any state or district view
-- **Auto-Sync**: URL state automatically syncs with map store
 
 ### Added
 | File | Purpose |
 |------|---------|
-| `Navigation/NavDropdown.tsx` | Reusable dropdown menu component |
-| `Navigation/NavDropdown.module.css` | Glassmorphism dropdown styles |
 | `Dashboard/DashboardBreadcrumb.tsx` | Breadcrumb navigation component |
 | `Dashboard/DashboardBreadcrumb.module.css` | Breadcrumb styles |
-| `dashboard/state/page.tsx` | State index page |
-| `dashboard/state/[stateId]/page.tsx` | Dynamic state page |
-| `dashboard/district/page.tsx` | District index page |
-| `dashboard/state/[stateId]/district/[districtId]/page.tsx` | Dynamic district page |
 
 ### Changed
 | File | Changes |
 |------|---------|
-| `SiteHeader.tsx` | Integrated NavDropdown for all navigation items with sublinks |
 | `dashboard.tsx` | Added Link wrapper for logo (→ homepage), integrated DashboardBreadcrumb |
 | `dashboard.module.css` | Added `text-decoration: none` to `.logo` to remove underline |
 
