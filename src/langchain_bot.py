@@ -82,6 +82,7 @@ class LangChainBot:
             api_key=api_key,
             base_url=base_url,
             temperature=0.3,
+            streaming=True,  # Enable streaming for real-time token output
             # Vercel AI Gateway often requires an app name for analytics
             model_kwargs={
                 "extra_headers": {
@@ -128,7 +129,7 @@ class LangChainBot:
 
         self.tools = [control_map, get_aadhaar_stats]
 
-        #Create Agent
+        # Create Agent
         prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             MessagesPlaceholder("chat_history"),
@@ -149,7 +150,7 @@ class LangChainBot:
         """
         response = await self.agent_executor.ainvoke({
             "input": user_text,
-            "chat_history": self.chat_history[-10:] # Keep last 10 turns
+            "chat_history": self.chat_history[-10:]  # Keep last 10 turns
         })
 
         output_text = response["output"]
@@ -164,7 +165,7 @@ class LangChainBot:
         client_action = None
         
         for step in response.get("intermediate_steps", []):
-            tool_call = step[0] # AgentAction object
+            tool_call = step[0]  # AgentAction object
             if tool_call.tool == "control_map":
                 # Extract args
                 tool_input = tool_call.tool_input
@@ -173,15 +174,73 @@ class LangChainBot:
 
                 # Map to frontend structure
                 if action_type == "fly_to":
-                    client_action = { "type": "FLY_TO", "payload": target }
+                    client_action = {"type": "FLY_TO", "payload": target}
                 elif action_type == "compare":
-                    client_action = { "type": "COMPARE", "payload": target }
+                    client_action = {"type": "COMPARE", "payload": target}
                 elif action_type == "zoom":
-                    client_action = { "type": "ZOOM", "payload": target }
+                    client_action = {"type": "ZOOM", "payload": target}
                 elif action_type == "reset":
-                    client_action = { "type": "RESET", "payload": None }
+                    client_action = {"type": "RESET", "payload": None}
 
         return {
             "text": output_text,
             "client_action": client_action
         }
+    
+    async def process_message_stream(self, user_text: str):
+        """
+        Streaming version of process_message.
+        Yields tokens as they are generated for real-time UX.
+        
+        Yields:
+            {"type": "token", "content": "..."} for each token
+            {"type": "action", "client_action": {...}} at the end if applicable
+        """
+        accumulated_text = ""
+        client_action = None
+        
+        try:
+            # Use astream_events for streaming with tool tracking
+            async for event in self.agent_executor.astream_events(
+                {"input": user_text, "chat_history": self.chat_history[-10:]},
+                version="v2"
+            ):
+                kind = event.get("event")
+                
+                # Stream tokens from the LLM
+                if kind == "on_chat_model_stream":
+                    chunk = event.get("data", {}).get("chunk")
+                    if chunk and hasattr(chunk, "content") and chunk.content:
+                        accumulated_text += chunk.content
+                        yield {"type": "token", "content": chunk.content}
+                
+                # Capture tool calls for client actions
+                elif kind == "on_tool_end":
+                    tool_name = event.get("name")
+                    if tool_name == "control_map":
+                        # Get the input from the tool run
+                        tool_input = event.get("data", {}).get("input", {})
+                        action_type = tool_input.get("action")
+                        target = tool_input.get("target")
+                        
+                        if action_type == "fly_to":
+                            client_action = {"type": "FLY_TO", "payload": target}
+                        elif action_type == "compare":
+                            client_action = {"type": "COMPARE", "payload": target}
+                        elif action_type == "zoom":
+                            client_action = {"type": "ZOOM", "payload": target}
+                        elif action_type == "reset":
+                            client_action = {"type": "RESET", "payload": None}
+            
+            # Save to memory
+            if accumulated_text:
+                self.chat_history.append(HumanMessage(content=user_text))
+                self.chat_history.append(AIMessage(content=accumulated_text))
+            
+            # Yield final action if present
+            if client_action:
+                yield {"type": "action", "client_action": client_action}
+                
+        except Exception as e:
+            logger.error(f"Streaming error: {e}")
+            yield {"type": "token", "content": f"Error: {str(e)}"}

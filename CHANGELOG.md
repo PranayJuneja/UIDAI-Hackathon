@@ -1,6 +1,50 @@
 # Changelog
 
 
+## [2.9.12] - 2026-01-10 - THE STREAMING CHATBOT RELEASE
+> *"Watch the AI think in real-time."*
+
+### 🔥 Headline Features
+
+#### 1. Streaming AI Responses
+> *Token-by-token, just like ChatGPT.*
+- **Real-Time Streaming**: Chatbot responses now appear character-by-character as the AI generates them, providing instant feedback.
+- **LangChain Integration**: Uses `astream_events` with LangChain's AgentExecutor for true token streaming.
+- **Fallback Simulation**: For legacy chatbots, simulates streaming by chunking responses (20 chars at 20ms intervals).
+
+#### 2. New WebSocket Protocol
+> *A proper streaming protocol.*
+| Message Type | Description |
+|--------------|-------------|
+| `stream_start` | Notifies client that streaming is beginning |
+| `stream` | Individual token/chunk content |
+| `stream_end` | Final complete content with action payload |
+
+### Backend Changes (`api_server.py`)
+
+| Method | Description |
+|--------|-------------|
+| `ChatbotBridge._is_streaming_supported()` | Checks if current bot supports streaming |
+| `ChatbotBridge.process_message_stream()` | Async generator yielding token chunks |
+
+### Backend Changes (`src/langchain_bot.py`)
+
+| Change | Description |
+|--------|-------------|
+| `streaming=True` | Enabled on ChatOpenAI LLM config |
+| `process_message_stream()` | New async generator using `astream_events` |
+
+### Frontend Changes (`Chatbot.tsx`)
+
+| Change | Description |
+|--------|-------------|
+| `streamingMessageIdRef` | Ref to track current streaming message ID |
+| `stream_start` handler | Creates empty message bubble for streaming |
+| `stream` handler | Appends each token chunk to bubble in real-time |
+| `stream_end` handler | Finalizes message with complete content and action |
+
+---
+
 ## [2.9.11] - 2026-01-10 - THE DASHBOARD NAVIGATION FIX
 > *"Click the logo. Go home."*
 

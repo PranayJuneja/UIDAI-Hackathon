@@ -33,6 +33,7 @@ const Chatbot = () => {
     const reconnectAttempts = useRef(0);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
     const messageQueueRef = useRef<string[]>([]);
+    const streamingMessageIdRef = useRef<string | null>(null);  // Track current streaming message
 
     // Map Store Actions
     const drillIntoState = useMapStore(state => state.drillIntoState);
@@ -153,6 +154,45 @@ const Chatbot = () => {
 
                         case 'typing':
                             setIsThinking(true);
+                            break;
+
+                        // Streaming message types for real-time UX
+                        case 'stream_start':
+                            // Create a new message placeholder for streaming
+                            streamingMessageIdRef.current = `stream-${Date.now()}`;
+                            setMessages(prev => [...prev, {
+                                id: streamingMessageIdRef.current!,
+                                text: '',
+                                isUser: false
+                            }]);
+                            setIsThinking(false);  // Hide thinking dots, show streaming text
+                            break;
+
+                        case 'stream':
+                            // Append chunk to the current streaming message
+                            if (streamingMessageIdRef.current && data.content) {
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === streamingMessageIdRef.current
+                                        ? { ...msg, text: msg.text + data.content }
+                                        : msg
+                                ));
+                            }
+                            break;
+
+                        case 'stream_end':
+                            // Finalize the streaming message with complete content
+                            if (streamingMessageIdRef.current) {
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === streamingMessageIdRef.current
+                                        ? { ...msg, text: data.content || msg.text }
+                                        : msg
+                                ));
+                                streamingMessageIdRef.current = null;
+                            }
+                            // Handle any action from the AI
+                            if (data.action) {
+                                handleClientAction(data.action);
+                            }
                             break;
 
                         case 'response':

@@ -830,6 +830,14 @@ class ChatbotBridge:
             self._init_error = f"LangChain bot failed: {str(e)[:100]}"
             logger.error(f"✗ Failed to initialize chatbot: {e}")
             
+    def _is_streaming_supported(self) -> bool:
+        """Check if the current chatbot supports streaming."""
+        return (
+            self._initialized 
+            and self.chatbot is not None 
+            and hasattr(self.chatbot, "process_message_stream")
+        )
+    
     async def process_message(self, message: str) -> Dict[str, Any]:
         """
         Process a chat message and return response.
@@ -869,6 +877,69 @@ class ChatbotBridge:
             logger.error(f"Chatbot error: {e}")
             return {
                 "text": f"I encountered an error: {str(e)}",
+                "client_action": None
+            }
+    
+    async def process_message_stream(self, message: str):
+        """
+        Process a chat message and yield streaming chunks for real-time UX.
+        
+        Yields:
+            Dict with either:
+            - {"type": "chunk", "content": "partial text"} for streaming content
+            - {"type": "complete", "content": "full text", "client_action": {...}} at the end
+        """
+        if not self._initialized or self.chatbot is None:
+            error_detail = f" Reason: {self._init_error}" if self._init_error else ""
+            yield {
+                "type": "complete",
+                "content": f"Chatbot is not available.{error_detail} Please check server logs or try again later.",
+                "client_action": None
+            }
+            return
+        
+        try:
+            # Check if the bot supports streaming
+            if hasattr(self.chatbot, "process_message_stream"):
+                # Use the streaming interface from LangChain bot
+                accumulated_text = ""
+                client_action = None
+                
+                async for chunk in self.chatbot.process_message_stream(message):
+                    if chunk.get("type") == "token":
+                        accumulated_text += chunk.get("content", "")
+                        yield {"type": "chunk", "content": chunk.get("content", "")}
+                    elif chunk.get("type") == "action":
+                        client_action = chunk.get("client_action")
+                
+                yield {
+                    "type": "complete",
+                    "content": accumulated_text,
+                    "client_action": client_action
+                }
+            else:
+                # Fallback: Non-streaming response, simulate with single chunk
+                result = await self.process_message(message)
+                # Simulate streaming by chunking the response
+                text = result.get("text", "")
+                chunk_size = 20  # Characters per chunk for simulation
+                
+                for i in range(0, len(text), chunk_size):
+                    chunk = text[i:i + chunk_size]
+                    yield {"type": "chunk", "content": chunk}
+                    await asyncio.sleep(0.02)  # Small delay to simulate typing
+                
+                yield {
+                    "type": "complete",
+                    "content": text,
+                    "client_action": result.get("client_action")
+                }
+                
+        except Exception as e:
+            logger.error(f"Streaming chatbot error: {e}")
+            yield {
+                "type": "complete",
+                "content": f"I encountered an error: {str(e)}",
                 "client_action": None
             }
             
@@ -1541,24 +1612,39 @@ async def websocket_chat(websocket: WebSocket):
             except Exception:
                 pass  # Non-critical, continue processing
             
-            # Process with chatbot (handles both LangChain and legacy)
+            # Process with chatbot using streaming for better UX
             try:
-                result = await chatbot_bridge.process_message(user_content)
+                # Notify client that streaming is starting
+                await manager.send_json(websocket, {
+                    "type": "stream_start",
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                # Stream chunks to client
+                async for chunk in chatbot_bridge.process_message_stream(user_content):
+                    if chunk.get("type") == "chunk":
+                        # Send individual token/chunk
+                        await manager.send_json(websocket, {
+                            "type": "stream",
+                            "content": chunk.get("content", "")
+                        })
+                    elif chunk.get("type") == "complete":
+                        # Send final message with complete content and action
+                        await manager.send_json(websocket, {
+                            "type": "stream_end",
+                            "content": chunk.get("content", ""),
+                            "action": chunk.get("client_action"),
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
             except Exception as e:
                 logger.error(f"Chatbot processing error: {e}")
-                result = {
-                    "text": "I encountered an error processing your request. Please try again.",
-                    "client_action": None
-                }
-            
-            # Send response to client
-            response_payload = {
-                "type": "response",
-                "content": result.get("text", "No response generated."),
-                "action": result.get("client_action")
-            }
-            
-            await websocket.send_json(response_payload)
+                await manager.send_json(websocket, {
+                    "type": "response",
+                    "content": "I encountered an error processing your request. Please try again.",
+                    "action": None,
+                    "timestamp": datetime.now().isoformat()
+                })
             
     except WebSocketDisconnect:
         logger.info("Client disconnected from chat")
