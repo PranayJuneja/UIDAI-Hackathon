@@ -30,6 +30,7 @@
 | `frontend/page.tsx` | Template literal code blocks, contentCard styling |
 | `ml/page.tsx` | Template literal code blocks, contentCard styling |
 | `visualization/page.tsx` | Template literal code blocks, contentCard styling |
+| `SystemArchitectureSection.tsx` | Fixed all 3 cards (Data Ingestion, Hybrid Predictor, Context Delivery) to use consistent `vectorCard` styling |
 
 ### Animation Consistency
 - Added `viewport={{ once: true }}` to all motion elements across subpages for consistent scroll-triggered animations.

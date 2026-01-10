@@ -27,7 +27,7 @@ export default function SystemArchitectureSection() {
 
                     {/* Node 1: Ingestion */}
                     <motion.div
-                        className="vector-card z-10 bg-[#0f0f11] border border-[#333] p-6 rounded-2xl"
+                        className={`${styles.vectorCard} z-10`}
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -48,7 +48,7 @@ export default function SystemArchitectureSection() {
 
                     {/* Node 2: Intelligence */}
                     <motion.div
-                        className={`${styles.vectorCard} z-10 bg-[#0f0f11] border border-[#A78BFA] shadow-[0_0_30px_rgba(167,139,250,0.1)] transform md:-translate-y-4`}
+                        className={`${styles.vectorCard} z-10 border-[#A78BFA] shadow-[0_0_30px_rgba(167,139,250,0.15)] transform md:-translate-y-4`}
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -71,7 +71,7 @@ export default function SystemArchitectureSection() {
 
                     {/* Node 3: Delivery */}
                     <motion.div
-                        className="vector-card z-10 bg-[#0f0f11] border border-[#333] p-6 rounded-2xl"
+                        className={`${styles.vectorCard} z-10`}
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
