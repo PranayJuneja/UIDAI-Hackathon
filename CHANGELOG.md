@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [2.9.15] - 2026-01-10 - FAVICON UPDATE
+> *"Brand identity, pixel by pixel."*
+
+### Changed
+- **Favicon**: Updated site favicon from default to custom **Aptos** icon (`icon.png`)
+- **Next.js App Router**: Leverages Next.js 13+ automatic favicon detection from `app/icon.png`
+
+---
+
 ## [2.9.14] - 2026-01-10 - THE TERMINAL ANIMATION OVERHAUL
 > *"Burst. Pause. Insight. Action."*
 
