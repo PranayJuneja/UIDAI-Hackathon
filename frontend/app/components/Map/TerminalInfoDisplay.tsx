@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useTerminalChat } from '../../hooks/useTerminalChat';
 import styles from './TerminalInfoDisplay.module.css';
 
@@ -43,12 +45,11 @@ interface TerminalInfoDisplayProps {
     layout: 'overlay' | 'side';
     onComplete?: () => void;
     onClose?: () => void;
-    enableChat?: boolean; // Enable chat input (default: true for side layout)
+    enableChat?: boolean;
 }
 
 // Helper to create progress bar
 function createProgressBar(value: number, maxWidth: number = 10): string {
-    // Clamp value between 0 and 1
     const clampedValue = Math.max(0, Math.min(1, value || 0));
     const filled = Math.round(clampedValue * maxWidth);
     const empty = Math.max(0, maxWidth - filled);
@@ -78,14 +79,13 @@ function getHotspotLevel(intensity: number): string {
     return 'LOW';
 }
 
-// Generate strategic insights for state-level view (India → State)
+// Generate strategic insights for state-level view
 function generateStateInsights(signals: SignalData, hotspot: HotspotData, trend?: string): string[] {
     const insights: string[] = [];
     insights.push('');
     insights.push('══════ STRATEGIC INSIGHTS ══════');
     insights.push('');
 
-    // Growth analysis
     if (signals.growth > 0.7) {
         insights.push('⚡ HIGH GROWTH DETECTED');
         insights.push('   → New settlements emerging rapidly');
@@ -100,7 +100,6 @@ function generateStateInsights(signals: SignalData, hotspot: HotspotData, trend?
         insights.push('   → Focus on updates, not new enrolments');
     }
 
-    // Flow analysis  
     if (signals.flow > 0.7) {
         insights.push('');
         insights.push('🚀 HIGH MIGRATION FLOW');
@@ -112,7 +111,6 @@ function generateStateInsights(signals: SignalData, hotspot: HotspotData, trend?
         insights.push('   → Normal population mobility');
     }
 
-    // Labor analysis
     if (signals.labor > 0.7) {
         insights.push('');
         insights.push('👷 HIGH LABOR ACTIVITY');
@@ -120,7 +118,6 @@ function generateStateInsights(signals: SignalData, hotspot: HotspotData, trend?
         insights.push('   → Extend centre hours to 8PM');
     }
 
-    // Hotspot recommendation
     insights.push('');
     if (hotspot.intensity >= 0.7) {
         insights.push('🔴 PRIORITY: HIGH DEMAND ZONE');
@@ -136,14 +133,13 @@ function generateStateInsights(signals: SignalData, hotspot: HotspotData, trend?
     return insights;
 }
 
-// Generate actionable recommendations for district-level view (State → District)
+// Generate actionable recommendations for district-level view
 function generateDistrictActions(signals: SignalData, hotspot: HotspotData): string[] {
     const actions: string[] = [];
     actions.push('');
     actions.push('══════ RECOMMENDED ACTIONS ══════');
     actions.push('');
 
-    // Prioritized action items based on hotspot intensity
     if (hotspot.intensity >= 0.7) {
         actions.push('⚠️  URGENT ACTIONS REQUIRED:');
         actions.push('    1. Add 2-3 new permanent centres');
@@ -161,7 +157,6 @@ function generateDistrictActions(signals: SignalData, hotspot: HotspotData): str
         actions.push('    → Monitor quarterly for changes');
     }
 
-    // Signal-specific actions
     if (signals.flow > 0.6) {
         actions.push('');
         actions.push('📍 MIGRATION RESPONSE:');
@@ -197,16 +192,18 @@ export default function TerminalInfoDisplay({
     layout,
     onComplete,
     onClose,
-    enableChat = layout === 'side' // Enable chat by default for side layout (districts)
+    enableChat = layout === 'side'
 }: TerminalInfoDisplayProps) {
-    const [displayedLines, setDisplayedLines] = useState<string[]>([]);
-    const [currentLineIndex, setCurrentLineIndex] = useState(0);
-    const [currentCharIndex, setCurrentCharIndex] = useState(0);
+    // Animation phases: 'showing_main' -> 'pause1' -> 'showing_insights' -> 'pause2' -> 'complete'
+    const [animationPhase, setAnimationPhase] = useState<'showing_main' | 'pause1' | 'showing_insights' | 'pause2' | 'complete'>('showing_main');
+    const [displayedInsightLines, setDisplayedInsightLines] = useState<string[]>([]);
+    const [insightLineIndex, setInsightLineIndex] = useState(0);
+    const [showFinalLine, setShowFinalLine] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [chatInput, setChatInput] = useState('');
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
 
-    // Use ref to track if onComplete has been called to prevent double-firing
     const hasCompletedRef = useRef(false);
     const onCompleteRef = useRef(onComplete);
 
@@ -256,98 +253,127 @@ export default function TerminalInfoDisplay({
         onCompleteRef.current = onComplete;
     }, [onComplete]);
 
-    // Generate terminal lines based on data type - memoized to prevent regeneration
-    const lines = useMemo(() => {
-        const result: string[] = [];
+    // Generate ALL lines immediately - no state needed for main lines, they show instantly
+    const { mainLines, insightLines, finalLine } = useMemo(() => {
+        const main: string[] = [];
+        const insights: string[] = [];
+        let final = '';
 
-        result.push('▸ CHRONOS-X TERMINAL v2.6.0');
-        result.push('═══════════════════════════════════════');
-        result.push('');
+        main.push('▸ CHRONOS-X TERMINAL v2.6.0');
+        main.push('═══════════════════════════════════════');
+        main.push('');
 
         if (type === 'state') {
             const stateData = data as StateTerminalData;
-            result.push(`> ACCESSING: ${stateData.name}_`);
-            result.push(`> STATE_ID: ${stateData.state_id}`);
+            main.push(`> ACCESSING: ${stateData.name}_`);
+            main.push(`> STATE_ID: ${stateData.state_id}`);
             if (stateData.districts !== undefined) {
-                result.push(`> DISTRICTS: ${formatNumber(stateData.districts)}`);
+                main.push(`> DISTRICTS: ${formatNumber(stateData.districts)}`);
             }
             if (stateData.pincodes !== undefined) {
-                result.push(`> PINCODES: ${formatNumber(stateData.pincodes)}`);
+                main.push(`> PINCODES: ${formatNumber(stateData.pincodes)}`);
             }
-            result.push('');
-            result.push('══════ SIGNAL ANALYSIS ══════');
-            result.push('');
-            result.push(`├─ GROWTH:  ${createProgressBar(stateData.signals.growth)} ${stateData.signals.growth.toFixed(2)}`);
-            result.push(`├─ FLOW:    ${createProgressBar(stateData.signals.flow)} ${stateData.signals.flow.toFixed(2)}`);
-            result.push(`└─ LABOR:   ${createProgressBar(stateData.signals.labor)} ${stateData.signals.labor.toFixed(2)}`);
-            result.push('');
-            result.push(`> HOTSPOT: ${getHotspotLevel(stateData.hotspot.intensity)} (${stateData.hotspot.intensity.toFixed(2)})`);
-            result.push(`> TREND: ${getTrendArrow(stateData.trend)} ${(stateData.trend || 'STABLE').toUpperCase()}`);
+            main.push('');
+            main.push('══════ SIGNAL ANALYSIS ══════');
+            main.push('');
+            main.push(`├─ GROWTH:  ${createProgressBar(stateData.signals.growth)} ${stateData.signals.growth.toFixed(2)}`);
+            main.push(`├─ FLOW:    ${createProgressBar(stateData.signals.flow)} ${stateData.signals.flow.toFixed(2)}`);
+            main.push(`└─ LABOR:   ${createProgressBar(stateData.signals.labor)} ${stateData.signals.labor.toFixed(2)}`);
+            main.push('');
+            main.push(`> HOTSPOT: ${getHotspotLevel(stateData.hotspot.intensity)} (${stateData.hotspot.intensity.toFixed(2)})`);
+            main.push(`> TREND: ${getTrendArrow(stateData.trend)} ${(stateData.trend || 'STABLE').toUpperCase()}`);
 
-            // Add strategic insights
-            const insights = generateStateInsights(stateData.signals, stateData.hotspot, stateData.trend);
-            result.push(...insights);
+            const stateInsights = generateStateInsights(stateData.signals, stateData.hotspot, stateData.trend);
+            insights.push(...stateInsights);
 
-            result.push('');
-            result.push('[INITIALIZING DISTRICT VIEW...]');
+            final = '[INITIALIZING DISTRICT VIEW...]';
         } else {
             const districtData = data as DistrictTerminalData;
-            result.push(`> ACCESSING: ${districtData.district_name}_`);
-            result.push(`> DISTRICT_ID: ${districtData.district_id}`);
-            result.push(`> STATE: ${districtData.state_name}`);
+            main.push(`> ACCESSING: ${districtData.district_name}_`);
+            main.push(`> DISTRICT_ID: ${districtData.district_id}`);
+            main.push(`> STATE: ${districtData.state_name}`);
             if (districtData.pin_count !== undefined) {
-                result.push(`> PINCODES: ${formatNumber(districtData.pin_count)}`);
+                main.push(`> PINCODES: ${formatNumber(districtData.pin_count)}`);
             }
-            result.push('');
-            result.push('══════ SIGNAL ANALYSIS ══════');
-            result.push('');
-            result.push(`├─ GROWTH:  ${createProgressBar(districtData.signals.growth)} ${districtData.signals.growth.toFixed(2)}`);
-            result.push(`├─ FLOW:    ${createProgressBar(districtData.signals.flow)} ${districtData.signals.flow.toFixed(2)}`);
-            result.push(`└─ LABOR:   ${createProgressBar(districtData.signals.labor)} ${districtData.signals.labor.toFixed(2)}`);
-            result.push('');
-            result.push(`> HOTSPOT: ${getHotspotLevel(districtData.hotspot.intensity)} (${districtData.hotspot.intensity.toFixed(2)})`);
+            main.push('');
+            main.push('══════ SIGNAL ANALYSIS ══════');
+            main.push('');
+            main.push(`├─ GROWTH:  ${createProgressBar(districtData.signals.growth)} ${districtData.signals.growth.toFixed(2)}`);
+            main.push(`├─ FLOW:    ${createProgressBar(districtData.signals.flow)} ${districtData.signals.flow.toFixed(2)}`);
+            main.push(`└─ LABOR:   ${createProgressBar(districtData.signals.labor)} ${districtData.signals.labor.toFixed(2)}`);
+            main.push('');
+            main.push(`> HOTSPOT: ${getHotspotLevel(districtData.hotspot.intensity)} (${districtData.hotspot.intensity.toFixed(2)})`);
 
-            // Add actionable recommendations
             const actions = generateDistrictActions(districtData.signals, districtData.hotspot);
-            result.push(...actions);
+            insights.push(...actions);
         }
 
-        return result;
+        return { mainLines: main, insightLines: insights, finalLine: final };
     }, [type, data]);
 
-    const totalLines = lines.length;
-
-    // Typewriter effect
+    // Auto-scroll content as new lines appear (for district terminal)
     useEffect(() => {
-        if (currentLineIndex >= totalLines) {
-            if (!isComplete) {
-                setIsComplete(true);
+        if (contentRef.current && type === 'district') {
+            // Smooth scroll to bottom
+            contentRef.current.scrollTo({
+                top: contentRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [displayedInsightLines, chatMessages, type]);
+
+    // Animation state machine
+    useEffect(() => {
+        // Phase 1: Main content is already showing (burst is instant via render)
+        // After small delay, move to pause phase
+        if (animationPhase === 'showing_main') {
+            const timer = setTimeout(() => {
+                setAnimationPhase('pause1');
+            }, 50); // Tiny delay just to ensure render happened
+            return () => clearTimeout(timer);
+        }
+
+        // Phase 2: Pause after burst (1s for state, 0.5s for district)
+        if (animationPhase === 'pause1') {
+            const pauseDuration = type === 'state' ? 1000 : 500;
+            const timer = setTimeout(() => {
+                setAnimationPhase('showing_insights');
+                setInsightLineIndex(0);
+            }, pauseDuration);
+            return () => clearTimeout(timer);
+        }
+
+        // Phase 3: Show insights/actions line by line (fast)
+        if (animationPhase === 'showing_insights') {
+            if (insightLineIndex < insightLines.length) {
+                const timer = setTimeout(() => {
+                    setDisplayedInsightLines(prev => [...prev, insightLines[insightLineIndex]]);
+                    setInsightLineIndex(prev => prev + 1);
+                }, 30); // Fast line-by-line reveal
+                return () => clearTimeout(timer);
+            } else {
+                // All insights shown
+                if (type === 'state' && finalLine) {
+                    setAnimationPhase('pause2');
+                } else {
+                    setAnimationPhase('complete');
+                    setIsComplete(true);
+                }
             }
-            return;
         }
 
-        const currentLine = lines[currentLineIndex];
-
-        if (currentCharIndex <= currentLine.length) {
-            // Type next character
-            const timeout = setTimeout(() => {
-                setDisplayedLines(prev => {
-                    const newLines = [...prev];
-                    newLines[currentLineIndex] = currentLine.substring(0, currentCharIndex);
-                    return newLines;
-                });
-                setCurrentCharIndex(prev => prev + 1);
-            }, currentLine.length === 0 ? 10 : 1); // Ultra-fast typing: 1ms per char, 10ms for empty lines
-
-            return () => clearTimeout(timeout);
-        } else {
-            // Move to next line
-            setCurrentLineIndex(prev => prev + 1);
-            setCurrentCharIndex(0);
+        // Phase 4: Pause before showing final line (state only)
+        if (animationPhase === 'pause2') {
+            const timer = setTimeout(() => {
+                setShowFinalLine(true);
+                setAnimationPhase('complete');
+                setIsComplete(true);
+            }, 1000);
+            return () => clearTimeout(timer);
         }
-    }, [currentLineIndex, currentCharIndex, lines, totalLines, isComplete]);
+    }, [animationPhase, insightLineIndex, insightLines, finalLine, type]);
 
-    // Handle completion callback separately - 3 second pause before transition
+    // Handle completion callback - for overlay mode
     useEffect(() => {
         if (isComplete && layout === 'overlay' && !hasCompletedRef.current) {
             hasCompletedRef.current = true;
@@ -355,20 +381,102 @@ export default function TerminalInfoDisplay({
                 if (onCompleteRef.current) {
                     onCompleteRef.current();
                 }
-            }, 1500); // 1.5 second pause before transition
+            }, 500);
             return () => clearTimeout(timeout);
         }
     }, [isComplete, layout]);
 
     // Reset when data changes
     useEffect(() => {
-        setDisplayedLines([]);
-        setCurrentLineIndex(0);
-        setCurrentCharIndex(0);
+        setDisplayedInsightLines([]);
+        setInsightLineIndex(0);
+        setShowFinalLine(false);
+        setAnimationPhase('showing_main');
         setIsComplete(false);
         hasCompletedRef.current = false;
     }, [data]);
 
+    // ===== RENDER FOR STATE TYPE (split layout) =====
+    if (type === 'state') {
+        return (
+            <motion.div
+                className={`${styles.terminal} ${styles.overlay}`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            >
+                <div className={styles.scanlines} />
+                <div className={styles.glow} />
+
+                {/* Split content container */}
+                <div className={styles.splitContent}>
+                    {/* Left Column - Main info (ALWAYS visible - burst effect) */}
+                    <div className={styles.leftColumn}>
+                        <div className={styles.content}>
+                            {mainLines.map((line, index) => (
+                                <div key={index} className={styles.line}>
+                                    <span className={styles.text}>{line}</span>
+                                </div>
+                            ))}
+
+                            {/* Cursor while waiting for insights */}
+                            {animationPhase === 'pause1' && (
+                                <div className={styles.line}>
+                                    <span className={styles.cursor}>█</span>
+                                </div>
+                            )}
+
+                            {/* Final line after pause2 */}
+                            {showFinalLine && finalLine && (
+                                <motion.div
+                                    className={styles.line}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <span className={styles.text}>{finalLine}</span>
+                                    <span className={styles.cursor}>█</span>
+                                </motion.div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column - Strategic Insights (appears after pause) */}
+                    <AnimatePresence>
+                        {(animationPhase === 'showing_insights' || animationPhase === 'pause2' || animationPhase === 'complete') && (
+                            <motion.div
+                                className={styles.rightColumn}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <div className={styles.content}>
+                                    {displayedInsightLines.map((line, index) => (
+                                        <div key={index} className={styles.line}>
+                                            <span className={styles.text}>{line}</span>
+                                        </div>
+                                    ))}
+
+                                    {/* Cursor while typing insights */}
+                                    {animationPhase === 'showing_insights' && insightLineIndex < insightLines.length && (
+                                        <div className={styles.line}>
+                                            <span className={styles.cursor}>█</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <div className={styles.depthShadow1} />
+                <div className={styles.depthShadow2} />
+            </motion.div>
+        );
+    }
+
+    // ===== RENDER FOR DISTRICT TYPE (single column with auto-scroll) =====
     return (
         <motion.div
             className={`${styles.terminal} ${layout === 'overlay' ? styles.overlay : styles.side}`}
@@ -377,10 +485,7 @@ export default function TerminalInfoDisplay({
             exit={{ opacity: 0, scale: layout === 'overlay' ? 1.05 : 1, x: layout === 'side' ? 50 : 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
         >
-            {/* Scanline overlay */}
             <div className={styles.scanlines} />
-
-            {/* CRT glow effect */}
             <div className={styles.glow} />
 
             {/* Close button for side layout */}
@@ -391,20 +496,38 @@ export default function TerminalInfoDisplay({
             )}
 
             {/* Terminal content */}
-            <div className={styles.content} ref={chatContainerRef}>
-                {displayedLines.map((line, index) => (
-                    <div key={index} className={styles.line}>
+            <div className={styles.content} ref={contentRef}>
+                {/* Main lines (ALWAYS visible - burst effect) */}
+                {mainLines.map((line, index) => (
+                    <div key={`main-${index}`} className={styles.line}>
                         <span className={styles.text}>{line}</span>
-                        {/* Blinking cursor on current line */}
-                        {index === currentLineIndex && !isComplete && (
-                            <span className={styles.cursor}>█</span>
-                        )}
                     </div>
                 ))}
 
-                {/* Chat messages section - only show when chat is enabled and complete */}
+                {/* Cursor while waiting */}
+                {animationPhase === 'pause1' && (
+                    <div className={styles.line}>
+                        <span className={styles.cursor}>█</span>
+                    </div>
+                )}
+
+                {/* Insight/Action lines (after pause) */}
+                {displayedInsightLines.map((line, index) => (
+                    <div key={`insight-${index}`} className={styles.line}>
+                        <span className={styles.text}>{line}</span>
+                    </div>
+                ))}
+
+                {/* Cursor while showing insights */}
+                {animationPhase === 'showing_insights' && insightLineIndex < insightLines.length && (
+                    <div className={styles.line}>
+                        <span className={styles.cursor}>█</span>
+                    </div>
+                )}
+
+                {/* Chat messages section */}
                 {enableChat && isComplete && chatMessages.length > 0 && (
-                    <div className={styles.chatSection}>
+                    <div className={styles.chatSection} ref={chatContainerRef}>
                         {chatMessages.map((msg) => (
                             <div
                                 key={msg.id}
@@ -413,16 +536,36 @@ export default function TerminalInfoDisplay({
                                 <span className={styles.chatRole}>
                                     {msg.role === 'user' ? '> YOU:' : '> CHRONOS:'}
                                 </span>
-                                <span className={styles.chatText}>
-                                    {msg.text}
+                                <div className={styles.chatText}>
+                                    {msg.role === 'user' ? (
+                                        msg.text
+                                    ) : (
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                h1: ({ children }) => <span className={styles.mdHeading}>{children}</span>,
+                                                h2: ({ children }) => <span className={styles.mdHeading}>{children}</span>,
+                                                h3: ({ children }) => <span className={styles.mdSubheading}>{children}</span>,
+                                                strong: ({ children }) => <span className={styles.mdBold}>{children}</span>,
+                                                em: ({ children }) => <span className={styles.mdItalic}>{children}</span>,
+                                                p: ({ children }) => <span className={styles.mdParagraph}>{children}</span>,
+                                                ul: ({ children }) => <span className={styles.mdList}>{children}</span>,
+                                                ol: ({ children }) => <span className={styles.mdList}>{children}</span>,
+                                                li: ({ children }) => <span className={styles.mdListItem}>• {children}</span>,
+                                                code: ({ children }) => <span className={styles.mdCode}>{children}</span>,
+                                            }}
+                                        >
+                                            {msg.text}
+                                        </ReactMarkdown>
+                                    )}
                                     {msg.isStreaming && <span className={styles.cursor}>█</span>}
-                                </span>
+                                </div>
                             </div>
                         ))}
                     </div>
                 )}
 
-                {/* Show cursor on last line when complete and no chat active */}
+                {/* Show cursor on last line when complete and no chat */}
                 {isComplete && !enableChat && (
                     <div className={styles.line}>
                         <span className={styles.cursor}>█</span>
@@ -430,7 +573,7 @@ export default function TerminalInfoDisplay({
                 )}
             </div>
 
-            {/* Chat input section - only show for side layout with chat enabled */}
+            {/* Chat input section */}
             {enableChat && isComplete && (
                 <form className={styles.chatInputArea} onSubmit={handleChatSubmit}>
                     <span className={styles.chatPrompt}>{'>'}</span>
@@ -453,7 +596,6 @@ export default function TerminalInfoDisplay({
                 </form>
             )}
 
-            {/* Depth shadow layers */}
             <div className={styles.depthShadow1} />
             <div className={styles.depthShadow2} />
         </motion.div>

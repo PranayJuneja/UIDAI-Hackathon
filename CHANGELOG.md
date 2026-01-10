@@ -1,6 +1,41 @@
 # Changelog
 
 
+## [2.9.14] - 2026-01-10 - THE TERMINAL ANIMATION OVERHAUL
+> *"Burst. Pause. Insight. Action."*
+
+### 🔥 Headline Features
+
+#### 1. Burst Animation (India → State Terminal)
+> *Instant data, delayed insights.*
+- **Instant Burst**: All basic info (Header → TREND) bursts onto screen immediately—no typing animation.
+- **1-Second Pause**: Terminal pauses with blinking cursor after burst.
+- **Split Layout**: Terminal now displays in **two columns**:
+  - **Left Column**: Basic info (STATE_ID, DISTRICTS, SIGNAL ANALYSIS, HOTSPOT, TREND)
+  - **Right Column**: Strategic Insights (slides in from right after pause)
+- **Final Transition**: Another 1-second pause before transitioning to district view.
+
+#### 2. Burst Animation (State → District Terminal)
+> *Faster feedback, smarter scroll.*
+- **Instant Burst**: Basic info (Header → HOTSPOT) bursts instantly.
+- **0.5-Second Pause**: Shorter pause for district-level interactions.
+- **Recommended Actions**: Action items appear line-by-line after pause.
+- **Auto-Scroll**: Terminal automatically scrolls down as new lines appear.
+
+#### 3. Markdown-Rendered Chat Responses
+> *Pretty answers from pretty AI.*
+- **ReactMarkdown Integration**: AI responses in terminal chat now render with proper markdown.
+- **Styled Components**: Custom styles for headings, bold, lists, and code.
+- **Terminal Theme**: Markdown elements use bright green accents with text shadows.
+
+### Changed
+| File | Changes |
+|------|---------|
+| `TerminalInfoDisplay.tsx` | Burst animation logic, split layout rendering, ReactMarkdown for chat |
+| `TerminalInfoDisplay.module.css` | Split content columns, markdown styling classes |
+
+---
+
 ## [2.9.13] - 2026-01-10 - THE TERMINAL INTELLIGENCE RELEASE
 > *"Data that speaks. Insights that act."*
 

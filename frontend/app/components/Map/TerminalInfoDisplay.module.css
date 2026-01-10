@@ -57,6 +57,41 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
+   SPLIT CONTENT - Two column layout for state terminal
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.splitContent {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    height: 100%;
+    padding: 2rem;
+}
+
+.leftColumn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.rightColumn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-left: 1px solid rgba(74, 222, 128, 0.2);
+    padding-left: 2rem;
+}
+
+.leftColumn .content,
+.rightColumn .content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
    SCANLINE EFFECT
    ═══════════════════════════════════════════════════════════════════════════════ */
 .scanlines {
@@ -421,4 +456,70 @@
 .chatSendBtn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MARKDOWN STYLES FOR TERMINAL CHAT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.mdHeading {
+    display: block;
+    font-weight: bold;
+    color: #86EFAC;
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+
+.mdHeading:first-child {
+    margin-top: 0;
+}
+
+.mdSubheading {
+    display: block;
+    font-weight: 600;
+    color: #4ADE80;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.mdBold {
+    font-weight: bold;
+    color: #86EFAC;
+    text-shadow: 0 0 5px rgba(74, 222, 128, 0.4);
+}
+
+.mdItalic {
+    font-style: italic;
+    color: #6EE7B7;
+}
+
+.mdParagraph {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.mdParagraph:last-child {
+    margin-bottom: 0;
+}
+
+.mdList {
+    display: block;
+    margin-left: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.mdListItem {
+    display: block;
+    padding-left: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.mdCode {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    background: rgba(74, 222, 128, 0.15);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.85em;
+    color: #86EFAC;
 }
