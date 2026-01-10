@@ -1,10 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import IndiaMap from "./components/Map/IndiaMap";
 import DashboardStats from "./components/Dashboard/DashboardStats";
 import DashboardHotspots from "./components/Dashboard/DashboardHotspots";
+import DashboardBreadcrumb from "./components/Dashboard/DashboardBreadcrumb";
 import Timeline from "./components/Timeline/Timeline";
 import { useMapStore } from "./stores/mapStore";
 import Chatbot from "./components/Chatbot/Chatbot";
@@ -128,15 +130,19 @@ export default function Dashboard() {
             {/* Header */}
             <header className={styles.header}>
                 <div className={styles.headerContent}>
-                    <motion.div
-                        className={styles.logo}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                    >
-                        <span className={styles.brandPrefix}>&gt;</span>
-                        <span className={styles.brandText}>Chronos-X</span>
-                        <span className={styles.cursor}>_</span>
-                    </motion.div>
+                    <Link href="/" className={styles.logo}>
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            style={{ display: 'flex', alignItems: 'center' }}
+                        >
+                            <span className={styles.brandPrefix}>&gt;</span>
+                            <span className={styles.brandText}>Chronos-X</span>
+                            <span className={styles.cursor}>_</span>
+                        </motion.div>
+                    </Link>
+
+                    <DashboardBreadcrumb />
 
                     <div className={styles.headerActions}>
                         {/* Compare Button */}
