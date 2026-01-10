@@ -279,6 +279,62 @@
     margin-left: var(--space-1);
 }
 
+/* Action Recommendation Card */
+.actionCard {
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(28, 27, 31, 0.8);
+}
+
+.urgencyLow {
+    border-color: rgba(77, 182, 172, 0.3);
+    background: linear-gradient(135deg, rgba(77, 182, 172, 0.08) 0%, rgba(28, 27, 31, 0.9) 100%);
+}
+
+.urgencyMedium {
+    border-color: rgba(255, 224, 130, 0.3);
+    background: linear-gradient(135deg, rgba(255, 224, 130, 0.08) 0%, rgba(28, 27, 31, 0.9) 100%);
+}
+
+.urgencyHigh {
+    border-color: rgba(239, 184, 200, 0.4);
+    background: linear-gradient(135deg, rgba(239, 184, 200, 0.1) 0%, rgba(28, 27, 31, 0.9) 100%);
+}
+
+.urgencyBadge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-3);
+}
+
+.urgencyBadge[data-urgency="low"] {
+    background: rgba(77, 182, 172, 0.2);
+    color: #4DB6AC;
+}
+
+.urgencyBadge[data-urgency="medium"] {
+    background: rgba(255, 224, 130, 0.2);
+    color: #FFE082;
+}
+
+.urgencyBadge[data-urgency="high"] {
+    background: rgba(239, 184, 200, 0.2);
+    color: #EFB8C8;
+}
+
+.recommendationText {
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
 /* Empty State */
 .emptyState {
     display: flex;

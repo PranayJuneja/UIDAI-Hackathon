@@ -301,35 +301,66 @@ const ComparisonPanel = memo(function ComparisonPanel({
                                     </div>
                                 </div>
 
-                                {/* Difference Analysis */}
-                                {comparisonData.location1 && comparisonData.location2 && (
-                                    <div className={styles.differenceSection}>
-                                        <h4 className={styles.differenceTitle}>Difference Analysis</h4>
-                                        <div className={styles.differenceGrid}>
-                                            {(['growth', 'flow', 'labor'] as const).map((signal) => {
-                                                const diff = getDifference(
-                                                    comparisonData.location1!.signals[signal],
-                                                    comparisonData.location2!.signals[signal]
-                                                );
-                                                return (
-                                                    <div key={signal} className={styles.differenceItem}>
-                                                        <span className={styles.differenceLabel}>
-                                                            {signal.charAt(0).toUpperCase() + signal.slice(1)}
-                                                        </span>
-                                                        <span className={`${styles.differenceValue} ${diff.isPositive ? styles.positive :
-                                                            diff.isNegative ? styles.negative : ''
-                                                            }`}>
-                                                            {diff.isPositive ? '+' : ''}{diff.value.toFixed(2)}
-                                                            <span className={styles.differencePercent}>
-                                                                ({diff.isPositive ? '+' : ''}{diff.percentage}%)
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })}
+                                {/* UIDAI Action Recommendation */}
+                                {comparisonData.location1 && comparisonData.location2 && (() => {
+                                    // Calculate overall priority based on signal differences
+                                    const signals1 = comparisonData.location1.signals;
+                                    const signals2 = comparisonData.location2.signals;
+
+                                    // Calculate average signal magnitude for each location
+                                    const avg1 = (signals1.growth + signals1.flow + signals1.labor) / 3;
+                                    const avg2 = (signals2.growth + signals2.flow + signals2.labor) / 3;
+
+                                    // Calculate individual differences
+                                    const growthDiff = Math.abs(signals1.growth - signals2.growth);
+                                    const flowDiff = Math.abs(signals1.flow - signals2.flow);
+                                    const laborDiff = Math.abs(signals1.labor - signals2.labor);
+                                    const totalDiff = growthDiff + flowDiff + laborDiff;
+
+                                    // Determine which location has higher demand
+                                    const loc1Higher = avg1 > avg2;
+                                    const higherLoc = loc1Higher ? location1?.name : location2?.name;
+                                    const lowerLoc = loc1Higher ? location2?.name : location1?.name;
+
+                                    // Determine significant signal differences
+                                    const significantSignals: string[] = [];
+                                    if (growthDiff > 0.3) significantSignals.push('Growth');
+                                    if (flowDiff > 0.3) significantSignals.push('Flow');
+                                    if (laborDiff > 0.3) significantSignals.push('Labor');
+
+                                    let recommendation: string;
+                                    let urgency: 'low' | 'medium' | 'high';
+
+                                    if (totalDiff < 0.5) {
+                                        // Both locations similar - no action needed
+                                        urgency = 'low';
+                                        recommendation = `Both ${location1?.name} and ${location2?.name} show similar demand patterns. No resource reallocation required. Maintain current enrolment capacity at both locations.`;
+                                    } else if (totalDiff < 1.5) {
+                                        // Moderate difference
+                                        urgency = 'medium';
+                                        recommendation = `${higherLoc} shows moderately higher demand${significantSignals.length > 0 ? ` in ${significantSignals.join(', ')}` : ''}. Consider allocating additional mobile camps to ${higherLoc} during peak hours while maintaining existing setup at ${lowerLoc}.`;
+                                    } else {
+                                        // Significant difference - action required
+                                        urgency = 'high';
+                                        recommendation = `PRIORITIZE ${higherLoc?.toUpperCase()}. Significantly higher demand detected${significantSignals.length > 0 ? ` in ${significantSignals.join(', ')}` : ''}. Recommend deploying additional permanent centres and extending operating hours. ${lowerLoc} can operate with reduced capacity or share resources with ${higherLoc}.`;
+                                    }
+
+                                    return (
+                                        <div className={styles.differenceSection}>
+                                            <h4 className={styles.differenceTitle}>
+                                                UIDAI Action Recommendation
+                                            </h4>
+                                            <div className={`${styles.actionCard} ${styles[`urgency${urgency.charAt(0).toUpperCase() + urgency.slice(1)}`]}`}>
+                                                <div className={styles.urgencyBadge} data-urgency={urgency}>
+                                                    {urgency === 'low' ? '✓' : urgency === 'medium' ? '!' : '⚠'} {urgency.toUpperCase()} PRIORITY
+                                                </div>
+                                                <p className={styles.recommendationText}>
+                                                    {recommendation}
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    );
+                                })()}
                             </div>
                         )}
 

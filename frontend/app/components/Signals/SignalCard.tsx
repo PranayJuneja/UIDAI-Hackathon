@@ -17,7 +17,6 @@ export interface SignalCardProps {
 
 const SIGNAL_CONFIG = {
     growth: {
-        icon: '👶',
         label: 'Growth',
         description: 'New settlements (0-5 age)',
         color: 'var(--signal-growth)',
@@ -25,7 +24,6 @@ const SIGNAL_CONFIG = {
         gradient: 'var(--gradient-growth)',
     },
     flow: {
-        icon: '🚶',
         label: 'Flow',
         description: 'Migration patterns',
         color: 'var(--signal-flow)',
@@ -33,7 +31,6 @@ const SIGNAL_CONFIG = {
         gradient: 'var(--gradient-flow)',
     },
     labor: {
-        icon: '💪',
         label: 'Labor',
         description: 'Workforce intensity',
         color: 'var(--signal-labor)',
@@ -239,7 +236,6 @@ const Tooltip = memo(function Tooltip({
     return (
         <div className={styles.tooltip} role="tooltip">
             <div className={styles.tooltipHeader}>
-                <span>{config.icon}</span>
                 <span>{config.label} Signal</span>
             </div>
             <div className={styles.tooltipContent}>
@@ -366,7 +362,6 @@ const SignalCard = memo(function SignalCard({
 
             {/* Header */}
             <div className={styles.header}>
-                <span className={styles.icon} aria-hidden="true">{config.icon}</span>
                 <div className={styles.labelGroup}>
                     <span className={styles.label}>{config.label}</span>
                     <span className={styles.description}>{config.description}</span>
