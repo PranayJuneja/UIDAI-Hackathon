@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useTerminalChat } from '../../hooks/useTerminalChat';
 import styles from './TerminalInfoDisplay.module.css';
 
 // Types
@@ -42,6 +43,7 @@ interface TerminalInfoDisplayProps {
     layout: 'overlay' | 'side';
     onComplete?: () => void;
     onClose?: () => void;
+    enableChat?: boolean; // Enable chat input (default: true for side layout)
 }
 
 // Helper to create progress bar
@@ -76,21 +78,178 @@ function getHotspotLevel(intensity: number): string {
     return 'LOW';
 }
 
+// Generate strategic insights for state-level view (India → State)
+function generateStateInsights(signals: SignalData, hotspot: HotspotData, trend?: string): string[] {
+    const insights: string[] = [];
+    insights.push('');
+    insights.push('══════ STRATEGIC INSIGHTS ══════');
+    insights.push('');
+
+    // Growth analysis
+    if (signals.growth > 0.7) {
+        insights.push('⚡ HIGH GROWTH DETECTED');
+        insights.push('   → New settlements emerging rapidly');
+        insights.push('   → Expand enrolment capacity +20%');
+    } else if (signals.growth > 0.5) {
+        insights.push('📈 MODERATE GROWTH');
+        insights.push('   → Steady population increase');
+        insights.push('   → Maintain current capacity');
+    } else {
+        insights.push('📉 LOW GROWTH REGION');
+        insights.push('   → Mature demographics');
+        insights.push('   → Focus on updates, not new enrolments');
+    }
+
+    // Flow analysis  
+    if (signals.flow > 0.7) {
+        insights.push('');
+        insights.push('🚀 HIGH MIGRATION FLOW');
+        insights.push('   → Significant in/out movement');
+        insights.push('   → Deploy mobile enrolment units');
+    } else if (signals.flow > 0.5) {
+        insights.push('');
+        insights.push('🔄 MODERATE MIGRATION');
+        insights.push('   → Normal population mobility');
+    }
+
+    // Labor analysis
+    if (signals.labor > 0.7) {
+        insights.push('');
+        insights.push('👷 HIGH LABOR ACTIVITY');
+        insights.push('   → Working population updates frequent');
+        insights.push('   → Extend centre hours to 8PM');
+    }
+
+    // Hotspot recommendation
+    insights.push('');
+    if (hotspot.intensity >= 0.7) {
+        insights.push('🔴 PRIORITY: HIGH DEMAND ZONE');
+        insights.push('   → Immediate capacity review needed');
+    } else if (hotspot.intensity >= 0.5) {
+        insights.push('🟡 ATTENTION: MODERATE DEMAND');
+        insights.push('   → Monitor for capacity planning');
+    } else {
+        insights.push('🟢 STATUS: DEMAND UNDER CONTROL');
+        insights.push('   → Routine operations sufficient');
+    }
+
+    return insights;
+}
+
+// Generate actionable recommendations for district-level view (State → District)
+function generateDistrictActions(signals: SignalData, hotspot: HotspotData): string[] {
+    const actions: string[] = [];
+    actions.push('');
+    actions.push('══════ RECOMMENDED ACTIONS ══════');
+    actions.push('');
+
+    // Prioritized action items based on hotspot intensity
+    if (hotspot.intensity >= 0.7) {
+        actions.push('⚠️  URGENT ACTIONS REQUIRED:');
+        actions.push('    1. Add 2-3 new permanent centres');
+        actions.push('    2. Deploy mobile enrolment vans');
+        actions.push('    3. Extend hours to 8PM daily');
+        actions.push('    4. Weekend operations mandatory');
+    } else if (hotspot.intensity >= 0.5) {
+        actions.push('📋 SUGGESTED IMPROVEMENTS:');
+        actions.push('    1. Add 1 additional centre');
+        actions.push('    2. Enable Saturday operations');
+        actions.push('    3. Add staff during peak hours');
+    } else {
+        actions.push('✅ CAPACITY ADEQUATE');
+        actions.push('    → Current setup meets demand');
+        actions.push('    → Monitor quarterly for changes');
+    }
+
+    // Signal-specific actions
+    if (signals.flow > 0.6) {
+        actions.push('');
+        actions.push('📍 MIGRATION RESPONSE:');
+        actions.push('    → Setup camps at transit hubs');
+        actions.push('    → Railway/bus station kiosks');
+    }
+
+    if (signals.labor > 0.7) {
+        actions.push('');
+        actions.push('🏭 LABOR ZONE SUPPORT:');
+        actions.push('    → Partner with industrial estates');
+        actions.push('    → Evening slots 6PM-9PM essential');
+    }
+
+    if (signals.growth > 0.7) {
+        actions.push('');
+        actions.push('🏘️ NEW SETTLEMENT SUPPORT:');
+        actions.push('    → Mobile camps in new colonies');
+        actions.push('    → Child enrolment drives');
+    }
+
+    actions.push('');
+    actions.push('─────────────────────────────────');
+    actions.push('💬 ASK CHRONOS FOR MORE DETAILS...');
+
+    return actions;
+}
+
+
 export default function TerminalInfoDisplay({
     type,
     data,
     layout,
     onComplete,
-    onClose
+    onClose,
+    enableChat = layout === 'side' // Enable chat by default for side layout (districts)
 }: TerminalInfoDisplayProps) {
     const [displayedLines, setDisplayedLines] = useState<string[]>([]);
     const [currentLineIndex, setCurrentLineIndex] = useState(0);
     const [currentCharIndex, setCurrentCharIndex] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
+    const [chatInput, setChatInput] = useState('');
+    const chatContainerRef = useRef<HTMLDivElement>(null);
 
     // Use ref to track if onComplete has been called to prevent double-firing
     const hasCompletedRef = useRef(false);
     const onCompleteRef = useRef(onComplete);
+
+    // Build location context for chat
+    const locationContext = useMemo(() => {
+        if (type === 'state') {
+            const stateData = data as StateTerminalData;
+            return {
+                name: stateData.name,
+                type: 'state' as const,
+                signals: stateData.signals
+            };
+        } else {
+            const districtData = data as DistrictTerminalData;
+            return {
+                name: `${districtData.district_name}, ${districtData.state_name}`,
+                type: 'district' as const,
+                signals: districtData.signals
+            };
+        }
+    }, [type, data]);
+
+    // Initialize chat hook
+    const { messages: chatMessages, isStreaming, connectionStatus, sendMessage } = useTerminalChat({
+        enabled: enableChat && isComplete,
+        locationContext
+    });
+
+    // Scroll chat to bottom when new messages arrive
+    useEffect(() => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }, [chatMessages]);
+
+    // Handle chat submit
+    const handleChatSubmit = useCallback((e: React.FormEvent) => {
+        e.preventDefault();
+        if (chatInput.trim() && !isStreaming) {
+            sendMessage(chatInput);
+            setChatInput('');
+        }
+    }, [chatInput, isStreaming, sendMessage]);
 
     // Keep onComplete ref updated
     useEffect(() => {
@@ -124,6 +283,11 @@ export default function TerminalInfoDisplay({
             result.push('');
             result.push(`> HOTSPOT: ${getHotspotLevel(stateData.hotspot.intensity)} (${stateData.hotspot.intensity.toFixed(2)})`);
             result.push(`> TREND: ${getTrendArrow(stateData.trend)} ${(stateData.trend || 'STABLE').toUpperCase()}`);
+
+            // Add strategic insights
+            const insights = generateStateInsights(stateData.signals, stateData.hotspot, stateData.trend);
+            result.push(...insights);
+
             result.push('');
             result.push('[INITIALIZING DISTRICT VIEW...]');
         } else {
@@ -142,8 +306,10 @@ export default function TerminalInfoDisplay({
             result.push(`└─ LABOR:   ${createProgressBar(districtData.signals.labor)} ${districtData.signals.labor.toFixed(2)}`);
             result.push('');
             result.push(`> HOTSPOT: ${getHotspotLevel(districtData.hotspot.intensity)} (${districtData.hotspot.intensity.toFixed(2)})`);
-            result.push('');
-            result.push('[DATA LOADED SUCCESSFULLY]');
+
+            // Add actionable recommendations
+            const actions = generateDistrictActions(districtData.signals, districtData.hotspot);
+            result.push(...actions);
         }
 
         return result;
@@ -171,7 +337,7 @@ export default function TerminalInfoDisplay({
                     return newLines;
                 });
                 setCurrentCharIndex(prev => prev + 1);
-            }, currentLine.length === 0 ? 20 : 5); // Fast typing: 5ms per char, 20ms for empty lines
+            }, currentLine.length === 0 ? 10 : 1); // Ultra-fast typing: 1ms per char, 10ms for empty lines
 
             return () => clearTimeout(timeout);
         } else {
@@ -189,7 +355,7 @@ export default function TerminalInfoDisplay({
                 if (onCompleteRef.current) {
                     onCompleteRef.current();
                 }
-            }, 3000); // 3 second pause to let user read the data
+            }, 1500); // 1.5 second pause before transition
             return () => clearTimeout(timeout);
         }
     }, [isComplete, layout]);
@@ -225,7 +391,7 @@ export default function TerminalInfoDisplay({
             )}
 
             {/* Terminal content */}
-            <div className={styles.content}>
+            <div className={styles.content} ref={chatContainerRef}>
                 {displayedLines.map((line, index) => (
                     <div key={index} className={styles.line}>
                         <span className={styles.text}>{line}</span>
@@ -235,13 +401,57 @@ export default function TerminalInfoDisplay({
                         )}
                     </div>
                 ))}
-                {/* Show cursor on last line when complete */}
-                {isComplete && (
+
+                {/* Chat messages section - only show when chat is enabled and complete */}
+                {enableChat && isComplete && chatMessages.length > 0 && (
+                    <div className={styles.chatSection}>
+                        {chatMessages.map((msg) => (
+                            <div
+                                key={msg.id}
+                                className={`${styles.chatMessage} ${msg.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
+                            >
+                                <span className={styles.chatRole}>
+                                    {msg.role === 'user' ? '> YOU:' : '> CHRONOS:'}
+                                </span>
+                                <span className={styles.chatText}>
+                                    {msg.text}
+                                    {msg.isStreaming && <span className={styles.cursor}>█</span>}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Show cursor on last line when complete and no chat active */}
+                {isComplete && !enableChat && (
                     <div className={styles.line}>
                         <span className={styles.cursor}>█</span>
                     </div>
                 )}
             </div>
+
+            {/* Chat input section - only show for side layout with chat enabled */}
+            {enableChat && isComplete && (
+                <form className={styles.chatInputArea} onSubmit={handleChatSubmit}>
+                    <span className={styles.chatPrompt}>{'>'}</span>
+                    <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder={connectionStatus === 'connected' ? 'Ask Chronos...' : 'Connecting...'}
+                        disabled={connectionStatus !== 'connected' || isStreaming}
+                        className={styles.chatInput}
+                        autoFocus
+                    />
+                    <button
+                        type="submit"
+                        disabled={!chatInput.trim() || isStreaming || connectionStatus !== 'connected'}
+                        className={styles.chatSendBtn}
+                    >
+                        ▶
+                    </button>
+                </form>
+            )}
 
             {/* Depth shadow layers */}
             <div className={styles.depthShadow1} />

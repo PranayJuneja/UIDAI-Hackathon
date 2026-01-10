@@ -23,3 +23,7 @@ Thumbs.db
 # data/output/predictions.parquet # Maybe we keep this for now as cache? 
 # But usually we ignore large data. User didn't specify, but safer to ignore large generated files if they are huge.
 # For now, I'll stick to user request: .env files.
+
+# Agent & Docs
+GEMINI.md
+.agent

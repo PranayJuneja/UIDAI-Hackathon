@@ -1,6 +1,60 @@
 # Changelog
 
 
+## [2.9.13] - 2026-01-10 - THE TERMINAL INTELLIGENCE RELEASE
+> *"Data that speaks. Insights that act."*
+
+### 🔥 Headline Features
+
+#### 1. Terminal Speed Boost
+> *5x faster data display.*
+- **Ultra-Fast Typing**: Reduced character delay from `5ms` to `1ms` per character.
+- **Quicker Transitions**: Completion pause reduced from `3s` to `1.5s` before drill-down.
+- **Smoother Empty Lines**: Delay reduced from `20ms` to `10ms`.
+
+#### 2. Strategic Insights (India → State)
+> *What the data means, not just what it shows.*
+- **Signal Interpretation**: Each state terminal now displays a "STRATEGIC INSIGHTS" section with:
+  - **Growth Analysis**: High/Moderate/Low growth recommendations
+  - **Migration Alerts**: Mobile unit deployment suggestions for high flow regions
+  - **Labor Zone Detection**: Extended hours recommendations for industrial areas
+  - **Priority Indicators**: 🔴/🟡/🟢 status based on hotspot intensity
+
+#### 3. Actionable Recommendations (State → District)
+> *Specific actions for Aadhaar centre optimization.*
+- **District Action Items**: "RECOMMENDED ACTIONS" section with:
+  - **Urgent Actions** (High intensity): Add centres, deploy vans, extend hours
+  - **Suggested Improvements** (Medium): Weekend ops, additional staff
+  - **Capacity Adequate** (Low): Quarterly monitoring
+  - **Signal-Based Responses**: Migration camps, labor zone partnerships
+
+#### 4. Terminal-Embedded Chatbot
+> *Ask Chronos without leaving the terminal.*
+- **Chat Input Field**: Embedded in district terminal (side layout)
+- **Location Context**: User questions automatically enriched with current location and signal data
+- **Streaming Responses**: AI responses stream directly into terminal display
+- **WebSocket Integration**: Reuses existing chatbot backend infrastructure
+
+#### 5. Timeline Visibility Toggle
+> *Focus on what matters.*
+- **Auto-Hide**: Timeline slider automatically hides when terminal is open
+- **Smooth Animation**: AnimatePresence exit animation when hiding
+- **Auto-Show**: Reappears when terminal is closed
+
+### Added
+| File | Purpose |
+|------|---------|
+| `useTerminalChat.ts` | Custom hook for terminal chat WebSocket handling |
+
+### Changed
+| File | Changes |
+|------|---------|
+| `TerminalInfoDisplay.tsx` | Speed tweaks, `generateStateInsights()`, `generateDistrictActions()`, chat UI |
+| `TerminalInfoDisplay.module.css` | Chat section styles (messages, input, send button) |
+| `Timeline.tsx` | Added visibility toggle based on `terminalInfo.visible` |
+
+---
+
 ## [2.9.12] - 2026-01-10 - THE STREAMING CHATBOT RELEASE
 > *"Watch the AI think in real-time."*
 

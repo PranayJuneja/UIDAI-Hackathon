@@ -36,7 +36,8 @@ export default function Timeline() {
         setSelectedMonth,
         isPlaying,
         togglePlayback,
-        playbackSpeed
+        playbackSpeed,
+        terminalInfo
     } = useMapStore();
 
     // Generate months from Nov 2025 to Oct 2026 (12 months)
@@ -113,76 +114,84 @@ export default function Timeline() {
     // Calculate progress percentage for track fill
     const progress = (currentIndex / (months.length - 1)) * 100;
 
+    // Hide timeline when terminal is open (to prevent overlap)
+    const isVisible = !terminalInfo.visible;
+
     return (
-        <motion.div
-            className={styles.timelineContainer}
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, type: 'spring' }}
-        >
-            {/* Playback Controls */}
-            <div className={styles.controls}>
-                <button
-                    className={styles.navButton}
-                    onClick={handlePrev}
-                    disabled={currentIndex === 0}
-                    aria-label="Previous Month"
+        <AnimatePresence>
+            {isVisible && (
+                <motion.div
+                    className={styles.timelineContainer}
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
                 >
-                    <PrevIcon />
-                </button>
-
-                <button
-                    className={styles.playButton}
-                    onClick={togglePlayback}
-                    aria-label={isPlaying ? "Pause" : "Play"}
-                >
-                    {isPlaying ? <PauseIcon /> : <PlayIcon />}
-                </button>
-
-                <button
-                    className={styles.navButton}
-                    onClick={handleNext}
-                    disabled={currentIndex === months.length - 1}
-                    aria-label="Next Month"
-                >
-                    <NextIcon />
-                </button>
-            </div>
-
-            {/* Slider */}
-            <div className={styles.sliderArea}>
-                <div className={styles.sliderTrack}>
-                    <div
-                        className={styles.trackFill}
-                        style={{ width: `${progress}%` }}
-                    />
-                    <input
-                        type="range"
-                        min="0"
-                        max={months.length - 1}
-                        value={currentIndex === -1 ? 0 : currentIndex}
-                        onChange={handleSliderChange}
-                        className={styles.rangeInput}
-                    />
-                </div>
-
-                {/* Month Indicators */}
-                <div className={styles.markers}>
-                    {months.map((m, i) => (
-                        <div
-                            key={m.value}
-                            className={`${styles.marker} ${m.value === selectedMonth ? styles.active : ''}`}
-                            onClick={() => handleMonthClick(m.value)}
+                    {/* Playback Controls */}
+                    <div className={styles.controls}>
+                        <button
+                            className={styles.navButton}
+                            onClick={handlePrev}
+                            disabled={currentIndex === 0}
+                            aria-label="Previous Month"
                         >
-                            <div className={styles.markerDot} />
-                            <span className={styles.markerLabel}>
-                                {m.label}
-                                {m.isYearStart && <span style={{ fontSize: '9px', display: 'block', opacity: 0.7 }}>{m.year}</span>}
-                            </span>
+                            <PrevIcon />
+                        </button>
+
+                        <button
+                            className={styles.playButton}
+                            onClick={togglePlayback}
+                            aria-label={isPlaying ? "Pause" : "Play"}
+                        >
+                            {isPlaying ? <PauseIcon /> : <PlayIcon />}
+                        </button>
+
+                        <button
+                            className={styles.navButton}
+                            onClick={handleNext}
+                            disabled={currentIndex === months.length - 1}
+                            aria-label="Next Month"
+                        >
+                            <NextIcon />
+                        </button>
+                    </div>
+
+                    {/* Slider */}
+                    <div className={styles.sliderArea}>
+                        <div className={styles.sliderTrack}>
+                            <div
+                                className={styles.trackFill}
+                                style={{ width: `${progress}%` }}
+                            />
+                            <input
+                                type="range"
+                                min="0"
+                                max={months.length - 1}
+                                value={currentIndex === -1 ? 0 : currentIndex}
+                                onChange={handleSliderChange}
+                                className={styles.rangeInput}
+                            />
                         </div>
-                    ))}
-                </div>
-            </div>
-        </motion.div>
+
+                        {/* Month Indicators */}
+                        <div className={styles.markers}>
+                            {months.map((m, i) => (
+                                <div
+                                    key={m.value}
+                                    className={`${styles.marker} ${m.value === selectedMonth ? styles.active : ''}`}
+                                    onClick={() => handleMonthClick(m.value)}
+                                >
+                                    <div className={styles.markerDot} />
+                                    <span className={styles.markerLabel}>
+                                        {m.label}
+                                        {m.isYearStart && <span style={{ fontSize: '9px', display: 'block', opacity: 0.7 }}>{m.year}</span>}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 }
