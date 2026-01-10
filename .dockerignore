@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+.env.*
+local.env
+
+# Frontend (Deploy separately on Vercel)
+frontend/
+node_modules/
+
+# Notebooks and Scripts
+*.ipynb
+scripts/
+Verification_Scripts/
+docs/
+
+# Optional: Large raw data if you only need processed output
+# data/api_data_*.csv

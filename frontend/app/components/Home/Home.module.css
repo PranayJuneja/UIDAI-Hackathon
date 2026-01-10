@@ -43,20 +43,28 @@
     color: var(--signal-growth);
     font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
-    min-height: 300px;
-    overflow-x: auto;
-    /* Enable horizontal scrolling */
+    min-height: auto;
+    overflow-x: hidden;
     scrollbar-width: thin;
-    /* Firefox */
     scrollbar-color: var(--border-default) transparent;
 }
 
-/* Ensure code blocks scroll vertically if needed and horizontally */
+/* Enable code wrapping instead of horizontal scrolling */
 .terminalBody pre {
     margin: 0;
     font-family: var(--font-mono);
-    white-space: pre;
-    /* Keep code formatting */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Content Card - Matches terminal visual weight */
+.contentCard {
+    padding: var(--space-8);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    height: fit-content;
 }
 
 
@@ -322,4 +330,36 @@
     margin-top: var(--space-6);
     border-left: 3px solid var(--brand-secondary);
     color: var(--text-secondary);
+}
+
+/* Architecture Grid - 3 columns on desktop */
+.architectureGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 4rem;
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .architectureGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.connectorLine {
+    display: none;
+}
+
+@media (min-width: 769px) {
+    .connectorLine {
+        display: block;
+        position: absolute;
+        top: 3rem;
+        left: 16%;
+        right: 16%;
+        height: 2px;
+        background: linear-gradient(to right, transparent, #333, transparent);
+        z-index: 0;
+    }
 }

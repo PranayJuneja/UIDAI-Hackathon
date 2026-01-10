@@ -20,7 +20,7 @@ export default function BackendPage() {
 
                     {/* Section 1: Data Engine */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-24">
-                        <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+                        <motion.div className={styles.contentCard} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <div className="flex items-center gap-3 mb-6">
                                 <Database className="text-[#4DB6AC]" size={28} />
                                 <h2 className="text-3xl font-bold">Singleton Data Engine</h2>
@@ -60,24 +60,22 @@ export default function BackendPage() {
                                 <span>api_server.py: ChronosDataEngine.aggregate_by_state</span>
                             </div>
                             <div className={styles.terminalBody}>
-                                <pre><code style={{ color: '#d4d4d4' }}>
-                                    <span style={{ color: '#c586c0' }}>def</span> <span style={{ color: '#dcdcaa' }}>aggregate_by_state</span>(self, month):
-                                    {"  "}
-                                    <span style={{ color: '#6a9955' }}># 1. Lazy Scan & Filter</span>
-                                    {"  "}df = self.pulse_vectors.filter(
-                                    {"      "}pl.col(<span style={{ color: '#ce9178' }}>"month"</span>) == month_val
-                                    {"  "})
-                                    {"  "}
-                                    <span style={{ color: '#6a9955' }}># 2. Parallel GroupBy (Rust Backend)</span>
-                                    {"  "}state_agg = df.group_by(<span style={{ color: '#ce9178' }}>"state"</span>).agg([
-                                    {"      "}pl.col(<span style={{ color: '#ce9178' }}>"growth_norm"</span>).mean(),
-                                    {"      "}pl.col(<span style={{ color: '#ce9178' }}>"flow_norm"</span>).mean(),
-                                    {"      "}pl.col(<span style={{ color: '#ce9178' }}>"labor_norm"</span>).mean()
-                                    {"  "}])
-                                    {"  "}
-                                    <span style={{ color: '#6a9955' }}># 3. zero-copy collect() to PyArrow</span>
-                                    {"  "}return [StateAggregation(**row) for row in state_agg.iter_rows()]
-                                </code></pre>
+                                <pre><code style={{ color: '#d4d4d4' }}>{`def aggregate_by_state(self, month):
+  # 1. Lazy Scan & Filter
+  df = self.pulse_vectors.filter(
+      pl.col("month") == month_val
+  )
+  
+  # 2. Parallel GroupBy (Rust Backend)
+  state_agg = df.group_by("state").agg([
+      pl.col("growth_norm").mean(),
+      pl.col("flow_norm").mean(),
+      pl.col("labor_norm").mean()
+  ])
+  
+  # 3. zero-copy collect() to PyArrow
+  return [StateAggregation(**row) 
+          for row in state_agg.iter_rows()]`}</code></pre>
                             </div>
                         </motion.div>
                     </div>
@@ -95,29 +93,30 @@ export default function BackendPage() {
                                 <span>src/ai_forecaster.py: AIForecaster.forecast_pin</span>
                             </div>
                             <div className={styles.terminalBody}>
-                                <pre><code style={{ color: '#d4d4d4' }}>
-                                    <span style={{ color: '#c586c0' }}>def</span> <span style={{ color: '#dcdcaa' }}>forecast_pin</span>(self, history, samples=20):
-                                    {"  "}torch = _get_torch()
-                                    {"  "}
-                                    {"  "}<span style={{ color: '#6a9955' }}># 1. Convert to Tensor</span>
-                                    {"  "}context = torch.tensor(history, dtype=torch.float32)
-                                    {"  "}
-                                    {"  "}<span style={{ color: '#6a9955' }}># 2. Chronos T5 Inference</span>
-                                    {"  "}forecast = self.pipeline.predict(
-                                    {"      "}context, horizon=6, num_samples=samples
-                                    {"  "})
-                                    {"  "}
-                                    {"  "}<span style={{ color: '#6a9955' }}># 3. Extract Uncertainty Quantiles</span>
-                                    {"  "}low, median, high = np.quantile(
-                                    {"      "}forecast[0].numpy(), [0.1, 0.5, 0.9], axis=0
-                                    {"  "})
-                                    {"  "}
-                                    {"  "}return {"{"} <span style={{ color: '#ce9178' }}>"median"</span>: median.tolist(), ... {"}"}
-                                </code></pre>
+                                <pre><code style={{ color: '#d4d4d4' }}>{`def forecast_pin(self, history, samples=20):
+  torch = _get_torch()
+  
+  # 1. Convert to Tensor
+  context = torch.tensor(history, 
+                         dtype=torch.float32)
+  
+  # 2. Chronos T5 Inference
+  forecast = self.pipeline.predict(
+      context, horizon=6, 
+      num_samples=samples
+  )
+  
+  # 3. Extract Uncertainty Quantiles
+  low, median, high = np.quantile(
+      forecast[0].numpy(), 
+      [0.1, 0.5, 0.9], axis=0
+  )
+  
+  return { "median": median.tolist(), ... }`}</code></pre>
                             </div>
                         </motion.div>
 
-                        <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+                        <motion.div className={styles.contentCard} initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <div className="flex items-center gap-3 mb-6">
                                 <FileCode className="text-[#A78BFA]" size={28} />
                                 <h2 className="text-3xl font-bold">The AI Forecaster</h2>

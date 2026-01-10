@@ -20,7 +20,7 @@ export default function FrontendPage() {
 
                     {/* Section 1: Page Transitions */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-24">
-                        <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }}>
+                        <motion.div className={styles.contentCard} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <h2 className="text-3xl font-bold mb-6">Orchestrated Motion</h2>
                             <p className="text-gray-400 text-lg mb-6">
                                 Every interaction in Chronos-X is fluid. We strictly type our transition objects to avoid runtime overhead and ensure GPU acceleration.
@@ -38,31 +38,30 @@ export default function FrontendPage() {
                             className={styles.terminalBoot}
                             initial={{ opacity: 0, x: 30 }}
                             whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
                         >
                             <div className={styles.terminalHeader}>
                                 <TerminalIcon size={16} />
                                 <span>src/animations.ts: pageVariants</span>
                             </div>
                             <div className={styles.terminalBody}>
-                                <pre><code style={{ color: '#d4d4d4' }}>
-                                    <span style={{ color: '#569cd6' }}>const</span> pageVariants = {'{'}<br />
-                                    {'  '}initial: {'{'}<br />
-                                    {'      '}opacity: <span style={{ color: '#b5cea8' }}>0</span>,<br />
-                                    {'      '}y: <span style={{ color: '#b5cea8' }}>8</span>,<br />
-                                    {'      '}scale: <span style={{ color: '#b5cea8' }}>0.99</span><br />
-                                    {'  '}{'}'},<br />
-                                    {'  '}animate: {'{'}<br />
-                                    {'      '}opacity: <span style={{ color: '#b5cea8' }}>1</span>,<br />
-                                    {'      '}y: <span style={{ color: '#b5cea8' }}>0</span>,<br />
-                                    {'      '}scale: <span style={{ color: '#b5cea8' }}>1</span><br />
-                                    {'  '}{'}'},<br />
-                                    {'  '}exit: {'{'}<br />
-                                    {'      '}opacity: <span style={{ color: '#b5cea8' }}>0</span>,<br />
-                                    {'      '}y: <span style={{ color: '#b5cea8' }}>-8</span>,<br />
-                                    {'      '}scale: <span style={{ color: '#b5cea8' }}>1.01</span><br />
-                                    {'  '}{'}'}<br />
-                                    {'}'};
-                                </code></pre>
+                                <pre><code style={{ color: '#d4d4d4' }}>{`const pageVariants = {
+  initial: {
+    opacity: 0,
+    y: 8,
+    scale: 0.99
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    scale: 1.01
+  }
+};`}</code></pre>
                             </div>
                         </motion.div>
                     </div>
@@ -75,32 +74,36 @@ export default function FrontendPage() {
                             style={{ width: '100%', height: 'fit-content' }}
                             initial={{ opacity: 0, x: -30 }}
                             whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
                         >
                             <div className={styles.terminalHeader}>
                                 <TerminalIcon size={16} />
                                 <span>src/components/MapVisuals.tsx</span>
                             </div>
                             <div className={styles.terminalBody}>
-                                <pre><code style={{ color: '#d4d4d4' }}>
-                                    <span style={{ color: '#569cd6' }}>const</span> MapVisuals = <span style={{ color: '#dcdcaa' }}>memo</span>(<span style={{ color: '#569cd6' }}>function</span> MapVisuals(...) {'{'}<br />
-                                    {'  '}<span style={{ color: '#6a9955' }}>// 1. Memoize Projection</span><br />
-                                    {'  '}<span style={{ color: '#569cd6' }}>const</span> projection = <span style={{ color: '#dcdcaa' }}>useMemo</span>(() =&gt; <br />
-                                    {'    '}d3.<span style={{ color: '#dcdcaa' }}>geoMercator</span>().<span style={{ color: '#dcdcaa' }}>center</span>([82.5, 23]).<span style={{ color: '#dcdcaa' }}>scale</span>(1250)<br />
-                                    {'  '}, []);<br />
-                                    <br />
-                                    {'  '}<span style={{ color: '#6a9955' }}>// 2. Render Paths Cheaply</span><br />
-                                    {'  '}<span style={{ color: '#569cd6' }}>return</span> geoData.features.<span style={{ color: '#dcdcaa' }}>map</span>(f =&gt; (<br />
-                                    {'    '}&lt;<span style={{ color: '#4ec9b0' }}>path</span> d={'{'}pathGen(f){'}'} /&gt;<br />
-                                    {'  '}))<br />
-                                    {'}, (prev, next) =&gt; {'}<br />
-                                    {'  '}<span style={{ color: '#6a9955' }}>// 3. Strict Equality Check</span><br />
-                                    {'  '}<span style={{ color: '#c586c0' }}>return</span> prev.geoData === next.geoData;<br />
-                                    {'});'}
-                                </code></pre>
+                                <pre><code style={{ color: '#d4d4d4' }}>{`const MapVisuals = memo(
+  function MapVisuals(...) {
+    // 1. Memoize Projection
+    const projection = useMemo(() =>
+      d3.geoMercator()
+        .center([82.5, 23])
+        .scale(1250)
+    , []);
+
+    // 2. Render Paths Cheaply
+    return geoData.features.map(f => (
+      <path d={pathGen(f)} />
+    ))
+  }, 
+  (prev, next) => {
+    // 3. Strict Equality Check
+    return prev.geoData === next.geoData;
+  }
+);`}</code></pre>
                             </div>
                         </motion.div>
 
-                        <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }}>
+                        <motion.div className={styles.contentCard} initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <h2 className="text-3xl font-bold mb-6">Memoized D3 Rendering</h2>
                             <p className="text-gray-400 text-lg mb-6">
                                 Rendering 500+ district paths is expensive. We use <code>React.memo</code> with a custom comparator to strictly control re-renders.

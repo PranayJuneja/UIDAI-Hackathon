@@ -64,7 +64,7 @@ export default function VisualizationPage() {
 
                     {/* Section 2: Visual Engineering */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-                        <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }}>
+                        <motion.div className={styles.contentCard} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <h2 className="text-3xl font-bold mb-6">Data-Driven Coloring</h2>
                             <p className="text-gray-400 text-lg mb-6">
                                 We don't use static colors. Every district's fill is calculated at runtime using <code>d3-scale-chromatic</code> interpolated over the normalized signal value.
@@ -96,6 +96,7 @@ export default function VisualizationPage() {
                             className={styles.terminalBoot}
                             initial={{ opacity: 0, x: 30 }}
                             whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
                         >
                             <div className={styles.terminalHeader}>
                                 <TerminalIcon size={16} />
@@ -103,15 +104,13 @@ export default function VisualizationPage() {
                             </div>
                             <div className={styles.terminalBody}>
                                 <div className="text-gray-500 mb-2">// HSL Color Generation Logic</div>
-                                <pre><code style={{ color: '#d4d4d4' }}>
-                                    <span style={{ color: '#569cd6' }}>const</span> getColor = (<span style={{ color: '#9cdcfe' }}>value</span>: <span style={{ color: '#4ec9b0' }}>number</span>) =&gt; {'{'}<br />
-                                    {'  '} <span style={{ color: '#6a9955' }}>// Clamp value between 0 and 1</span><br />
-                                    {'  '} <span style={{ color: '#569cd6' }}>const</span> clamp = <span style={{ color: '#dcdcaa' }}>Math</span>.max(0, <span style={{ color: '#dcdcaa' }}>Math</span>.min(1, value));<br />
-                                    {'  '}<br />
-                                    {'  '} <span style={{ color: '#6a9955' }}>// Return interpolated HSL string</span><br />
-                                    {'  '} <span style={{ color: '#c586c0' }}>return</span> d3.<span style={{ color: '#dcdcaa' }}>interpolateOranges</span>(clamp);<br />
-                                    {'}'};
-                                </code></pre>
+                                <pre><code style={{ color: '#d4d4d4' }}>{`const getColor = (value: number) => {
+  // Clamp value between 0 and 1
+  const clamp = Math.max(0, Math.min(1, value));
+  
+  // Return interpolated HSL string
+  return d3.interpolateOranges(clamp);
+};`}</code></pre>
                             </div>
                         </motion.div>
                     </div>

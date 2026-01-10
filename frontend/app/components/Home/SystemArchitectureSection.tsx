@@ -21,9 +21,9 @@ export default function SystemArchitectureSection() {
                     </p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 relative">
+                <div className={styles.architectureGrid}>
                     {/* Connector Lines (Desktop only) */}
-                    <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-[2px] bg-gradient-to-r from-transparent via-[#333] to-transparent z-0" />
+                    <div className={styles.connectorLine} />
 
                     {/* Node 1: Ingestion */}
                     <motion.div

@@ -1,6 +1,41 @@
 # Changelog
 
 
+## [2.9.10] - 2026-01-10 - THE DESIGN CONSISTENCY RELEASE
+> *"Side by side. Balanced and beautiful."*
+
+### 🔥 Headline Features
+
+#### 1. Subpage Layout Overhaul
+> *Terminal | Description, side by side.*
+- **Two-Column Grid Layout**: All subpages (Backend, Frontend, ML, Visualization) now display terminal code blocks and explanatory text **side-by-side** instead of stacked.
+- **CSS Grid Utilities**: Added essential grid utilities (`grid`, `grid-cols-2`, `md:grid-cols-2`) to `globals.css` to enable responsive two-column layouts.
+
+#### 2. Terminal Code Wrapping
+> *No more horizontal scrolling.*
+- **Pre-Wrap Fix**: Updated `Home.module.css` to use `white-space: pre-wrap` for terminal code blocks.
+- **Template Literals**: Refactored all 6 terminal code blocks across 4 subpages to use proper template literals with actual line breaks instead of `<br />` tags or `{" "}` spacing.
+
+#### 3. Content Card Styling
+> *Balanced visual weight.*
+- **New `.contentCard` Class**: Added padding, subtle glass background, and border to explanatory text sections.
+- **Visual Parity**: Text sections now match the visual presence of terminal blocks, creating a balanced layout.
+
+### Changed
+| File | Changes |
+|------|---------|
+| `globals.css` | Added grid/flex utilities (`.grid`, `.grid-cols-2`, `.gap-16`, etc.) |
+| `Home.module.css` | Added `.contentCard` class, fixed `.terminalBody pre` wrapping |
+| `backend/page.tsx` | Template literal code blocks, contentCard styling |
+| `frontend/page.tsx` | Template literal code blocks, contentCard styling |
+| `ml/page.tsx` | Template literal code blocks, contentCard styling |
+| `visualization/page.tsx` | Template literal code blocks, contentCard styling |
+
+### Animation Consistency
+- Added `viewport={{ once: true }}` to all motion elements across subpages for consistent scroll-triggered animations.
+
+---
+
 ## [2.9.9] - 2026-01-10 - THE BRAND IDENTITY RELEASE
 > *"A logo that blinks. A font that speaks."*
 

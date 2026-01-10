@@ -20,7 +20,7 @@ export default function MLPage() {
 
                     {/* Section 1: Spatial Parallel Search */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-24">
-                        <motion.div>
+                        <motion.div className={styles.contentCard} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <h2 className="text-3xl font-bold mb-6">Spatial Parallel Search</h2>
                             <p className="text-gray-400 text-lg mb-6">
                                 With limited temporal data, we cannot rely solely on historical regression. Our insight: <strong>Space can substitute for Time.</strong>
@@ -80,38 +80,41 @@ export default function MLPage() {
                         <motion.div
                             className={styles.terminalBoot}
                             style={{ width: '100%', height: 'fit-content' }}
+                            initial={{ opacity: 0, x: -30 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
                         >
                             <div className={styles.terminalHeader}>
                                 <TerminalIcon size={16} />
                                 <span>src/attestation.py: Attestor.chat</span>
                             </div>
                             <div className={styles.terminalBody}>
-                                <pre><code style={{ color: '#d4d4d4' }}>
-                                    <span style={{ color: '#c586c0' }}>def</span> <span style={{ color: '#dcdcaa' }}>chat</span>(self, message, context):
-                                    {"  "}
-                                    <span style={{ color: '#6a9955' }}># 1. Format Data Context</span>
-                                    {"  "}data_block = self._format_context(context)
-                                    {"  "}
-                                    {"  "}<span style={{ color: '#6a9955' }}># 2. Inject into System Prompt</span>
-                                    {"  "}full_prompt = f"""
-                                    {"    "}## Current Data Context
-                                    {"    "}{"{"}data_block{"}"}
-                                    {"    "}
-                                    {"    "}## User Question
-                                    {"    "}{"{"}message{"}"}
-                                    {"  "}"""
-                                    {"  "}
-                                    {"  "}<span style={{ color: '#6a9955' }}># 3. LLM Generation (High Temp for creativity)</span>
-                                    {"  "}return self.client.chat.completions.create(
-                                    {"      "}model="minimax-m2.1",
-                                    {"      "}messages=[{"{"}{"\"role\": \"user\", \"content\": full_prompt"}{"}"}],
-                                    {"      "}temperature=0.4
-                                    {"  "})
-                                </code></pre>
+                                <pre><code style={{ color: '#d4d4d4' }}>{`def chat(self, message, context):
+  # 1. Format Data Context
+  data_block = self._format_context(context)
+  
+  # 2. Inject into System Prompt
+  full_prompt = f"""
+    ## Current Data Context
+    {data_block}
+    
+    ## User Question
+    {message}
+  """
+  
+  # 3. LLM Generation
+  return self.client.chat.completions.create(
+      model="minimax-m2.1",
+      messages=[{
+        "role": "user", 
+        "content": full_prompt
+      }],
+      temperature=0.4
+  )`}</code></pre>
                             </div>
                         </motion.div>
 
-                        <motion.div>
+                        <motion.div className={styles.contentCard} initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <h2 className="text-3xl font-bold mb-6">The Attestor Engine</h2>
                             <p className="text-gray-400 text-lg mb-6">
                                 The <code>Attestor</code> class (src/attestation.py) is the brain of the chatbot. It uses a specialized <strong>System Prompt</strong> to enforce a "Weather Forecast" persona.
