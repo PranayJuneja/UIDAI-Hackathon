@@ -1,476 +1,196 @@
-# Chronos-X Codebase Analysis
+# Chronos-X Technical Codebase Analysis
 
-This document provides a detailed breakdown of each script in the Chronos-X repository, outlining its purpose, key functions, and its role in the overall application architecture.
+**Version:** 3.1.0 (Live)
+**Last Updated:** 2026-01-13
+**Status:** Stable / Production-Ready
 
----
-
-## Core Modules (`src/`)
-
----
-
-### `src/data_pipeline.py`
-
-#### Purpose
-
-This script is the foundational ETL (Extract, Transform, Load) pipeline for the entire application. Its primary responsibility is to ingest raw, separate CSV datasets for biometric, demographic, and enrolment updates, and transform them into a unified, feature-engineered dataset called the "Pulse Vector" table. This table is the single source of truth for the AI forecasting models.
-
-#### Key Functions
-
--   **`normalize_state_names(df)`**: Cleans and standardizes the 'state' column in the DataFrames. It handles variations in spelling, casing, and old state names (e.g., 'Orissa' to 'Odisha').
-
--   **`load_dataset(dataset_type)`**: Loads all CSV files of a specific type (biometric, demographic, or enrolment) from their respective directories and concatenates them into a single Polars DataFrame.
-
--   **`parse_and_normalize_date(df)`**: Parses the date column from the format 'DD-MM-YYYY' and truncates it to the first day of the month. This standardizes the time series data to a monthly frequency.
-
--   **`aggregate_by_pincode_month(df, config)`**: Groups the data by pincode and month, then sums the relevant signal column (e.g., 'bio_age_17_') to create a monthly signal for each pincode.
-
--   **`fuse_datasets(bio_df, demo_df, enrol_df)`**: Performs an inner join on the three aggregated DataFrames (biometric, demographic, and enrolment) using `pincode` and `month` as the composite key. This creates the master table.
-
--   **`compute_pulse_vector(df)`**: Calculates the normalized "Pulse Vector" for each row. It uses z-score normalization on the raw signals to create the `growth_norm`, `flow_norm`, and `labor_norm` columns.
-
--   **`load_and_fuse_data()`**: The main function that orchestrates the entire pipeline, calling the other functions in the correct order.
-
--   **`export_to_parquet(df, filename)`**: Saves the final, processed DataFrame to a Parquet file (`pulse_vectors.parquet`), which is a highly efficient columnar storage format.
-
-#### Inter-Script Connections
-
--   **Input**: Reads raw CSV files from the `data/` directory.
--   **Output**: Produces the `data/output/pulse_vectors.parquet` file.
--   **Consumed by**:
-    -   `src/ai_forecaster.py`: The `HybridPredictor` class loads this Parquet file to get the historical data needed for forecasting.
-    -   `src/chronos_engine.py`: The `ChronosX` class also loads this file to provide data to the `HybridPredictor`.
+This document provides a comprehensive, engineering-level breakdown of the Chronos-X application architecture. It dissects the system into its core layers: Backend API, AI Intelligence, Data Pipeline, and Frontend UX. Each section details the specific scripts, classes, and logic flows that power the application.
 
 ---
 
-### `src/ai_forecaster.py`
+## 1. Backend Architecture (`/` and `src/`)
 
-#### Purpose
+The backend is built on **FastAPI** (`api_server.py`) with a highly modular "brain" located in the `src/` directory. It uses a **Hub-and-Spoke** architecture where the API Server acts as the hub, coordinating specialized modules for Forecasting, NLP, and Data retrieval.
 
-This script contains the core artificial intelligence and machine learning logic of the Chronos-X application. It is responsible for generating predictions. It implements a hybrid forecasting strategy that combines a pre-trained deep learning model (Amazon Chronos T5) with a novel, data-driven approach called "Spatial Parallel Search."
+### 1.1 Core Server Entry Point
+#### `api_server.py`
+**Type**: FastAPI Application
+**Role**: Central Orchestrator & WebSocket Gateway
+**Dependencies**: `fastapi`, `uvicorn`, `websockets`, `src.chronos_engine`
 
-#### Key Functions
+**Key Responsibilities**:
+1.  **Lifecycle Management**:
+    *   **Startup**: Initializes the `ChronosDataEngine` singleton. It uses a thread-safe locking mechanism (`threading.Lock`) to load the heavy `predictions_v2.parquet` file (approx. 20MB) into memory only once, preventing race conditions during concurrent worker startup.
+    *   **Shutdown**: Gracefully closes all active WebSocket connections and clears forecast caches.
 
--   **`AIForecaster` class**:
-    -   `forecast_pin(pin_history, horizon, num_samples)`: Takes a time series for a single pincode and uses the Amazon Chronos T5 model to generate a probabilistic forecast for the specified horizon. It returns the median, lower, and upper bounds of the prediction.
-    -   `forecast_pulse_vector(pulse_table, pincode, horizon)`: Forecasts all three components of the Pulse Vector (growth, flow, and labor) for a given pincode.
+2.  **WebSocket Architecture**:
+    *   `/ws/chat`: The primary channel for the **Global Chatbot (Chronos Assistant)**. It implements the new **Token Streaming Protocol** (v2.9.12), ensuring AI responses are yielded character-by-character for a "typewriter" effect.
+        *   **Protocol**: `stream_start` → `stream` (payload: token) → `stream_end`.
+    *   `/ws/terminal-chat`: **[NEW in v2.9.18]** A specialized, ultra-low-latency endpoint for the **Map Terminal**. It bypasses the LangChain Agent interactions (which add ~2s overhead) and directly invokes the `TerminalBot` for immediate, context-aware answers.
+    *   `/ws/compare`: **[NEW in v3.1.0]** Dedicated stream for the **Comparison Dashboard**. It runs an asynchronous analysis of two locations and streams back a structured comparison report.
 
--   **`find_spatial_parallels(target_pin, target_month, pulse_table, k)`**: This function implements the "Spatial Parallel Search." It takes a target pincode and finds the `k` most similar pincodes from *other states* based on the cosine similarity of their Pulse Vectors in a given month.
+3.  **Data Aggregation Layer**:
+    *   **Dynamic Aggregation**: The server does NOT store pre-computed state/district averages for every possible query. Instead, it aggregates them on-the-fly from PIN-code level data using optimized Polars queries.
+    *   **Caching**: Implements a Time-To-Live (TTL) cache (5 minutes) for heavy aggregation queries (e.g., "Get all states trends") to reduce CPU load during high traffic.
 
--   **`predict_from_parallels(...)`**: Uses the parallels found by `find_spatial_parallels` to make a prediction. It looks at what actually happened to the parallel pincodes in the following month and calculates a weighted average to predict the outcome for the target pincode.
+4.  **Forecast Routing**:
+    *   Smartly routes requests based on the requested date.
+    *   **Historical (<= Dec 2025)**: Returns verified ground-truth data from `pulse_vectors.parquet`.
+    *   **Forecast (> Dec 2025)**: Returns probabilistic projections from `predictions_v2.parquet`, flagging them with `is_forecast: true` so the frontend can render them with the specific "Amber/Hollow-Ring" styling.
 
--   **`HybridPredictor` class**:
-    -   `__init__(self, model_name)`: Initializes the predictor, including the `AIForecaster`.
-    -   `load_pulse_table(self, path)`: Loads the `pulse_vectors.parquet` file.
-    -   `predict(self, pincode, ...)`: The main prediction function. It orchestrates the hybrid approach by:
-        1.  Getting the current state of the pincode.
-        2.  Calling `find_spatial_parallels` to get similar regions.
-        3.  Calling `predict_from_parallels` to get the spatial prediction.
-        4.  Calling the `AIForecaster` to get the AI-based forecast.
-        5.  Combining the spatial and AI predictions into a final "ensemble" prediction.
+### 1.2 Intelligence Modules (`src/`)
 
-#### Inter-Script Connections
+These modules contain the "business logic" of the AI.
 
--   **Input**:
-    -   Reads `data/output/pulse_vectors.parquet`, which is produced by `src/data_pipeline.py`.
--   **Consumed by**:
-    -   `src/chronos_engine.py`: The `ChronosX` class instantiates the `HybridPredictor` to access its prediction capabilities.
-    -   `chronos_cli.py`: The CLI can indirectly trigger the `HybridPredictor` via the `ChronosX` engine.
-    -   `chronos_chatbot.py`: The chatbot uses the `HybridPredictor` to get the data it needs to answer user questions.
+#### `src/ai_forecaster.py`
+**Type**: Core Forecasting Engine
+**Role**: Mathematical Prediction Logic
+**Key Classes**:
 
----
+*   **`AIForecaster`**:
+    *   **Wrapper for Amazon Chronos T5**: Encapsulates the HuggingFace `ChronosPipeline`.
+    *   **`forecast_pin(history, horizon)`**: Performs zero-shot inference. It converts the input list of floats into a Torch tensor, passes it to the T5 model, and extracts quantiles (10th, 50th, 90th percentiles) to generate confidence bounds.
+    *   **`forecast_pulse_vector(...)`**: A wrapper that calls `forecast_pin` three times—once for each signal (Growth, Flow, Labor)—to generate a complete Pulse Vector forecast.
 
-### `src/chronos_engine.py`
+*   **`HybridPredictor` (The "Secret Sauce")**:
+    *   **Philosophy**: Pure time-series forecasting (Chronos) struggles with only 2 months of history. This class Augments it with "Spatial Parallel Search".
+    *   **`find_spatial_parallels(target_pin, ...)`**: Uses **Cosine Similarity** to find "Twin Districts" in *other states*.
+        *   *Logic*: "If Place A (Nov) looks like Place B (Nov), then Place A (Dec) will likely look like Place B (Dec)."
+    *   **`predict(...)`**: The main execution method. It runs the Spatial Search and the AI Forecast in parallel, then combines them using a weighted ensemble (default: 50/50 split).
 
-#### Purpose
+#### `src/terminal_bot.py`
+**Type**: Lightweight AI Logic
+**Role**: Chat engine for the Map Terminal
+**Key Features**:
+*   **Session Isolation**: Maintains a dictionary of `chat_histories` keyed by `session_id` (derived from District ID). This ensures that chatting about "Bangalore" doesn't bleed context into "Mumbai" when the user switches districts.
+*   **Prompt Engineering**: Uses a "Senior Planning Officer" persona.
+*   **Similarity Injection**: It receives the output of `get_similar_districts()` and injects it into the system prompt.
+    *   *Prompt fragment*: `You are analyzing [District]. It is spatially similar to [Sister District] (87% match). Use this comparison to justify your recommendations.`
 
-This script acts as a high-level wrapper or an API layer for the core AI functionalities. It provides a simplified interface for the user-facing applications (like the CLI and the chatbot) to get predictions. It also introduces a caching layer, allowing it to serve pre-computed predictions for faster responses.
+#### `src/langchain_bot.py`
+**Type**: Advanced Reasoning Engine
+**Role**: Chat engine for the main Assistant
+**Key Classes**:
+*   **`LangChainBot`**:
+    *   **Agent Logic**: Uses `create_openai_functions_agent` to bind Python functions as Tools.
+    *   **Tools**:
+        *   `control_map(action, target)`: The bot "decides" to move the map. It returns a structured string that the frontend parses to trigger Redux actions (`flyTo`, `setCompare`).
+        *   `get_aadhaar_stats(pincode)`: Fetches raw signal data to answer quantitative questions.
+    *   **Streaming**: Implements `process_message_stream()` using `astream_events`. This complex iterator captures both "text tokens" (for the user) and "tool calls" (for the map) in a single async stream.
 
-#### Key Functions
+#### `src/data_pipeline.py`
+**Type**: ETL (Extract, Transform, Load)
+**Role**: Data Ingestion System
+**Key Functions**:
+*   **`normalize_state_names(df)`**: A critical cleaning function. It maps over 30 variations of state names (e.g., "Orissa", "pondicherry", "Daman and Diu") to their modern, official canonical names.
+*   **`compute_pulse_vector(df)`**: Performs Z-Score Normalization.
+    *   `Value_Norm = (Value - Mean) / StdDev`
+    *   This ensures that "High Growth" (which might be 5k enrollments/month) and "High Flow" (which might be 500 updates/month) are comparable on the same 0-1 scale.
+*   **`fuse_datasets(...)`**: Performs an SQL-like `INNER JOIN` on three massive CSVs using `(pincode, month)` as the composite primary key.
 
--   **`ChronosX` class**:
-    -   `__init__(self, predictions_path)`: Initializes the engine. It loads a pre-computed predictions file (if it exists) and also creates an instance of the `HybridPredictor` from `ai_forecaster.py` for on-demand predictions.
-    -   `_load_cache(self)`: Loads the pre-computed predictions from a Parquet file.
-    -   `lookup(self, pincode)`: Performs a fast lookup for a pincode in the cached predictions.
-    -   `predict_future(self, pincode, horizon)`: This is the main prediction method. It implements a cache-first strategy:
-        1.  It first tries to find the prediction in the cache using `lookup`.
-        2.  If the prediction is not in the cache, or if the requested `horizon` is longer than what's cached, it falls back to using the `HybridPredictor` to generate a prediction in real-time.
-    -   `get_attestation_context(self, pincode)`: Prepares a dictionary of all the information about a pincode, which can then be passed to the `Attestor` to generate a human-readable explanation.
-
-#### Inter-Script Connections
-
--   **Input**:
-    -   Optionally reads `data/output/predictions.parquet` as a cache.
--   **Internal Dependencies**:
-    -   Instantiates and uses the `HybridPredictor` from `src/ai_forecaster.py`.
--   **Consumed by**:
-    -   `chronos_cli.py`: The CLI uses the `ChronosX` engine to fetch predictions.
-    -   `chronos_chatbot.py`: The chatbot uses the `ChronosX` engine to get the context it needs to answer user questions.
-
----
-
-### `src/location_resolver.py`
-
-#### Purpose
-
-This script is a utility that translates human-friendly location names (like "Delhi" or "Mumbai") into the corresponding 6-digit PIN codes that the rest of the application uses. This makes the chatbot and CLI much more user-friendly. It includes advanced features like fuzzy matching and city abbreviation support.
-
-#### Key Functions
-
--   **`LocationResolver` class**:
-    -   `__init__(self, pulse_table_path)`: Initializes the resolver with:
-        1.  **Static Mode**: Uses hardcoded dictionaries (`STATE_PIN_PREFIXES`, `CITY_TO_STATE`, `CITY_ABBREVIATIONS`) to map locations to PIN prefixes.
-        2.  **Dynamic Mode**: If a `pulse_table_path` is provided, it loads the `pulse_vectors.parquet` file to get a list of all *actual* PIN codes present in the dataset.
-    -   `resolve(self, query)`: The main function. It takes a query string and tries to resolve it by checking if it's a PIN code, a city (including abbreviations), or a state. It uses the available data (static or dynamic) to return a list of matching PIN codes.
-    -   `_fuzzy_match(self, query, candidates)`: Implements fuzzy matching using Levenshtein distance to handle typos and misspellings in location queries.
-    -   `get_state_for_pin(self, pincode)`: A reverse lookup that returns the state for a given PIN code.
-
-#### Inter-Script Connections
-
--   **Input**:
-    -   Optionally reads `data/output/pulse_vectors.parquet` for dynamic resolution.
--   **Consumed by**:
-    -   `chronos_chatbot.py`: The chatbot uses the `LocationResolver` to understand user queries that mention locations by name.
-
----
-
-### `src/attestation.py`
-
-#### Purpose
-
-This script is responsible for the natural language processing (NLP) and generation (NLG) capabilities of the application. It uses a large language model (LLM) via an OpenAI-compatible API to perform two key tasks:
-
-1.  **Explanation**: It generates human-readable, qualitative explanations of the quantitative predictions made by the AI models.
-2.  **Query Parsing**: It parses the user's input in the chatbot to extract structured information, such as the location, time horizon, and intent.
-
-#### Key Functions
-
--   **`Attestor` class**:
-    -   `__init__(self, model, api_key, base_url)`: Initializes the OpenAI API client.
-    -   `parse_query(self, user_message)`: Takes a raw user query and sends it to the LLM with a specialized "parser prompt". The LLM then returns a JSON object containing the extracted location, horizon, and intent. Includes local fallback parsing for offline/API-failure scenarios.
-    -   `chat(self, user_message, context, history)`: This is the core function for the chatbot's conversational AI. It takes the user's message, injects the relevant data `context` (from the `ChronosX` engine), and the conversation `history`, then sends it all to the LLM to generate a helpful, data-driven response.
-    -   `explain_prediction(self, target_pin, parallels, prediction)`: A legacy function used by the CLI to generate a simple, three-sentence explanation of a prediction.
-
-#### Inter-Script Connections
-
--   **Internal Dependencies**:
-    -   Uses the `openai` library to communicate with an LLM API.
--   **Consumed by**:
-    -   `chronos_cli.py`: Uses the `explain_prediction` method to provide a summary of the forecast.
-    -   `chronos_chatbot.py`: Uses the `Attestor` class extensively for both parsing user queries and generating responses.
+#### `src/location_resolver.py`
+**Type**: Search & Resolution Engine
+**Role**: Translating "text" to "place"
+**Key Logic**:
+*   **Initialization**: It loads the Master Pulse Table to build an in-memory "Place Index".
+*   **`resolve(query)`**:
+    1.  **Exact Match Checker**: Checks if input is a known District ID or State Key.
+    2.  **Fuzzy Matcher**: Uses `difflib.get_close_matches` (Levenshtein distance) to handle typos (e.g., "Banaglore" -> "Bangalore").
+    3.  **PIN Code Validator**: Checks if the input is a valid 6-digit integer present in the dataset.
 
 ---
 
-### `src/context_engine.py`
+## 2. Frontend Architecture (`frontend/app/`)
 
-#### Purpose
+The frontend is a sophisticated **Next.js 13+** Single Page Application (SPA). It is heavily optimized for performance, utilizing **CSS Modules** for styling and **React Server Components** (RSC) where possible, falling back to Client Components for interactive dashboard elements.
 
-This script implements the **Contextual Intelligence Layer** for the Chronos-X application. It injects qualitative context (such as calendar events, seasonal drivers, and local news) into forecasts *without* modifying the underlying quantitative predictions. This enriches the AI's explanations by providing real-world context for why certain patterns might be occurring.
+### 2.1 The "Neon Cyberpunk" Design System
+**Philosophy**: "Premium, Dark, Data-First."
+**Implementation**:
+*   **`globals.css`**: The source of truth. Defines CSS Variables for colors (`--brand-primary`: cyan, `--brand-secondary`: purple, `--signal-growth`: neon green).
+*   **Dual-Theme Engine (v3.0.0)**:
+    *   A `.light` class on the `<body>` tag inverts these variables to create a Light Mode.
+    *   **Dashboard Exception**: The `.dashboard-container` explicitly overrides these light variables with `!important` calls to enforce Dark Mode, ensuring the map and terminal always look cool.
 
-#### Key Functions
+### 2.2 Dashboard Module (`app/dashboard.tsx`)
+This is the main interactive route. It holds the global state for the visualization session.
 
--   **`ContextEngine` class**:
-    -   `__init__(self)`: Initializes the context engine with a logger.
-    -   `get_context(self, pincode, target_month, run_search)`: The main function that generates contextual intelligence for a prediction. It returns:
-        -   `seasonal_drivers`: A list of active seasonal factors (e.g., harvest seasons, school admissions).
-        -   `local_events`: News/events from web search (if `run_search=True`).
-    -   `_get_calendar_events(self, date)`: Maps a given month to active seasonal drivers based on India's agricultural and educational calendar:
-        -   **School Admissions (Mar-Jun)**: Linked to Growth Signal (0-5y child enrolments).
-        -   **Kharif Harvest (Oct-Nov)**: Linked to Flow & Labor Signal (migrant labor movement).
-        -   **Rabi Harvest (Mar-Apr)**: Secondary harvest, moderate labor migration.
-        -   **MBU Deadlines (Year-round)**: Mandatory Biometric Updates for 5y/15y age clusters.
-    -   `_search_events(self, pincode, date)`: Wrapper for live web search (mock mode for demo stability). Provides deterministic "news" for specific regions like Punjab (harvest) or Bangalore/Delhi (school admissions).
+#### `app/components/Map/IndiaMap.tsx`
+**Role**: The Visualization Canvas
+**Technology**: D3.js + TopoJSON
+**Key Mechanics**:
+*   **Vector Rendering**: Renders India's districts as SVG paths.
+*   **Responsive Resize**: Listens to the window resize event AND the "Terminal Open" state.
+    *   *Logic*: When `isTerminalOpen === true`, the map width transitions from `100%` to `60%`. D3 performs a recalculation of the projection scale and translation to "re-center" the map in the new, smaller viewport.
+*   **Performance**: Uses `memo()` to prevent re-rendering the heavy SVG map when unrelated props (like Chatbot state) change. Only re-renders when `coloredData` (the signal values) updates.
 
--   **`context_engine`**: A singleton instance exported for easy import across the application.
+#### `app/components/Map/TerminalInfoDisplay.tsx`
+**Role**: The Data readout
+**Design**: Skeuomorphic CRT Monitor
+**Key Mechanics**:
+*   **Animation Sequencer**:
+    *   Stage 1: **Burst**. Instant rendering of header data.
+    *   Stage 2: **Scan**. A CSS animation moves a "scanline" gradient down the screen.
+    *   Stage 3: **Typewriter**. Uses a `setInterval` loop to append one character every 1ms to the `displayedText` state.
+*   **Split-Mode**: Uses Conditional Rendering to switch layouts.
+    *   `State Mode`: Shows broad stats and a "Drill Down" prompt.
+    *   `District Mode`: Enables the Chat Input field and specialized "Action Recommendations".
 
-#### Inter-Script Connections
+#### `app/components/Timeline/Timeline.tsx`
+**Role**: Time Travel Control
+**Update (v2.10.0)**:
+*   **Visual Logic**:
+    *   Months `<=` 2025-12 are rendered as **Solid Blue Dots** (Historical).
+    *   Months `>` 2025-12 are rendered as **Hollow Orange Rings** (Foreign/Predicted).
+*   **Interaction**: Dragging the slider updates the `selectedMonth` in the global `MapStore`. This triggers a chain reaction:
+    1.  `dashboard.tsx` detects the change.
+    2.  It calls `useMapData` hook with the new month.
+    3.  `api_server` receives the request.
+    4.  If future month, `api_server` fetches from Forecast Parquet.
+    5.  Data flows back → Map recolors → Signal cards update.
 
--   **Internal Dependencies**:
-    -   Uses standard Python `datetime` and `logging` libraries.
--   **Consumed by**:
-    -   `src/attestation.py`: The context is injected into the LLM's system prompt to enrich responses.
-    -   `chronos_chatbot.py`: The chatbot integrates context into its query processing flow.
-
----
-
-## User Interface Scripts
-
----
-
-### `chronos_cli.py`
-
-#### Purpose
-
-This script provides a command-line interface for getting a "one-shot" prediction for a specific PIN code. It's a quick way for a power user to get a forecast without the conversational overhead of the chatbot.
-
-#### Key Functions
-
--   **`main()`**:
-    -   Parses command-line arguments (primarily `--pincode`).
-    -   Initializes the `ChronosX` engine.
-    -   Calls the engine to get a prediction for the specified pincode.
-    -   Formats and prints the prediction to the console, including the parallel matches, the AI forecast, and the attestation.
-
-#### Inter-Script Connections
-
--   **Internal Dependencies**:
-    -   `src/chronos_engine.py`: Instantiates `ChronosX` to get predictions.
-    -   `src/attestation.py`: Instantiates `Attestor` to get the final explanation.
-
----
-
-### `chronos_chatbot.py`
-
-#### Purpose
-
-This script provides a full-featured, interactive chatbot that allows users to query the Chronos-X system using natural language. It maintains a conversation history and a context (the current pincode being discussed). Features include **self-healing** (graceful degradation on API failures), **input sanitization**, and **comparison support** for analyzing multiple regions.
-
-#### Key Functions
-
--   **`ChronosChatbot` class**:
-    -   `__init__(self, initial_pincode)`: Initializes the chatbot, including the `ChronosX` engine, the `Attestor`, the `LocationResolver`, and the `ContextEngine`.
-    -   `_set_context(self, pincode)`: Sets the current focus of the conversation to a specific pincode and loads the relevant data using the `ChronosX` engine.
-    -   `_sanitize_input(self, user_input)`: Cleans and validates user input to prevent injection and handle Unicode/encoding issues.
-    -   `process_query(self, user_input)`: This is the main logic loop for a single turn of the conversation. It:
-        1.  Sanitizes the user's input.
-        2.  Uses the `Attestor` to parse the user's query (with local fallback on failure).
-        3.  Uses the `LocationResolver` to figure out which pincode the user is asking about.
-        4.  Calls `_set_context` if the pincode has changed.
-        5.  Integrates context from `ContextEngine`.
-        6.  Uses the `Attestor`'s `chat` method to generate a data-driven response.
-    -   `run(self)`: The main REPL event loop that waits for user input and calls `process_query`.
-
-#### Inter-Script Connections
-
--   **Internal Dependencies**:
-    -   `src/chronos_engine.py`: Instantiates `ChronosX` to get the data context for predictions.
-    -   `src/attestation.py`: Instantiates `Attestor` to parse queries and generate responses.
-    -   `src/location_resolver.py`: Instantiates `LocationResolver` to understand location names in user queries.
-    -   `src/context_engine.py`: Integrates seasonal/calendar context into responses.
+#### `app/components/Comparison/ComparisonPanel.tsx`
+**Role**: Side-by-Side Analysis
+**Key Logic**:
+*   **AbortController**: Critical for performance. If the user rapidly switches Location 2 (e.g., clicking Bangalore then Mumbai then Delhi), previous pending API requests are cancelled using the `AbortSignal`. This prevents "Race Conditions" where the wrong data overwrites the display.
+*   **Stream Reader**: implements a custom `readStream()` function that decodes the `TextDecoder` stream from the `/ws/compare` endpoint, accumulating the Markdown analysis in real-time.
 
 ---
 
-### `chronos_colab.ipynb`
+## 3. Data Engineering Layer
 
-#### Purpose
+The system relies on a robust offline processing pipeline to generate the intelligence that the online system serves.
 
-This Jupyter notebook is designed to run in Google Colab for cloud-based batch prediction generation. It allows users to generate the `predictions.parquet` cache file using cloud GPU resources, which is especially useful when running the full Amazon Chronos T5 model.
-
-#### Key Functions
-
-1.  **Environment Setup**: Installs required dependencies (`chronos-forecasting`, `polars`, etc.) in the Colab environment.
-2.  **Data Upload**: Provides instructions for uploading the `pulse_vectors.parquet` file to the Colab runtime.
-3.  **Model Loading**: Loads the Amazon Chronos T5 model on available GPU hardware.
-4.  **Batch Prediction**: Iterates through all PIN codes and generates hybrid predictions (AI + Spatial Parallels).
-5.  **Export**: Saves the resulting predictions to `predictions.parquet` for download.
-
-#### Inter-Script Connections
-
--   **Input**:
-    -   `data/output/pulse_vectors.parquet`: The processed Pulse Vector table.
--   **Output**:
-    -   `predictions.parquet`: The pre-computed predictions cache used by `chronos_engine.py`.
+### `chronos_colab_v2.ipynb`
+**Role**: High-Performance Inference Environment
+**Platform**: Google Colab Pro (T4/A100 GPU)
+**Workflow**:
+1.  **Setup**: Installs `chronos-forecasting` via pip.
+2.  **IO**: Downloads the `pulse_vectors.parquet` (uploaded by user) to local Colab storage.
+3.  **Batching Strategy**:
+    *   Loading all 18,827 PINs into RAM is fine, but inference is VRAM heavy.
+    *   It chunks the dataset into **Batches of 1024**.
+    *   Forecasting 1 batch takes ~45 seconds on T4 GPU.
+4.  **Save/Resume**: Implements "Checkpointing". Every 50 batches, it saves the intermediate results to disk. If the Colab runtime crashes (common with long jobs), it can resume from the last checkpoint.
 
 ---
 
-## Utility Scripts (`scripts/`)
-
-These scripts are used for data analysis, debugging, and batch processing. They are not part of the core application flow but are essential for development and operations.
-
----
-
-### `scripts/batch_predict.py`
-
-#### Purpose
-
-Generates predictions for **all PIN codes** in the dataset using the `HybridPredictor`. This is the primary script for creating the `predictions.parquet` cache file locally (as opposed to using `chronos_colab.ipynb` in the cloud).
-
-#### Key Functions
-
--   **`main()`**:
-    1.  Loads the `pulse_vectors.parquet` file.
-    2.  Initializes the `HybridPredictor` with the Amazon Chronos T5 model.
-    3.  Iterates through all unique PIN codes from the reference month.
-    4.  For each PIN, generates:
-        -   Hybrid prediction (AI + Spatial) for the next month.
-        -   6-month AI forecast with confidence intervals.
-        -   Parallel match information (similar regions in other states).
-    5.  Saves all results to `data/output/predictions.parquet`.
-    6.  Prints progress updates and final statistics.
-
-#### Output Format
-
-The generated Parquet file contains:
--   `pincode`, `state`: Identification fields.
--   `current_growth`, `current_flow`, `current_labor`: Current Pulse Vector values.
--   `next_growth`, `next_flow`, `next_labor`: Next month ensemble predictions.
--   `forecast_growth`, `forecast_flow`, `forecast_labor`: 6-month forecast arrays (as JSON strings).
--   `confidence`, `parallel_states`, `top_parallel_1/2/3`: Spatial parallel information.
-
----
-
-### `scripts/analyze_feasibility.py`
-
-#### Purpose
-
-Validates the data pipeline's feasibility by testing whether the biometric, demographic, and enrolment datasets can be successfully joined. This is crucial for verifying that the datasets have overlapping PIN codes and dates.
-
-#### Key Functions
-
--   **`analyze()`**:
-    1.  Loads sample files from each dataset category (biometric, demographic, enrolment).
-    2.  Parses and normalizes dates to monthly frequency.
-    3.  Aggregates data by `(pincode, month)`.
-    4.  Performs inner joins across all three datasets.
-    5.  Reports feasibility statistics (row counts, unique PINs, date ranges).
-
----
-
-### `scripts/analyze_targeted.py`
-
-#### Purpose
-
-A focused version of `analyze_feasibility.py` that analyzes specific files known to have overlapping date ranges. Used for debugging join issues.
-
-#### Key Functions
-
--   **`analyze()`**:
-    1.  Loads specific files with known overlapping dates (e.g., Nov-Dec 2025).
-    2.  Performs sequential joins (Bio + Enrol, then + Demo).
-    3.  Writes results to `feasibility_result.txt`.
-
----
+## 4. Utility Scripting (`scripts/`)
 
 ### `scripts/scan_metadata.py`
+**Purpose**: Pre-Flight Check.
+**Logic**: Iterates through every CSV in the data folder. It parses the filename and the header row (without reading the full file) to extract:
+*   Min/Max Dates
+*   Pincode Coverage
+*   Missing Columns
+**Value**: Prevents "Garbage In, Garbage Out". It flagged the "Orissa vs Odisha" mismatch early in development.
 
-#### Purpose
-
-Scans all CSV files in the data directories and extracts metadata (date ranges, PIN code ranges) for each file. This is essential for understanding the data landscape and identifying which files can be joined.
-
-#### Output
-
-Generates a formatted log file (`docs/logs/metadata_fixed.log`) with columns:
--   Category (Bio/Demo/Enrol)
--   Filename
--   Min/Max Date
--   Min/Max Pincode
-
----
-
-### `scripts/analyze_parquet.py`
-
-#### Purpose
-
-A quick diagnostic script that reads and summarizes the `pulse_vectors.parquet` file. Used to verify the data pipeline output.
-
-#### Output
-
-Prints:
--   Row count, unique PINs, columns
--   Date range, month count
--   State distribution (top 5)
--   Signal statistics (raw and normalized)
--   Sample rows
-
----
-
-### `scripts/test_pipeline.py`
-
-#### Purpose
-
-A minimal test script that verifies the data pipeline output by loading and inspecting the `pulse_vectors.parquet` file.
-
-#### Output
-
-Prints:
--   Row count, unique PINs
--   Date range
--   Columns
--   Sample data (first 10 rows)
--   Descriptive statistics
-
----
-
-### `scripts/read_log.py`
-
-#### Purpose
-
-A utility script for reading log files that may have been created with different encodings (UTF-16 from PowerShell, or UTF-8). Handles encoding detection automatically.
-
-#### Usage
-
-```bash
-python scripts/read_log.py [file1] [file2] ...
-```
-
-Defaults to reading `docs/logs/analysis_log.txt` and `docs/logs/metadata.log` if no arguments provided.
-
----
-
-## Overall Application Workflow
-
-The Chronos-X application follows a clear, layered architecture:
-
-```mermaid
-flowchart TB
-    subgraph Data["Data Layer"]
-        CSV[("Raw CSV Files")]
-        Pipeline["data_pipeline.py"]
-        Parquet[("pulse_vectors.parquet")]
-    end
-    
-    subgraph AI["AI Core Layer"]
-        Forecaster["ai_forecaster.py<br/>(HybridPredictor)"]
-        Predictions[("predictions.parquet")]
-    end
-    
-    subgraph API["Engine Layer"]
-        Engine["chronos_engine.py<br/>(ChronosX)"]
-    end
-    
-    subgraph NLP["Intelligence Layer"]
-        Attestor["attestation.py<br/>(Attestor)"]
-        Context["context_engine.py<br/>(ContextEngine)"]
-        Resolver["location_resolver.py<br/>(LocationResolver)"]
-    end
-    
-    subgraph UI["User Interface Layer"]
-        CLI["chronos_cli.py"]
-        Chatbot["chronos_chatbot.py"]
-        Colab["chronos_colab.ipynb"]
-    end
-    
-    CSV --> Pipeline --> Parquet
-    Parquet --> Forecaster
-    Forecaster --> Predictions
-    Parquet --> Engine
-    Predictions --> Engine
-    Engine --> CLI
-    Engine --> Chatbot
-    Resolver --> Chatbot
-    Attestor --> CLI
-    Attestor --> Chatbot
-    Context --> Chatbot
-    Parquet --> Colab --> Predictions
-```
-
-### Layer Descriptions
-
-1.  **Data Ingestion**: The process starts with `src/data_pipeline.py`, which takes raw CSV data and transforms it into the `pulse_vectors.parquet` file. This is the foundational data layer.
-
-2.  **AI Core**: `src/ai_forecaster.py` reads the `pulse_vectors.parquet` file and uses its `HybridPredictor` to generate quantitative forecasts. This is the core intelligence layer.
-
-3.  **API/Engine Layer**: `src/chronos_engine.py` acts as a wrapper around the `HybridPredictor`. It simplifies the interface and adds a caching mechanism for performance. This is the main entry point for the user-facing applications.
-
-4.  **NLP Layer**: 
-    -   `src/attestation.py` provides natural language understanding and generation capabilities.
-    -   `src/context_engine.py` enriches responses with seasonal and calendar context.
-    -   `src/location_resolver.py` translates human-friendly location names to PIN codes.
-
-5.  **User Interface Layer**:
-    -   `chronos_cli.py` provides a direct, command-line interface to the `ChronosX` engine.
-    -   `chronos_chatbot.py` provides a sophisticated, conversational interface with self-healing capabilities.
-    -   `chronos_colab.ipynb` enables cloud-based batch prediction generation.
-
-6.  **Utility Layer** (`scripts/`): Supporting scripts for data analysis, debugging, and batch processing operations.
-
-This layered approach ensures a clear separation of concerns, making the application modular, maintainable, and scalable.
+### `scripts/verify_api_comprehensive.py`
+**Purpose**: The "Green Light" script.
+**Logic**: A python script that acts as a test client. It runs a sequence of 12 requests against `localhost:8000`:
+1.  **Health Check**: `GET /health`
+2.  **Date Validation**: `GET /api/states?month=invalid` (Expects 400)
+3.  **Data Integrity**: `GET /api/states/KA` (Checks if Karnataka data exists)
+4.  **Search Logic**: `GET /api/search?q=bangalore`
+5.  **WebSocket Handshake**: Connects to `/ws/chat`, sends a ping, expects a pong.
+**Usage**: Must pass 100% before any commit to `main`.
