@@ -2,6 +2,20 @@
 
 import { useEffect, useRef } from 'react';
 
+interface Particle {
+    x: number;
+    y: number;
+    size: number;
+    baseX: number;
+    baseY: number;
+    vx: number;
+    vy: number;
+    density: number;
+    color: string;
+    draw: () => void;
+    update: () => void;
+}
+
 const ParticleBackground = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mouseRef = useRef({ x: 0, y: 0 });
@@ -37,8 +51,13 @@ const ParticleBackground = () => {
             color: string;
 
             constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
+                // We know canvas is not null because of the check at the top of useEffect
+                // but TypeScript inside the class needs reassurance or explicit access
+                const width = canvas!.width || window.innerWidth;
+                const height = canvas!.height || window.innerHeight;
+
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
                 this.size = Math.random() * 2 + 1;
                 this.baseX = this.x;
                 this.baseY = this.y;
