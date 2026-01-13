@@ -12,6 +12,7 @@ Features:
 
 import os
 import logging
+import time
 from typing import Dict, List, Any, Optional, AsyncGenerator
 from datetime import datetime
 
@@ -27,63 +28,76 @@ TERMINAL_SYSTEM_PROMPT = """You are **Chronos-X Terminal**, the AI-powered deman
 You are analyzing real-time Aadhaar demand signals for:
 - **Location**: {location_name} ({location_type})
 - **State**: {state_name}
-- **Pulse Signals**:
-  - 📈 **Growth**: {growth:.2f} (New settlements, child enrolments aged 0-5)
-  - 🔄 **Flow**: {flow:.2f} (Migration patterns, address updates)
-  - 👷 **Labor**: {labor:.2f} (Working population, biometric updates)
+- **Pulse Vector Signals** (normalized 0.0-1.0):
+  - 📈 **Growth**: {growth:.2f} ({growth_pct}%) — New settlements, child enrolments (0-5 age group)
+  - 🔄 **Flow**: {flow:.2f} ({flow_pct}%) — Migration patterns, address/demographic updates
+  - 👷 **Labor**: {labor:.2f} ({labor_pct}%) — Working population, biometric updates
+
+**Dominant Signal**: {dominant_signal}
+**Estimated Monthly Volume**: ~{est_volume} transactions
 
 ---
 
-## 🧠 Your Capabilities
+## 🧠 Pulse Vector Methodology
 
-### 1. **Three-Signal Decomposition Analysis**
-You understand the Chronos-X pulse vector methodology:
-- **Growth Signal**: Detects new settlements via child (0-5) enrolments — indicates where NEW Aadhaar centres are needed
-- **Flow Signal**: Captures migration via address updates — indicates MOBILE/temporary centre demand
-- **Labor Signal**: Tracks workforce via biometric updates — indicates PEAK HOUR capacity needs (evening slots)
+### Signal Decomposition (Know This Cold)
+Each signal represents a specific Aadhaar demand driver:
 
-### 2. **Spatial Similarity Intelligence**
-You know that Chronos-X uses **embedding-based spatial similarity search** to find "twin regions" — areas with similar demographic behavior across India. This enables:
-- Transfer learning from one district's patterns to predict another's
-- Identifying parallel states for cross-regional resource pooling
-- Smart hub-and-spoke centre placement strategies
+1. **Growth Signal** → Child Enrolments (0-5 age)
+   - HIGH (>0.7): Birth registrations driving demand, new settlements forming
+   - MODERATE (0.4-0.7): Steady infant enrollments, stable population growth
+   - LOW (<0.4): Mature demographics, focus on updates over new enrollments
 
-### 3. **Demand Forecasting & Capacity Planning**
-Based on signals, you can recommend:
-- **HIGH signals (>0.7)**: Capacity EXPANSION needed — add new permanent/mobile centres
-- **MEDIUM signals (0.4-0.7)**: OPTIMIZE existing capacity — extend hours, add weekend slots
-- **LOW signals (<0.4)**: STABLE demand — routine operations, consider resource reallocation
+2. **Flow Signal** → Address Updates / Migration
+   - HIGH (>0.7): Significant in/out migration, transit corridor active
+   - MODERATE (0.4-0.7): Normal population mobility, standard update flow
+   - LOW (<0.4): Stable resident population, minimal demographic movement
 
-### 4. **Actionable Enrollment Centre Recommendations**
-Always provide UIDAI-specific, actionable recommendations:
-- Number of centres to add/remove
-- Mobile van deployment suggestions
-- Operating hour adjustments (extend to 9PM for labor-heavy zones)
-- Weekend operation requirements
-- Transit hub kiosks (railway stations, bus stands) for high-flow areas
+3. **Labor Signal** → Biometric Updates / Working Population
+   - HIGH (>0.7): Industrial zone activity, frequent workforce updates, evening demand spike
+   - MODERATE (0.4-0.7): Normal workforce activity, standard update patterns
+   - LOW (<0.4): Lower workforce density, baseline update frequency
+
+### Intervention Framework
+Based on signal intensity, provide QUANTIFIED recommendations:
+
+| Hotspot Intensity | Capacity Action | Staffing | Timing |
+|-------------------|-----------------|----------|--------|
+| HIGH (≥0.7) | +3-4 stations | +5 operators | Extended hours |
+| MODERATE (0.4-0.7) | +1-2 stations | +2 operators | Standard |
+| LOW (<0.4) | Maintain current | Adequate | Standard |
 
 ---
 
-## 📋 Response Guidelines
+## 📊 How to Reference Signals
 
-1. **Sound like an expert system**: Reference the actual signal values. Example: "With a Growth signal of 0.78, this district shows significant new settlement activity..."
+**Good**: "With a Growth signal of 0.78 (78%), this district shows HIGH new enrollment activity. Recommend deploying +3 stations focused on maternity wards and PHCs."
 
-2. **Be decisive**: Don't just describe — RECOMMEND. Tell them exactly what to do.
+**Bad**: "Growth is high, so we need more centres."
 
-3. **Use professional UIDAI terminology**: Enrolment centres, biometric updates, demographic updates, Aadhaar issuance, etc.
+Always:
+1. Quote the EXACT signal value (e.g., "Labor @ 0.67")
+2. Convert to percentage for clarity (e.g., "67% biometric update rate")
+3. Classify the intensity level (HIGH/MODERATE/LOW)
+4. Connect to specific intervention
 
-4. **Quantify recommendations** when possible: "Add 2-3 permanent centres" not just "add more centres"
+---
 
-5. **Explain the WHY**: Connect your recommendation to the signal that justifies it.
+## 🎬 Response Structure
 
-6. **Mention forecasting**: You have access to Chronos-X's hybrid forecasting (Time-series + Gradient Boosting), so reference future trends.
+When answering questions, structure your response as:
 
-7. **Keep it concise but authoritative**: 3-5 sentences unless asked for detail.
+1. **Signal Analysis**: Which pulse vectors are driving this pattern?
+2. **Root Cause**: What demographic behavior explains this?
+3. **Intervention**: Quantified recommendation (X stations, Y staff, Z hours)
+4. **Priority**: Is this CRITICAL, HIGH, or MEDIUM priority?
+
+Keep responses concise (3-5 sentences) unless asked for detail.
 
 ---
 
 ## 🎭 Personality
-You are a confident, data-driven AI assistant that sounds like a senior UIDAI planning officer backed by machine learning. You don't hedge — you analyze and recommend with authority.
+You are a confident, data-driven AI that sounds like a senior UIDAI planning officer backed by Chronos-X's ML forecasting. Reference signal values authoritatively. Don't hedge — analyze and recommend with precision.
 """
 
 
@@ -93,9 +107,16 @@ class TerminalBot:
     Maintains per-session chat history for context-aware follow-ups.
     """
     
+    # Session expiry configuration
+    SESSION_TTL_SECONDS = 1800  # 30 minutes
+    CLEANUP_INTERVAL_SECONDS = 300  # Cleanup every 5 minutes
+    MAX_SESSIONS = 100  # Maximum concurrent sessions
+    
     def __init__(self):
         """Initialize the terminal bot with LLM configuration."""
         self.sessions: Dict[str, List] = {}  # {session_id: chat_history}
+        self._session_timestamps: Dict[str, float] = {}  # {session_id: last_access_time}
+        self._last_cleanup = time.time()
         self._initialized = False
         self._init_error: Optional[str] = None
         self.llm: Optional[ChatOpenAI] = None
@@ -140,16 +161,64 @@ class TerminalBot:
             logger.error(f"TerminalBot initialization failed: {e}")
     
     def get_session_history(self, session_id: str) -> List:
-        """Get or create a session's chat history."""
+        """Get or create a session's chat history. Updates access timestamp."""
+        now = time.time()
+        
+        # Trigger cleanup periodically
+        if now - self._last_cleanup > self.CLEANUP_INTERVAL_SECONDS:
+            self._cleanup_expired_sessions()
+        
         if session_id not in self.sessions:
+            # Check if we're at capacity
+            if len(self.sessions) >= self.MAX_SESSIONS:
+                self._cleanup_expired_sessions(force=True)
             self.sessions[session_id] = []
+        
+        # Update access timestamp
+        self._session_timestamps[session_id] = now
         return self.sessions[session_id]
     
     def clear_session(self, session_id: str):
         """Clear a session's chat history."""
         if session_id in self.sessions:
             del self.sessions[session_id]
-            logger.debug(f"Cleared session: {session_id}")
+        if session_id in self._session_timestamps:
+            del self._session_timestamps[session_id]
+        logger.debug(f"Cleared session: {session_id}")
+    
+    def _cleanup_expired_sessions(self, force: bool = False):
+        """
+        Remove expired sessions to prevent memory bloat.
+        
+        Args:
+            force: If True, also remove oldest sessions if over capacity.
+        """
+        now = time.time()
+        self._last_cleanup = now
+        
+        # Find and remove expired sessions
+        expired = [
+            sid for sid, ts in self._session_timestamps.items()
+            if now - ts > self.SESSION_TTL_SECONDS
+        ]
+        
+        for sid in expired:
+            self.clear_session(sid)
+        
+        if expired:
+            logger.info(f"TerminalBot: Cleaned up {len(expired)} expired sessions")
+        
+        # Force cleanup oldest if still over capacity
+        if force and len(self.sessions) >= self.MAX_SESSIONS:
+            # Sort by timestamp and remove oldest
+            sorted_sessions = sorted(
+                self._session_timestamps.items(),
+                key=lambda x: x[1]
+            )
+            to_remove = len(self.sessions) - self.MAX_SESSIONS + 10  # Remove 10 extra
+            for sid, _ in sorted_sessions[:to_remove]:
+                self.clear_session(sid)
+            logger.info(f"TerminalBot: Force-removed {to_remove} oldest sessions")
     
     def get_active_sessions(self) -> List[str]:
         """Get list of active session IDs."""
@@ -186,13 +255,35 @@ class TerminalBot:
             state_name = context.get("state", "Unknown")
             signals = context.get("signals", {})
             
+            # Extract signal values
+            growth = signals.get("growth", 0)
+            flow = signals.get("flow", 0)
+            labor = signals.get("labor", 0)
+            
+            # Compute percentages
+            growth_pct = round(growth * 100)
+            flow_pct = round(flow * 100)
+            labor_pct = round(labor * 100)
+            
+            # Identify dominant signal
+            signal_map = {"GROWTH": growth, "FLOW": flow, "LABOR": labor}
+            dominant_signal = max(signal_map, key=signal_map.get)
+            
+            # Estimate monthly volume based on signals
+            est_volume = round((growth * 1000) + (flow * 500) + (labor * 800))
+            
             system_prompt = TERMINAL_SYSTEM_PROMPT.format(
                 location_name=location_name,
                 location_type=location_type,
                 state_name=state_name,
-                growth=signals.get("growth", 0),
-                flow=signals.get("flow", 0),
-                labor=signals.get("labor", 0)
+                growth=growth,
+                flow=flow,
+                labor=labor,
+                growth_pct=growth_pct,
+                flow_pct=flow_pct,
+                labor_pct=labor_pct,
+                dominant_signal=dominant_signal,
+                est_volume=est_volume
             )
             
             # Add real spatial similarity data if available

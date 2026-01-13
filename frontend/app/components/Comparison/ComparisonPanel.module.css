@@ -64,6 +64,14 @@
     color: var(--text-primary);
 }
 
+/* Scrollable Panel Body - contains selectors, comparison grid, and terminal */
+.panelBody {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
 /* Selectors */
 .selectors {
     padding: var(--space-5) var(--space-6);
@@ -71,7 +79,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
-    flex-shrink: 0;
+    /* Removed flex-shrink: 0 to allow scrolling */
 }
 
 .vsIndicator {
@@ -157,9 +165,8 @@
 
 /* Comparison Results */
 .comparison {
-    flex: 1;
-    overflow-y: auto;
     padding: var(--space-5) var(--space-6);
+    /* Removed flex: 1 and overflow-y: auto since panelBody handles scrolling */
 }
 
 .comparisonGrid {

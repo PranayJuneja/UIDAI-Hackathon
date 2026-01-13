@@ -82,52 +82,114 @@ function getHotspotLevel(intensity: number): string {
 // Generate strategic insights for state-level view
 function generateStateInsights(signals: SignalData, hotspot: HotspotData, trend?: string): string[] {
     const insights: string[] = [];
+
+    // Calculate percentages and identify dominant signal
+    const growthPct = Math.round(signals.growth * 100);
+    const flowPct = Math.round(signals.flow * 100);
+    const laborPct = Math.round(signals.labor * 100);
+
+    const signalValues = [
+        { name: 'GROWTH', value: signals.growth, pct: growthPct },
+        { name: 'FLOW', value: signals.flow, pct: flowPct },
+        { name: 'LABOR', value: signals.labor, pct: laborPct }
+    ].sort((a, b) => b.value - a.value);
+
+    const dominant = signalValues[0];
+    const secondary = signalValues[1];
+
     insights.push('');
-    insights.push('══════ STRATEGIC INSIGHTS ══════');
+    insights.push('══════ PULSE VECTOR ANALYSIS ══════');
     insights.push('');
 
-    if (signals.growth > 0.7) {
-        insights.push('⚡ HIGH GROWTH DETECTED');
-        insights.push('   → New settlements emerging rapidly');
-        insights.push('   → Expand enrolment capacity +20%');
-    } else if (signals.growth > 0.5) {
-        insights.push('📈 MODERATE GROWTH');
-        insights.push('   → Steady population increase');
-        insights.push('   → Maintain current capacity');
+    // Growth signal breakdown
+    const growthLevel = signals.growth >= 0.7 ? 'HIGH' : signals.growth >= 0.4 ? 'MODERATE' : 'LOW';
+    insights.push(`GROWTH [${signals.growth.toFixed(2)}] ${createProgressBar(signals.growth)}`);
+    insights.push(`  → ${growthPct}% new enrollment activity`);
+    if (signals.growth >= 0.7) {
+        insights.push('  → Birth registrations driving demand');
+        insights.push('  → New settlements: HIGH confidence');
+    } else if (signals.growth >= 0.4) {
+        insights.push('  → Steady infant enrollments');
+        insights.push('  → Population growth: STABLE');
     } else {
-        insights.push('📉 LOW GROWTH REGION');
-        insights.push('   → Mature demographics');
-        insights.push('   → Focus on updates, not new enrolments');
+        insights.push('  → Mature population profile');
+        insights.push('  → New enrollments: BASELINE');
     }
+    insights.push('');
 
-    if (signals.flow > 0.7) {
-        insights.push('');
-        insights.push('🚀 HIGH MIGRATION FLOW');
-        insights.push('   → Significant in/out movement');
-        insights.push('   → Deploy mobile enrolment units');
-    } else if (signals.flow > 0.5) {
-        insights.push('');
-        insights.push('🔄 MODERATE MIGRATION');
-        insights.push('   → Normal population mobility');
+    // Flow signal breakdown
+    const flowLevel = signals.flow >= 0.7 ? 'HIGH' : signals.flow >= 0.4 ? 'MODERATE' : 'LOW';
+    insights.push(`FLOW [${signals.flow.toFixed(2)}] ${createProgressBar(signals.flow)}`);
+    insights.push(`  → ${flowPct}% demographic movement`);
+    if (signals.flow >= 0.7) {
+        insights.push('  → Significant migration detected');
+        insights.push('  → Address updates: ELEVATED');
+    } else if (signals.flow >= 0.4) {
+        insights.push('  → Normal population mobility');
+        insights.push('  → Address updates: STANDARD');
+    } else {
+        insights.push('  → Stable resident population');
+        insights.push('  → Migration: MINIMAL');
     }
+    insights.push('');
 
-    if (signals.labor > 0.7) {
-        insights.push('');
-        insights.push('👷 HIGH LABOR ACTIVITY');
-        insights.push('   → Working population updates frequent');
-        insights.push('   → Extend centre hours to 8PM');
+    // Labor signal breakdown
+    const laborLevel = signals.labor >= 0.7 ? 'HIGH' : signals.labor >= 0.4 ? 'MODERATE' : 'LOW';
+    insights.push(`LABOR [${signals.labor.toFixed(2)}] ${createProgressBar(signals.labor)}`);
+    insights.push(`  → ${laborPct}% biometric update rate`);
+    if (signals.labor >= 0.7) {
+        insights.push('  → Active working population');
+        insights.push('  → Industrial activity: HIGH');
+    } else if (signals.labor >= 0.4) {
+        insights.push('  → Normal workforce activity');
+        insights.push('  → Employment updates: STEADY');
+    } else {
+        insights.push('  → Lower workforce density');
+        insights.push('  → Update frequency: BASELINE');
     }
 
     insights.push('');
-    if (hotspot.intensity >= 0.7) {
-        insights.push('🔴 PRIORITY: HIGH DEMAND ZONE');
-        insights.push('   → Immediate capacity review needed');
-    } else if (hotspot.intensity >= 0.5) {
-        insights.push('🟡 ATTENTION: MODERATE DEMAND');
-        insights.push('   → Monitor for capacity planning');
+    insights.push('══════ STRATEGIC ASSESSMENT ══════');
+    insights.push('');
+
+    // Dominant driver analysis
+    insights.push(`DOMINANT DRIVER: ${dominant.name} (${dominant.pct}%)`);
+    if (dominant.name === 'GROWTH') {
+        insights.push('  → New family enrollments peaking');
+        const capacityIncrease = Math.round(dominant.value * 25);
+        insights.push(`  → Deploy infant-friendly centres`);
+    } else if (dominant.name === 'FLOW') {
+        insights.push('  → Migration corridor active');
+        insights.push('  → Mobile units at transit hubs');
     } else {
-        insights.push('🟢 STATUS: DEMAND UNDER CONTROL');
-        insights.push('   → Routine operations sufficient');
+        insights.push('  → Working population updates');
+        insights.push('  → Evening slots critical');
+    }
+
+    // Secondary signal if significant
+    if (secondary.value >= 0.4) {
+        insights.push('');
+        insights.push(`SECONDARY: ${secondary.name} (${secondary.pct}%)`);
+        if (secondary.name === 'LABOR') {
+            insights.push('  → Evening demand expected');
+            insights.push('  → Extend hours: 6PM-8PM');
+        } else if (secondary.name === 'FLOW') {
+            insights.push('  → Monitor migration points');
+        } else {
+            insights.push('  → Support child enrollment');
+        }
+    }
+
+    // Capacity projection
+    const avgSignal = (signals.growth + signals.flow + signals.labor) / 3;
+    const capacityNeeded = Math.round(avgSignal * 30);
+    insights.push('');
+    if (capacityNeeded >= 20) {
+        insights.push(`🔴 DEMAND PROJECTION: +${capacityNeeded}% capacity`);
+    } else if (capacityNeeded >= 10) {
+        insights.push(`🟡 DEMAND PROJECTION: +${capacityNeeded}% capacity`);
+    } else {
+        insights.push(`🟢 DEMAND PROJECTION: Adequate (+${capacityNeeded}%)`);
     }
 
     return insights;
@@ -136,51 +198,132 @@ function generateStateInsights(signals: SignalData, hotspot: HotspotData, trend?
 // Generate actionable recommendations for district-level view
 function generateDistrictActions(signals: SignalData, hotspot: HotspotData): string[] {
     const actions: string[] = [];
+
+    // Calculate percentages and estimate volumes
+    const growthPct = Math.round(signals.growth * 100);
+    const flowPct = Math.round(signals.flow * 100);
+    const laborPct = Math.round(signals.labor * 100);
+
+    // Estimate monthly enrollments based on signal (scaled for district size)
+    const estEnrollments = Math.round(signals.growth * 1000);
+    const estUpdates = Math.round(signals.labor * 800);
+    const estMigration = Math.round(signals.flow * 500);
+
+    // Identify primary signal
+    const signalValues = [
+        { name: 'GROWTH', value: signals.growth, pct: growthPct, est: estEnrollments, unit: 'enrollments' },
+        { name: 'FLOW', value: signals.flow, pct: flowPct, est: estMigration, unit: 'migrations' },
+        { name: 'LABOR', value: signals.labor, pct: laborPct, est: estUpdates, unit: 'updates' }
+    ].sort((a, b) => b.value - a.value);
+
+    const primary = signalValues[0];
+    const secondary = signalValues[1];
+    const tertiary = signalValues[2];
+
     actions.push('');
-    actions.push('══════ RECOMMENDED ACTIONS ══════');
+    actions.push('══════ INTERVENTION ANALYSIS ══════');
     actions.push('');
 
-    if (hotspot.intensity >= 0.7) {
-        actions.push('⚠️  URGENT ACTIONS REQUIRED:');
-        actions.push('    1. Add 2-3 new permanent centres');
-        actions.push('    2. Deploy mobile enrolment vans');
-        actions.push('    3. Extend hours to 8PM daily');
-        actions.push('    4. Weekend operations mandatory');
-    } else if (hotspot.intensity >= 0.5) {
-        actions.push('📋 SUGGESTED IMPROVEMENTS:');
-        actions.push('    1. Add 1 additional centre');
-        actions.push('    2. Enable Saturday operations');
-        actions.push('    3. Add staff during peak hours');
+    // Primary signal with detailed breakdown
+    actions.push(`PRIMARY SIGNAL: ${primary.name} @ ${primary.value.toFixed(2)}`);
+    actions.push('┌─────────────────────────────────┐');
+
+    if (primary.name === 'GROWTH') {
+        actions.push('│ Child Enrolment Surge Detected │');
+        actions.push(`│ Est. +${primary.est} new enrolments/mo  │`);
+    } else if (primary.name === 'FLOW') {
+        actions.push('│ Migration Corridor Active      │');
+        actions.push(`│ Est. +${primary.est} address updates/mo │`);
     } else {
-        actions.push('✅ CAPACITY ADEQUATE');
-        actions.push('    → Current setup meets demand');
-        actions.push('    → Monitor quarterly for changes');
+        actions.push('│ Workforce Update Activity      │');
+        actions.push(`│ Est. +${primary.est} biometric updates  │`);
+    }
+    actions.push('└─────────────────────────────────┘');
+    actions.push('');
+
+    // Calculate required interventions based on intensity
+    const stationsNeeded = Math.max(1, Math.round(hotspot.intensity * 4));
+    const staffNeeded = Math.max(1, Math.round(hotspot.intensity * 5));
+
+    actions.push('REQUIRED ACTIONS (by priority):');
+    actions.push('');
+
+    // Priority 1: Capacity
+    if (hotspot.intensity >= 0.7) {
+        actions.push('1. CAPACITY [CRITICAL]');
+        actions.push(`   → Add +${stationsNeeded} enrolment stations`);
+        if (primary.name === 'GROWTH') {
+            actions.push('   → Focus: Maternity wards, PHCs');
+        } else if (primary.name === 'FLOW') {
+            actions.push('   → Focus: Transit hubs, stations');
+        } else {
+            actions.push('   → Focus: Industrial zones, markets');
+        }
+        actions.push('   → Timeline: Immediate');
+    } else if (hotspot.intensity >= 0.4) {
+        actions.push('1. CAPACITY [HIGH]');
+        actions.push(`   → Add +${stationsNeeded} station(s)`);
+        actions.push('   → Timeline: 2-4 weeks');
+    } else {
+        actions.push('1. CAPACITY [ADEQUATE]');
+        actions.push('   → Current infrastructure sufficient');
+        actions.push('   → Review in next quarter');
+    }
+    actions.push('');
+
+    // Priority 2: Staffing
+    if (hotspot.intensity >= 0.5) {
+        actions.push('2. STAFFING [HIGH]');
+        actions.push(`   → +${staffNeeded} operators needed`);
+        if (primary.name === 'GROWTH') {
+            actions.push('   → Training: Infant biometrics');
+        } else if (primary.name === 'LABOR') {
+            actions.push('   → Training: Quick updates');
+        }
+    } else {
+        actions.push('2. STAFFING [NORMAL]');
+        actions.push('   → Current team adequate');
+    }
+    actions.push('');
+
+    // Priority 3: Timing/Scheduling
+    actions.push('3. TIMING [MEDIUM]');
+    if (signals.labor >= 0.5) {
+        actions.push('   → Peak hours: 6PM-8PM');
+        actions.push('   → Add evening slots');
+    } else if (signals.growth >= 0.5) {
+        actions.push('   → Peak hours: 10AM-1PM');
+        actions.push('   → Morning slots for families');
+    } else {
+        actions.push('   → Standard hours sufficient');
     }
 
-    if (signals.flow > 0.6) {
+    // Secondary signal recommendations
+    if (secondary.value >= 0.4) {
         actions.push('');
-        actions.push('📍 MIGRATION RESPONSE:');
-        actions.push('    → Setup camps at transit hubs');
-        actions.push('    → Railway/bus station kiosks');
+        actions.push(`${secondary.name} SIGNAL @ ${secondary.value.toFixed(2)} (${secondary.pct}%)`);
+        if (secondary.name === 'FLOW') {
+            actions.push('  → Monitor migration points');
+            actions.push('  → Transit hub presence');
+        } else if (secondary.name === 'LABOR') {
+            actions.push('  → Evening slots: +2 stations');
+            actions.push('  → Industrial area outreach');
+        } else {
+            actions.push('  → Child-friendly facilities');
+            actions.push('  → School partnership drives');
+        }
     }
 
-    if (signals.labor > 0.7) {
+    // Tertiary signal if notable
+    if (tertiary.value >= 0.3) {
         actions.push('');
-        actions.push('🏭 LABOR ZONE SUPPORT:');
-        actions.push('    → Partner with industrial estates');
-        actions.push('    → Evening slots 6PM-9PM essential');
-    }
-
-    if (signals.growth > 0.7) {
-        actions.push('');
-        actions.push('🏘️ NEW SETTLEMENT SUPPORT:');
-        actions.push('    → Mobile camps in new colonies');
-        actions.push('    → Child enrolment drives');
+        actions.push(`${tertiary.name} SIGNAL @ ${tertiary.value.toFixed(2)} (${tertiary.pct}%)`);
+        actions.push('  → Baseline monitoring active');
     }
 
     actions.push('');
     actions.push('─────────────────────────────────');
-    actions.push('💬 ASK CHRONOS FOR MORE DETAILS...');
+    actions.push('💬 ASK CHRONOS FOR DEEPER ANALYSIS');
 
     return actions;
 }

@@ -1,6 +1,150 @@
 # Changelog
 
 
+
+## [3.2.3] - 2026-01-13 - THE BACKEND STABILITY UPDATE
+> *"Leaks plugged. Timeouts set. Isolation confirmed."*
+
+### 🛠️ Stability Fixes
+
+#### 1. Terminal Session Memory Leak Fix
+> *No more zombies.*
+- **Session Expiry**: Implemented 30-minute TTL (Time-To-Live) for terminal chat sessions.
+- **Auto-Cleanup**: Background check every 5 minutes removes expired sessions.
+- **Capacity Limit**: Hard cap of 100 concurrent sessions to prevent OOM (Out Of Memory) issues.
+
+#### 2. WebSocket Receive Timeouts
+> *Don't wait forever.*
+- **Idle Timeout**: Added 5-minute timeout for receiving messages.
+- **Resource Protection**: Prevents "ghost" connections from holding file descriptors indefinitely.
+- **Configurable**: `WS_RECEIVE_TIMEOUT_SECONDS` environment variable.
+
+#### 3. Connection Manager Isolation
+> *Fair limits for everyone.*
+- **Separate Pools**: Split the single `ConnectionManager` into three: `chat_manager`, `terminal_manager`, `compare_manager`.
+- **Per-Service Limits**: Users can now open a terminal chat without blocking their main chatbot limits (10 connections *per service* per IP).
+
+### Changed
+| File | Changes |
+|------|---------|
+| `src/terminal_bot.py` | Added session TTL, timestamp tracking, and cleanup logic |
+| `api_server.py` | Added `WS_RECEIVE_TIMEOUT_SECONDS`, split `ConnectionManager`, added timeout handling to all WS endpoints |
+
+---
+
+## [3.2.2] - 2026-01-13 - THE SECURITY HARDENING UPDATE
+> *"Headers. Limits. Protection."*
+
+### 🔒 Security Features
+
+#### 1. HTTP Security Headers Middleware
+> *Industry-standard protection.*
+- **X-Content-Type-Options**: `nosniff` — Prevents MIME sniffing
+- **X-Frame-Options**: `SAMEORIGIN` — Clickjacking protection
+- **X-XSS-Protection**: `1; mode=block` — Legacy XSS protection
+- **Content-Security-Policy**: Custom policy for resource control
+- **Referrer-Policy**: `strict-origin-when-cross-origin`
+- **Permissions-Policy**: Disables geolocation, microphone, camera
+
+#### 2. Rate Limiting Middleware
+> *60 requests/minute + 10 burst.*
+- **Sliding Window**: Per-IP request tracking
+- **HTTP Headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+- **429 Response**: Returns `Retry-After: 60` when exceeded
+
+#### 3. WebSocket Connection Limits
+> *10 connections per IP.*
+- **Per-IP Tracking**: Prevents connection exhaustion
+- **Graceful Rejection**: Excess connections silently rejected
+- **Configurable**: `MAX_WS_CONNECTIONS_PER_IP` env var
+
+#### 4. Input Validation Hardening
+- **PIN Range Validation**: Now validates 100000-999999 (was only length check)
+- **Location Sanitization**: `/api/compare` endpoint validates `[a-zA-Z0-9_&\s]` pattern
+- **Cache Stampede Protection**: Per-key locks prevent concurrent recomputation
+
+#### 5. Error Message Sanitization
+- **Before**: `"AI generation failed: {str(e)}"` — leaked exception details
+- **After**: `"AI generation failed. Please try again."` — generic message
+
+### Added
+| File | Purpose |
+|------|---------|
+| `middleware.py` | Security headers + rate limiting middleware |
+
+### Changed
+| File | Changes |
+|------|---------|
+| `api_server.py` | Registered security middleware, enhanced `ConnectionManager` with per-IP limits, added PIN range validation, location sanitization, cache stampede protection, sanitized error messages |
+
+### Configuration (Environment Variables)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENABLE_SECURITY_HEADERS` | `true` | Toggle security headers |
+| `RATE_LIMIT_ENABLED` | `true` | Toggle rate limiting |
+| `RATE_LIMIT_PER_MINUTE` | `60` | Max requests per minute |
+| `MAX_WS_CONNECTIONS_PER_IP` | `10` | Max WebSocket connections per IP |
+| `HSTS_ENABLED` | `false` | Enable HSTS (production only) |
+
+---
+
+## [3.2.1] - 2026-01-13 - THE COMPARISON COMPLETION UPDATE
+> *"AI actually connects. Panels actually scroll."*
+
+### Fixed
+- **Comparison AI Backend**: Implemented the missing `/ws/compare` WebSocket endpoint in `api_server.py`. The "CHRONOS ANALYSIS" in the comparison tab is now truly AI-driven with a specialized system prompt, replacing the placeholder fallback.
+- **Comparison Panel Scrolling**: Fixed a layout issue where the location selectors were fixed/cut off on small screens. The entire panel body is now scrollable for a better user experience.
+
+### Changed
+| File | Changes |
+|------|---------|
+| `api_server.py` | Added `/ws/compare` endpoint with `COMPARISON_SYSTEM_PROMPT` |
+| `ComparisonPanel.module.css` | Added `.panelBody`, removed `flex-shrink: 0` from selectors |
+| `ComparisonPanel.tsx` | Wrapped selectors and content in scrollable container |
+
+---
+
+## [3.2.0] - 2026-01-13 - THE PULSE & PRECISION UPDATE
+> *"No more generic advice. Percentages, priorities, and precision."*
+
+### 🔥 Headline Features
+
+#### 1. Precise Pulse Vector Analysis (State View)
+> *Exact numbers. Dominant drivers.*
+- **Percentage-Based Breakdown**: Displays exact signal strength (e.g., `GROWTH [0.82] 82%`) instead of generic "High/Low" labels.
+- **Deep Signal Decomposition**:
+  - **Growth**: "New settlement activity" (Child 0-5 enrollments)
+  - **Flow**: "Demographic movement" (Migration/Address updates)
+  - **Labor**: "Biometric update rate" (Working population activity)
+- **Dominant Driver Identification**: Automatically identifies the primary factor driving demand (e.g., "DOMINANT DRIVER: GROWTH").
+- **Smart Capacity Projections**: improved logic for "DEMAND PROJECTION" based on combined signal intensity.
+
+#### 2. Quantified District Interventions (District View)
+> *Don't just say 'Add Centres'. Say 'Add +3 Stations'.*
+- **Quantified Recommendations**: Action items now include specific numbers (e.g., "+3 operators needed", "+2 enrolment stations").
+- **Priority-Based Sorting**: Actions are ranked by urgency:
+  1. **CAPACITY [CRITICAL]**: Immediate infrastructure needs
+  2. **STAFFING [HIGH]**: Operator allocation and training
+  3. **TIMING [MEDIUM]**: Operating hour adjustments (e.g., "Peak hours: 6PM-8PM")
+- **Signal-Specific Tactics**:
+  - High Growth → "Focus: Maternity wards, PHCs"
+  - High Flow → "Focus: Transit hubs, stations"
+  - High Labor → "Focus: Industrial zones, markets"
+
+#### 3. Precision Chatbot System Prompt
+> *The AI speaks the new language of signals.*
+- **System Prompt Overhaul**: Updated `TERMINAL_SYSTEM_PROMPT` to enforce "Pulse Vector Methodology".
+- **Intervention Framework**: The bot now uses a strict lookup table for recommendations based on intensity (High/Mod/Low).
+- **Percentages & Estimates**: Bot now calculates and references percentages and estimated monthly volumes in its reasoning.
+
+### Changed
+| File | Changes |
+|------|---------|
+| `TerminalInfoDisplay.tsx` | Rewrote `generateStateInsights` and `generateDistrictActions` for precision |
+| `src/terminal_bot.py` | Updated system prompt with vector methodology, computed stats in `stream_response` |
+
+---
+
 ## [3.1.0] - 2026-01-13 - THE COMPARE DASHBOARD INTELLIGENCE UPDATE
 > *"Terminal recommendations. Signal tooltips. No more hardcoded data."*
 

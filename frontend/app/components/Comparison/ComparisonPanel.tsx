@@ -351,152 +351,155 @@ const ComparisonPanel = memo(function ComparisonPanel({
                             </button>
                         </div>
 
-                        {/* Selectors */}
-                        <div className={styles.selectors}>
-                            <LocationSelector
-                                value={location1}
-                                onChange={setLocation1}
-                                label="Location 1"
-                                placeholder="Select first location..."
-                                excludeId={location2?.id}
-                            />
+                        {/* Scrollable Panel Body */}
+                        <div className={styles.panelBody}>
+                            {/* Selectors */}
+                            <div className={styles.selectors}>
+                                <LocationSelector
+                                    value={location1}
+                                    onChange={setLocation1}
+                                    label="Location 1"
+                                    placeholder="Select first location..."
+                                    excludeId={location2?.id}
+                                />
 
-                            <div className={styles.selectorControls}>
-                                <div className={styles.vsIndicator}>VS</div>
-                            </div>
-
-                            <LocationSelector
-                                value={location2}
-                                onChange={setLocation2}
-                                label="Location 2"
-                                placeholder="Select second location..."
-                                excludeId={location1?.id}
-                            />
-                        </div>
-
-                        {/* Error */}
-                        {error && (
-                            <div className={styles.error}>{error}</div>
-                        )}
-
-                        {/* Loading */}
-                        {loading && (
-                            <div className={styles.loading}>
-                                <span className={styles.spinner} />
-                                Loading comparison...
-                            </div>
-                        )}
-
-                        {/* Comparison Results */}
-                        {comparisonData && !loading && (
-                            <div className={styles.comparison}>
-                                {/* Side by Side Cards */}
-                                <div className={styles.comparisonGrid}>
-                                    {/* Location 1 */}
-                                    <div className={styles.locationCard}>
-                                        <div className={styles.locationHeader}>
-                                            <span className={`${styles.locationBadge} ${styles[`badge${location1?.type}`]}`}>
-                                                {location1?.type}
-                                            </span>
-                                            <h3 className={styles.locationName}>{location1?.name}</h3>
-                                        </div>
-                                        {comparisonData.location1 && (
-                                            <SignalBreakdown
-                                                signals={comparisonData.location1.signals}
-                                                compact
-                                                tooltipPosition="right"
-                                            />
-                                        )}
-                                    </div>
-
-                                    {/* Location 2 */}
-                                    <div className={styles.locationCard}>
-                                        <div className={styles.locationHeader}>
-                                            <span className={`${styles.locationBadge} ${styles[`badge${location2?.type}`]}`}>
-                                                {location2?.type}
-                                            </span>
-                                            <h3 className={styles.locationName}>{location2?.name}</h3>
-                                        </div>
-                                        {comparisonData.location2 && (
-                                            <SignalBreakdown
-                                                signals={comparisonData.location2.signals}
-                                                compact
-                                                tooltipPosition="left"
-                                            />
-                                        )}
-                                    </div>
+                                <div className={styles.selectorControls}>
+                                    <div className={styles.vsIndicator}>VS</div>
                                 </div>
 
-                                {/* AI-Powered Terminal Recommendation */}
-                                {comparisonData.location1 && comparisonData.location2 && (
-                                    <div className={styles.terminalSection}>
-                                        <div className={styles.terminalHeader}>
-                                            <span className={styles.terminalDot} />
-                                            <span className={styles.terminalDot} />
-                                            <span className={styles.terminalDot} />
-                                            <span className={styles.terminalTitle}>CHRONOS ANALYSIS</span>
+                                <LocationSelector
+                                    value={location2}
+                                    onChange={setLocation2}
+                                    label="Location 2"
+                                    placeholder="Select second location..."
+                                    excludeId={location1?.id}
+                                />
+                            </div>
+
+                            {/* Error */}
+                            {error && (
+                                <div className={styles.error}>{error}</div>
+                            )}
+
+                            {/* Loading */}
+                            {loading && (
+                                <div className={styles.loading}>
+                                    <span className={styles.spinner} />
+                                    Loading comparison...
+                                </div>
+                            )}
+
+                            {/* Comparison Results */}
+                            {comparisonData && !loading && (
+                                <div className={styles.comparison}>
+                                    {/* Side by Side Cards */}
+                                    <div className={styles.comparisonGrid}>
+                                        {/* Location 1 */}
+                                        <div className={styles.locationCard}>
+                                            <div className={styles.locationHeader}>
+                                                <span className={`${styles.locationBadge} ${styles[`badge${location1?.type}`]}`}>
+                                                    {location1?.type}
+                                                </span>
+                                                <h3 className={styles.locationName}>{location1?.name}</h3>
+                                            </div>
+                                            {comparisonData.location1 && (
+                                                <SignalBreakdown
+                                                    signals={comparisonData.location1.signals}
+                                                    compact
+                                                    tooltipPosition="right"
+                                                />
+                                            )}
                                         </div>
-                                        <div className={styles.terminalBody}>
-                                            <div className={styles.terminalLine}>
-                                                <span className={styles.terminalPrefix}>▸</span>
-                                                <span>COMPARATIVE ANALYSIS: {location1?.name} vs {location2?.name}</span>
+
+                                        {/* Location 2 */}
+                                        <div className={styles.locationCard}>
+                                            <div className={styles.locationHeader}>
+                                                <span className={`${styles.locationBadge} ${styles[`badge${location2?.type}`]}`}>
+                                                    {location2?.type}
+                                                </span>
+                                                <h3 className={styles.locationName}>{location2?.name}</h3>
                                             </div>
-                                            <div className={styles.terminalLine}>
-                                                <span className={styles.terminalPrefix}>▸</span>
-                                                <span>═══════════════════════════════════════</span>
-                                            </div>
-
-                                            {aiLoading && (
-                                                <div className={styles.terminalLine}>
-                                                    <span className={styles.terminalPrefix}>▸</span>
-                                                    <span>GENERATING RECOMMENDATION</span>
-                                                    <span className={styles.terminalCursor}>█</span>
-                                                </div>
-                                            )}
-
-                                            {aiError && (
-                                                <div className={styles.terminalLine}>
-                                                    <span className={styles.terminalPrefix}>!</span>
-                                                    <span className={styles.terminalError}>{aiError}</span>
-                                                </div>
-                                            )}
-
-                                            {aiRecommendation && (
-                                                <motion.div
-                                                    className={styles.terminalRecommendation}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                >
-                                                    <div className={styles.terminalLine}>
-                                                        <span className={styles.terminalPrefix}>▸</span>
-                                                        <span className={styles.terminalLabel}>RECOMMENDATION:</span>
-                                                    </div>
-                                                    <div className={styles.terminalContent}>
-                                                        {aiRecommendation}
-                                                        {aiLoading && <span className={styles.terminalCursor}>█</span>}
-                                                    </div>
-                                                </motion.div>
-                                            )}
-
-                                            {!aiLoading && !aiError && !aiRecommendation && (
-                                                <div className={styles.terminalLine}>
-                                                    <span className={styles.terminalPrefix}>▸</span>
-                                                    <span>AWAITING ANALYSIS...</span>
-                                                </div>
+                                            {comparisonData.location2 && (
+                                                <SignalBreakdown
+                                                    signals={comparisonData.location2.signals}
+                                                    compact
+                                                    tooltipPosition="left"
+                                                />
                                             )}
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        )}
 
-                        {/* Empty State */}
-                        {!location1 && !location2 && !loading && (
-                            <div className={styles.emptyState}>
-                                <span className={styles.emptyIcon}>🔍</span>
-                                <p>Select two locations to compare their signals</p>
-                            </div>
-                        )}
+                                    {/* AI-Powered Terminal Recommendation */}
+                                    {comparisonData.location1 && comparisonData.location2 && (
+                                        <div className={styles.terminalSection}>
+                                            <div className={styles.terminalHeader}>
+                                                <span className={styles.terminalDot} />
+                                                <span className={styles.terminalDot} />
+                                                <span className={styles.terminalDot} />
+                                                <span className={styles.terminalTitle}>CHRONOS ANALYSIS</span>
+                                            </div>
+                                            <div className={styles.terminalBody}>
+                                                <div className={styles.terminalLine}>
+                                                    <span className={styles.terminalPrefix}>▸</span>
+                                                    <span>COMPARATIVE ANALYSIS: {location1?.name} vs {location2?.name}</span>
+                                                </div>
+                                                <div className={styles.terminalLine}>
+                                                    <span className={styles.terminalPrefix}>▸</span>
+                                                    <span>═══════════════════════════════════════</span>
+                                                </div>
+
+                                                {aiLoading && (
+                                                    <div className={styles.terminalLine}>
+                                                        <span className={styles.terminalPrefix}>▸</span>
+                                                        <span>GENERATING RECOMMENDATION</span>
+                                                        <span className={styles.terminalCursor}>█</span>
+                                                    </div>
+                                                )}
+
+                                                {aiError && (
+                                                    <div className={styles.terminalLine}>
+                                                        <span className={styles.terminalPrefix}>!</span>
+                                                        <span className={styles.terminalError}>{aiError}</span>
+                                                    </div>
+                                                )}
+
+                                                {aiRecommendation && (
+                                                    <motion.div
+                                                        className={styles.terminalRecommendation}
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                    >
+                                                        <div className={styles.terminalLine}>
+                                                            <span className={styles.terminalPrefix}>▸</span>
+                                                            <span className={styles.terminalLabel}>RECOMMENDATION:</span>
+                                                        </div>
+                                                        <div className={styles.terminalContent}>
+                                                            {aiRecommendation}
+                                                            {aiLoading && <span className={styles.terminalCursor}>█</span>}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+
+                                                {!aiLoading && !aiError && !aiRecommendation && (
+                                                    <div className={styles.terminalLine}>
+                                                        <span className={styles.terminalPrefix}>▸</span>
+                                                        <span>AWAITING ANALYSIS...</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Empty State */}
+                            {!location1 && !location2 && !loading && (
+                                <div className={styles.emptyState}>
+                                    <span className={styles.emptyIcon}>🔍</span>
+                                    <p>Select two locations to compare their signals</p>
+                                </div>
+                            )}
+                        </div>{/* End panelBody */}
                     </motion.div>
                 </>
             )}

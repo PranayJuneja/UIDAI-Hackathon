@@ -58,6 +58,8 @@ ALLOWED_ORIGINS = os.getenv(
 ).split(",")
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 MAX_WS_MESSAGE_SIZE = 10 * 1024  # 10KB max WebSocket message
+MAX_WS_CONNECTIONS_PER_IP = int(os.getenv("MAX_WS_CONNECTIONS_PER_IP", "10"))
+WS_RECEIVE_TIMEOUT_SECONDS = int(os.getenv("WS_RECEIVE_TIMEOUT_SECONDS", "300"))  # 5 minute timeout
 MONTH_PATTERN = re.compile(r'^\d{4}-(0[1-9]|1[0-2])$')
 
 # Forecast configuration
@@ -269,6 +271,8 @@ class ChronosDataEngine:
         self._cache: Dict[str, Any] = {}
         self._cache_ttl = 300  # 5 minutes
         self._cache_timestamps: Dict[str, float] = {}  # Track cache entry times for TTL
+        self._cache_locks: Dict[str, threading.Lock] = {}  # Stampede protection
+        self._cache_lock_master = threading.Lock()  # Lock for accessing cache_locks dict
         self._initialized = False
         
     def initialize(self):
@@ -695,6 +699,37 @@ class ChronosDataEngine:
         """Set cached value with timestamp."""
         self._cache[key] = value
         self._cache_timestamps[key] = time.time()
+    
+    def _get_cache_lock(self, key: str) -> threading.Lock:
+        """Get or create a lock for a specific cache key (stampede protection)."""
+        with self._cache_lock_master:
+            if key not in self._cache_locks:
+                self._cache_locks[key] = threading.Lock()
+            return self._cache_locks[key]
+    
+    def get_with_stampede_protection(self, key: str, compute_fn) -> Any:
+        """
+        Get cached value or compute it with stampede protection.
+        
+        Only one thread will compute the value; others wait for the result.
+        """
+        # Fast path: check cache without lock
+        cached = self._get_cached(key)
+        if cached is not None:
+            return cached
+        
+        # Slow path: acquire per-key lock
+        lock = self._get_cache_lock(key)
+        with lock:
+            # Double-check after acquiring lock (another thread may have populated)
+            cached = self._get_cached(key)
+            if cached is not None:
+                return cached
+            
+            # Compute and cache
+            result = compute_fn()
+            self._set_cached(key, result)
+            return result
         
     def aggregate_by_district(self, state: str, month: Optional[str] = None) -> List[DistrictAggregation]:
         """Aggregate data at district level for a specific state."""
@@ -1319,6 +1354,13 @@ app.add_middleware(
 )
 logger.info(f"CORS enabled for origins: {ALLOWED_ORIGINS}")
 
+# Security middleware (rate limiting + security headers)
+try:
+    from middleware import add_security_middleware
+    add_security_middleware(app)
+except ImportError as e:
+    logger.warning(f"Security middleware not loaded: {e}")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # REST ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1477,8 +1519,12 @@ async def get_district_detail(
 @app.get("/api/pins/{pincode}", response_model=PinCodeData, tags=["PIN"])
 async def get_pin_data(pincode: str):
     """Get complete data for a specific PIN code."""
+    # Validate format AND range (Indian PIN codes: 100000-999999)
     if not pincode.isdigit() or len(pincode) != 6:
         raise HTTPException(status_code=400, detail="Invalid PIN code format")
+    pin_int = int(pincode)
+    if pin_int < 100000 or pin_int > 999999:
+        raise HTTPException(status_code=400, detail="PIN code out of valid range (100000-999999)")
         
     data = data_engine.get_pin_data(pincode)
     if not data:
@@ -1489,8 +1535,12 @@ async def get_pin_data(pincode: str):
 @app.get("/api/pins/{pincode}/timeseries", tags=["PIN"])
 async def get_pin_timeseries(pincode: str):
     """Get historical time series for a PIN code."""
+    # Validate format AND range
     if not pincode.isdigit() or len(pincode) != 6:
         raise HTTPException(status_code=400, detail="Invalid PIN code format")
+    pin_int = int(pincode)
+    if pin_int < 100000 or pin_int > 999999:
+        raise HTTPException(status_code=400, detail="PIN code out of valid range (100000-999999)")
         
     series = data_engine.get_time_series(pincode)
     if not series:
@@ -1522,6 +1572,22 @@ async def compare_locations(
     month: Optional[str] = Query(None, description="Month for comparison")
 ):
     """Compare two locations side by side."""
+    
+    # Sanitize location IDs - prevent injection and limit length
+    def sanitize_location_id(loc: str) -> str:
+        # Strip whitespace and limit length
+        loc = loc.strip()[:50]
+        # Only allow alphanumeric, underscore, and ampersand (for state names like "Jammu & Kashmir")
+        import re
+        if not re.match(r'^[a-zA-Z0-9_&\s]+$', loc):
+            return ""
+        return loc
+    
+    loc1 = sanitize_location_id(loc1)
+    loc2 = sanitize_location_id(loc2)
+    
+    if not loc1 or not loc2:
+        raise HTTPException(status_code=400, detail="Invalid location ID format")
     
     def get_location_data(loc: str):
         # Try as PIN code
@@ -1814,17 +1880,51 @@ async def get_forecast(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class ConnectionManager:
-    """Manage WebSocket connections with thread-safe operations."""
+    """Manage WebSocket connections with thread-safe operations and per-IP limits."""
     
-    def __init__(self):
+    def __init__(self, max_per_ip: int = 10):
         self.active_connections: List[WebSocket] = []
+        self._ip_connections: Dict[str, int] = defaultdict(int)  # Track connections per IP
+        self._ws_to_ip: Dict[WebSocket, str] = {}  # Map websocket to its IP
         self._lock = threading.Lock()
+        self._max_per_ip = max_per_ip
+    
+    def _get_client_ip(self, websocket: WebSocket) -> str:
+        """Extract client IP from WebSocket connection."""
+        # Check headers for proxied connections
+        forwarded = websocket.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
         
-    async def connect(self, websocket: WebSocket):
+        real_ip = websocket.headers.get("x-real-ip")
+        if real_ip:
+            return real_ip.strip()
+        
+        # Direct connection
+        if websocket.client:
+            return websocket.client.host
+        return "unknown"
+        
+    async def connect(self, websocket: WebSocket) -> bool:
+        """Accept connection if under per-IP limit. Returns True if accepted."""
+        client_ip = self._get_client_ip(websocket)
+        
+        with self._lock:
+            # Check per-IP limit
+            if self._ip_connections[client_ip] >= self._max_per_ip:
+                logger.warning(f"Connection limit ({self._max_per_ip}) exceeded for IP: {client_ip}")
+                return False
+        
+        # Accept the connection first
         await websocket.accept()
+        
         with self._lock:
             self.active_connections.append(websocket)
-            logger.info(f"WebSocket connected. Active: {len(self.active_connections)}")
+            self._ip_connections[client_ip] += 1
+            self._ws_to_ip[websocket] = client_ip
+            logger.info(f"WebSocket connected from {client_ip}. Active: {len(self.active_connections)}. IP count: {self._ip_connections[client_ip]}")
+        
+        return True
         
     def disconnect(self, websocket: WebSocket):
         """Safely disconnect a WebSocket, handling cases where it may already be removed."""
@@ -1832,6 +1932,13 @@ class ConnectionManager:
             try:
                 if websocket in self.active_connections:
                     self.active_connections.remove(websocket)
+                
+                # Decrement IP connection count
+                client_ip = self._ws_to_ip.pop(websocket, None)
+                if client_ip and self._ip_connections.get(client_ip, 0) > 0:
+                    self._ip_connections[client_ip] -= 1
+                    if self._ip_connections[client_ip] == 0:
+                        del self._ip_connections[client_ip]
             except ValueError:
                 pass  # Already removed, ignore
             logger.info(f"WebSocket disconnected. Active: {len(self.active_connections)}")
@@ -1851,8 +1958,25 @@ class ConnectionManager:
         
     async def send_json(self, websocket: WebSocket, data: dict):
         await websocket.send_json(data)
+    
+    async def receive_text_with_timeout(
+        self, 
+        websocket: WebSocket, 
+        timeout: int = WS_RECEIVE_TIMEOUT_SECONDS
+    ) -> str:
+        """
+        Receive text from WebSocket with a timeout.
+        
+        Raises:
+            asyncio.TimeoutError: If no message received within timeout.
+            WebSocketDisconnect: If client disconnects.
+        """
+        return await asyncio.wait_for(websocket.receive_text(), timeout=timeout)
 
-manager = ConnectionManager()
+# Separate managers for each WebSocket type to isolate per-IP limits
+chat_manager = ConnectionManager(max_per_ip=MAX_WS_CONNECTIONS_PER_IP)
+terminal_manager = ConnectionManager(max_per_ip=MAX_WS_CONNECTIONS_PER_IP)
+compare_manager = ConnectionManager(max_per_ip=MAX_WS_CONNECTIONS_PER_IP)
 
 @app.websocket("/ws/chat")
 async def websocket_chat(websocket: WebSocket):
@@ -1872,28 +1996,43 @@ async def websocket_chat(websocket: WebSocket):
         "action": {"type": "FLY_TO", "payload": "Delhi"}
     }
     """
-    await manager.connect(websocket)
+    # Check connection limit
+    if not await chat_manager.connect(websocket):
+        # Connection rejected - limit exceeded
+        # Can't send message since connection wasn't accepted
+        return
     
     # Send welcome message
     try:
-        await manager.send_json(websocket, {
+        await chat_manager.send_json(websocket, {
             "type": "system",
             "content": "Connected to Chronos-X AI. Ask me anything about migration patterns, forecasts, or regional analysis!",
             "timestamp": datetime.now().isoformat()
         })
     except Exception as e:
         logger.error(f"Failed to send welcome message: {e}")
-        manager.disconnect(websocket)
+        chat_manager.disconnect(websocket)
         return
     
     try:
         while True:
-            # Receive raw text from client (single receive call to avoid deadlock)
-            raw_data = await websocket.receive_text()
+            # Receive raw text from client with timeout
+            try:
+                raw_data = await chat_manager.receive_text_with_timeout(websocket)
+            
+            except asyncio.TimeoutError:
+                # Client idle for too long
+                logger.info("Chat WebSocket timed out - closing connection")
+                await chat_manager.send_json(websocket, {
+                    "type": "system",
+                    "content": "Connection timed out due to inactivity. Please reconnect.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                break
             
             # Check message size limit
             if len(raw_data) > MAX_WS_MESSAGE_SIZE:
-                await manager.send_json(websocket, {
+                await chat_manager.send_json(websocket, {
                     "type": "error",
                     "content": f"Message too large. Maximum size is {MAX_WS_MESSAGE_SIZE // 1024}KB.",
                     "timestamp": datetime.now().isoformat()
@@ -1916,7 +2055,7 @@ async def websocket_chat(websocket: WebSocket):
             
             # Send typing indicator
             try:
-                await manager.send_json(websocket, {
+                await chat_manager.send_json(websocket, {
                     "type": "typing",
                     "timestamp": datetime.now().isoformat()
                 })
@@ -1926,7 +2065,7 @@ async def websocket_chat(websocket: WebSocket):
             # Process with chatbot using streaming for better UX
             try:
                 # Notify client that streaming is starting
-                await manager.send_json(websocket, {
+                await chat_manager.send_json(websocket, {
                     "type": "stream_start",
                     "timestamp": datetime.now().isoformat()
                 })
@@ -1935,13 +2074,13 @@ async def websocket_chat(websocket: WebSocket):
                 async for chunk in chatbot_bridge.process_message_stream(user_content):
                     if chunk.get("type") == "chunk":
                         # Send individual token/chunk
-                        await manager.send_json(websocket, {
+                        await chat_manager.send_json(websocket, {
                             "type": "stream",
                             "content": chunk.get("content", "")
                         })
                     elif chunk.get("type") == "complete":
                         # Send final message with complete content and action
-                        await manager.send_json(websocket, {
+                        await chat_manager.send_json(websocket, {
                             "type": "stream_end",
                             "content": chunk.get("content", ""),
                             "action": chunk.get("client_action"),
@@ -1950,7 +2089,7 @@ async def websocket_chat(websocket: WebSocket):
                         
             except Exception as e:
                 logger.error(f"Chatbot processing error: {e}")
-                await manager.send_json(websocket, {
+                await chat_manager.send_json(websocket, {
                     "type": "response",
                     "content": "I encountered an error processing your request. Please try again.",
                     "action": None,
@@ -1962,7 +2101,7 @@ async def websocket_chat(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
-        manager.disconnect(websocket)
+        chat_manager.disconnect(websocket)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TERMINAL CHAT WEBSOCKET (Lightweight, District-specific)
@@ -1994,43 +2133,54 @@ async def websocket_terminal_chat(websocket: WebSocket):
         "timestamp": "..."
     }
     """
-    await manager.connect(websocket)
+    # Check connection limit
+    if not await terminal_manager.connect(websocket):
+        return
     
     # Check terminal bot availability
     if not TERMINAL_BOT_AVAILABLE or terminal_bot is None:
         try:
-            await manager.send_json(websocket, {
+            await terminal_manager.send_json(websocket, {
                 "type": "system",
                 "content": "Terminal chat is not available. Please use the main chat.",
                 "timestamp": datetime.now().isoformat()
             })
         except Exception:
             pass
-        manager.disconnect(websocket)
+        terminal_manager.disconnect(websocket)
         return
     
     # Send welcome message
     try:
-        await manager.send_json(websocket, {
+        await terminal_manager.send_json(websocket, {
             "type": "system",
             "content": "Terminal ready. Ask about this location's signals and trends.",
             "timestamp": datetime.now().isoformat()
         })
     except Exception as e:
         logger.error(f"Terminal chat: Failed to send welcome: {e}")
-        manager.disconnect(websocket)
+        terminal_manager.disconnect(websocket)
         return
     
     current_session_id: Optional[str] = None
     
     try:
         while True:
-            # Receive message
-            raw_data = await websocket.receive_text()
+            # Receive message with timeout
+            try:
+                raw_data = await terminal_manager.receive_text_with_timeout(websocket)
+            except asyncio.TimeoutError:
+                logger.info("Terminal WebSocket timed out - closing connection")
+                await terminal_manager.send_json(websocket, {
+                    "type": "system",
+                    "content": "Connection timed out due to inactivity.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                break
             
             # Check message size
             if len(raw_data) > MAX_WS_MESSAGE_SIZE:
-                await manager.send_json(websocket, {
+                await terminal_manager.send_json(websocket, {
                     "type": "error",
                     "content": f"Message too large. Max size is {MAX_WS_MESSAGE_SIZE // 1024}KB.",
                     "timestamp": datetime.now().isoformat()
@@ -2075,7 +2225,7 @@ async def websocket_terminal_chat(websocket: WebSocket):
             
             # Send typing indicator
             try:
-                await manager.send_json(websocket, {
+                await terminal_manager.send_json(websocket, {
                     "type": "typing",
                     "timestamp": datetime.now().isoformat()
                 })
@@ -2085,7 +2235,7 @@ async def websocket_terminal_chat(websocket: WebSocket):
             # Stream response from terminal bot
             try:
                 # Notify client that streaming started
-                await manager.send_json(websocket, {
+                await terminal_manager.send_json(websocket, {
                     "type": "stream_start",
                     "timestamp": datetime.now().isoformat()
                 })
@@ -2097,12 +2247,12 @@ async def websocket_terminal_chat(websocket: WebSocket):
                     session_id=session_id
                 ):
                     if chunk.get("type") == "token":
-                        await manager.send_json(websocket, {
+                        await terminal_manager.send_json(websocket, {
                             "type": "stream",
                             "content": chunk.get("content", "")
                         })
                     elif chunk.get("type") == "complete":
-                        await manager.send_json(websocket, {
+                        await terminal_manager.send_json(websocket, {
                             "type": "stream_end",
                             "content": chunk.get("content", ""),
                             "timestamp": datetime.now().isoformat()
@@ -2110,7 +2260,7 @@ async def websocket_terminal_chat(websocket: WebSocket):
                         
             except Exception as e:
                 logger.error(f"Terminal chat streaming error: {e}")
-                await manager.send_json(websocket, {
+                await terminal_manager.send_json(websocket, {
                     "type": "response",
                     "content": "I encountered an error. Please try again.",
                     "timestamp": datetime.now().isoformat()
@@ -2124,7 +2274,202 @@ async def websocket_terminal_chat(websocket: WebSocket):
         # Clean up session on disconnect
         if current_session_id:
             terminal_bot.clear_session(current_session_id)
-        manager.disconnect(websocket)
+        terminal_manager.disconnect(websocket)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPARISON WEBSOCKET (AI-Powered Region Comparison)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Comparison-focused system prompt
+COMPARISON_SYSTEM_PROMPT = """You are **Chronos-X Comparative Analyst**, an AI that provides strategic resource allocation recommendations based on Aadhaar demand signals.
+
+## 📊 COMPARISON DATA
+
+### Location 1: {loc1_name} ({loc1_type})
+- **Growth Signal**: {loc1_growth:.2f} (New settlements, child 0-5 enrolments)
+- **Flow Signal**: {loc1_flow:.2f} (Migration patterns, address updates)
+- **Labor Signal**: {loc1_labor:.2f} (Workforce activity, biometric updates)
+- **Hotspot Intensity**: {loc1_hotspot:.1%}
+
+### Location 2: {loc2_name} ({loc2_type})
+- **Growth Signal**: {loc2_growth:.2f} (New settlements, child 0-5 enrolments)
+- **Flow Signal**: {loc2_flow:.2f} (Migration patterns, address updates)
+- **Labor Signal**: {loc2_labor:.2f} (Workforce activity, biometric updates)
+- **Hotspot Intensity**: {loc2_hotspot:.1%}
+
+---
+
+## 🎯 YOUR TASK
+
+Provide a **concise, decisive comparative analysis** that answers:
+
+1. **Which region needs more attention?** — Based on signal magnitudes, identify the priority region
+2. **What's the key difference?** — Highlight the most significant signal gap (growth, flow, or labor)
+3. **Resource allocation recommendation** — Be specific: "Shift X% of mobile units from Y to Z" or "Add 2 permanent centres in X"
+4. **Cross-regional strategy** — Can these regions share resources? Consider:
+   - Mobile camps rotating between them
+   - Shared weekend overflow capacity
+   - Peak-hour load balancing (if labor signals differ)
+
+---
+
+## 📋 RESPONSE GUIDELINES
+
+- **Be decisive** — Don't hedge. Make a clear recommendation.
+- **Use actual numbers** — Reference the signal values to sound data-driven.
+- **Keep it actionable** — Tell UIDAI exactly what to do.
+- **3-5 sentences max** — This is a summary, not a report.
+- **Professional tone** — Sound like a senior UIDAI planning officer.
+
+Example tone: "Given Mumbai's significantly higher Growth signal (0.82 vs 0.45), new enrolment demand is concentrated there. Recommend deploying 60% of mobile camps to Mumbai, with remaining capacity on rotation to Pune for weekend overflow during high-flow periods."
+"""
+
+
+@app.websocket("/ws/compare")
+async def websocket_compare(websocket: WebSocket):
+    """
+    WebSocket endpoint for AI-powered region comparison.
+    
+    Message format (from client):
+    {
+        "type": "compare_request",
+        "location1": {
+            "name": "Mumbai",
+            "type": "district",
+            "signals": {"growth": 0.82, "flow": 0.45, "labor": 0.67},
+            "hotspot": {"intensity": 0.75}
+        },
+        "location2": {
+            "name": "Pune",
+            "type": "district",
+            "signals": {"growth": 0.45, "flow": 0.52, "labor": 0.38},
+            "hotspot": {"intensity": 0.42}
+        }
+    }
+    
+    Response format (to client):
+    {
+        "type": "stream" | "stream_end" | "error",
+        "content": "...",
+        "timestamp": "..."
+    }
+    """
+    # Check connection limit
+    if not await compare_manager.connect(websocket):
+        return
+    
+    # Check terminal bot availability (we reuse its LLM setup)
+    if not TERMINAL_BOT_AVAILABLE or terminal_bot is None or terminal_bot.llm is None:
+        try:
+            await compare_manager.send_json(websocket, {
+                "type": "error",
+                "message": "AI comparison not available. Using fallback.",
+                "timestamp": datetime.now().isoformat()
+            })
+        except Exception:
+            pass
+        compare_manager.disconnect(websocket)
+        return
+    
+    try:
+        while True:
+            # Receive message with timeout
+            try:
+                raw_data = await compare_manager.receive_text_with_timeout(websocket)
+            except asyncio.TimeoutError:
+                logger.info("Compare WebSocket timed out - closing connection")
+                break
+            
+            # Check message size
+            if len(raw_data) > MAX_WS_MESSAGE_SIZE:
+                await compare_manager.send_json(websocket, {
+                    "type": "error",
+                    "message": f"Message too large. Max size is {MAX_WS_MESSAGE_SIZE // 1024}KB.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                continue
+            
+            # Parse message
+            try:
+                message_data = json.loads(raw_data)
+            except json.JSONDecodeError:
+                await compare_manager.send_json(websocket, {
+                    "type": "error",
+                    "message": "Invalid JSON format.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                continue
+            
+            # Check message type
+            if message_data.get("type") != "compare_request":
+                continue
+            
+            # Extract location data
+            loc1 = message_data.get("location1", {})
+            loc2 = message_data.get("location2", {})
+            
+            loc1_signals = loc1.get("signals", {})
+            loc2_signals = loc2.get("signals", {})
+            loc1_hotspot = loc1.get("hotspot", {})
+            loc2_hotspot = loc2.get("hotspot", {})
+            
+            # Build the comparison prompt
+            system_prompt = COMPARISON_SYSTEM_PROMPT.format(
+                loc1_name=loc1.get("name", "Location 1"),
+                loc1_type=loc1.get("type", "region"),
+                loc1_growth=loc1_signals.get("growth", 0),
+                loc1_flow=loc1_signals.get("flow", 0),
+                loc1_labor=loc1_signals.get("labor", 0),
+                loc1_hotspot=loc1_hotspot.get("intensity", 0),
+                loc2_name=loc2.get("name", "Location 2"),
+                loc2_type=loc2.get("type", "region"),
+                loc2_growth=loc2_signals.get("growth", 0),
+                loc2_flow=loc2_signals.get("flow", 0),
+                loc2_labor=loc2_signals.get("labor", 0),
+                loc2_hotspot=loc2_hotspot.get("intensity", 0)
+            )
+            
+            # Generate AI response using terminal bot's LLM
+            try:
+                from langchain_core.messages import SystemMessage, HumanMessage
+                
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=f"Compare {loc1.get('name', 'Location 1')} with {loc2.get('name', 'Location 2')} and provide your recommendation.")
+                ]
+                
+                # Stream the response
+                accumulated_text = ""
+                
+                async for chunk in terminal_bot.llm.astream(messages):
+                    if chunk.content:
+                        accumulated_text += chunk.content
+                        await compare_manager.send_json(websocket, {
+                            "type": "stream",
+                            "content": chunk.content
+                        })
+                
+                # Send completion message
+                await compare_manager.send_json(websocket, {
+                    "type": "stream_end",
+                    "content": accumulated_text,
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+            except Exception as e:
+                logger.error(f"Comparison AI error: {e}")
+                await compare_manager.send_json(websocket, {
+                    "type": "error",
+                    "message": "AI generation failed. Please try again.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+    except WebSocketDisconnect:
+        logger.info("Client disconnected from comparison WebSocket")
+    except Exception as e:
+        logger.error(f"Comparison WebSocket error: {e}")
+    finally:
+        compare_manager.disconnect(websocket)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN ENTRY POINT
