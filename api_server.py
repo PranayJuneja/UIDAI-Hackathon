@@ -39,6 +39,12 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+try:
+    from security_utils import sanitize_for_prompt
+except ImportError:
+    # Fallback
+    def sanitize_for_prompt(t, l=100): return str(t).replace('\n', ' ')[:l]
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2414,15 +2420,16 @@ async def websocket_compare(websocket: WebSocket):
             loc2_hotspot = loc2.get("hotspot", {})
             
             # Build the comparison prompt
+            # SANITIZE INPUTS: Prevent prompt injection
             system_prompt = COMPARISON_SYSTEM_PROMPT.format(
-                loc1_name=loc1.get("name", "Location 1"),
-                loc1_type=loc1.get("type", "region"),
+                loc1_name=sanitize_for_prompt(loc1.get("name", "Location 1")),
+                loc1_type=sanitize_for_prompt(loc1.get("type", "region"), max_length=20),
                 loc1_growth=loc1_signals.get("growth", 0),
                 loc1_flow=loc1_signals.get("flow", 0),
                 loc1_labor=loc1_signals.get("labor", 0),
                 loc1_hotspot=loc1_hotspot.get("intensity", 0),
-                loc2_name=loc2.get("name", "Location 2"),
-                loc2_type=loc2.get("type", "region"),
+                loc2_name=sanitize_for_prompt(loc2.get("name", "Location 2")),
+                loc2_type=sanitize_for_prompt(loc2.get("type", "region"), max_length=20),
                 loc2_growth=loc2_signals.get("growth", 0),
                 loc2_flow=loc2_signals.get("flow", 0),
                 loc2_labor=loc2_signals.get("labor", 0),

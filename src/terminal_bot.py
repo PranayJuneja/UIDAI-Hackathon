@@ -19,6 +19,12 @@ from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
+try:
+    from security_utils import sanitize_for_prompt
+except ImportError:
+    # Fallback if import fails (e.g. running directly)
+    def sanitize_for_prompt(t, l=100): return str(t).replace('\n', ' ')[:l]
+
 logger = logging.getLogger("TerminalBot")
 
 # Terminal-focused system prompt - comprehensive and impressive
@@ -250,9 +256,10 @@ class TerminalBot:
         
         try:
             # Build the system prompt with location context
-            location_name = context.get("location", "Unknown")
-            location_type = context.get("type", "district")
-            state_name = context.get("state", "Unknown")
+            # SANITIZE INPUTS: Prevent prompt injection from user-controlled context
+            location_name = sanitize_for_prompt(context.get("location", "Unknown"))
+            location_type = sanitize_for_prompt(context.get("type", "district"), max_length=20)
+            state_name = sanitize_for_prompt(context.get("state", "Unknown"))
             signals = context.get("signals", {})
             
             # Extract signal values
