@@ -10,7 +10,7 @@ export default function VisualizationPage() {
         <PageLayout showParticles={true} showAurora={false}>
             <SubPageHero
                 title="Seeing the Unseen"
-                subtitle={<>Transforming abstract signals into human-perceivable patterns using <span className="text-[#FBBF24]">D3.js</span> and <span className="text-[#34D399]">HSL Interpolation</span>.</>}
+                subtitle={<>Transforming abstract signals into human-perceivable patterns using <span className="text-[#fbbc04]">D3.js</span> and <span className="text-[#00ff9d]">HSL Interpolation</span>.</>}
                 badge="VISUAL INTELLIGENCE"
                 icon={Box}
             />
@@ -72,7 +72,7 @@ export default function VisualizationPage() {
 
                             <div className="space-y-6">
                                 <div className="flex gap-4 items-start">
-                                    <div className="p-3 bg-white/5 rounded-lg border border-white/10"><Palette size={20} className="text-[#A78BFA]" /></div>
+                                    <div className="p-3 bg-white/5 rounded-lg border border-white/10"><Palette size={20} className="text-[#bd00ff]" /></div>
                                     <div>
                                         <h4 className="font-bold text-lg">HSL Interpolation</h4>
                                         <p className="text-sm text-gray-500">
@@ -81,7 +81,7 @@ export default function VisualizationPage() {
                                     </div>
                                 </div>
                                 <div className="flex gap-4 items-start">
-                                    <div className="p-3 bg-white/5 rounded-lg border border-white/10"><Eye size={20} className="text-[#4DB6AC]" /></div>
+                                    <div className="p-3 bg-white/5 rounded-lg border border-white/10"><Eye size={20} className="text-[#00f0ff]" /></div>
                                     <div>
                                         <h4 className="font-bold text-lg">Visual Continuity</h4>
                                         <p className="text-sm text-gray-500">

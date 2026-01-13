@@ -10,7 +10,7 @@ export default function MLPage() {
         <PageLayout showParticles={true} showAurora={false}>
             <SubPageHero
                 title="The Intelligence Layer"
-                subtitle={<>Zero-shot time series prediction using <span className="text-[#F43F5E]">Amazon Chronos</span> and our proprietary <span className="text-[#A78BFA]">Spatial Parallel Search</span>.</>}
+                subtitle={<>Zero-shot time series prediction using <span className="text-[#ff0055]">Amazon Chronos</span> and our proprietary <span className="text-[#bd00ff]">Spatial Parallel Search</span>.</>}
                 badge="ARTIFICIAL INTELLIGENCE"
                 icon={BrainCircuit}
             />
@@ -31,7 +31,7 @@ export default function MLPage() {
 
                             <div className={styles.vectorCard}>
                                 <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                                    <MapPin size={18} className="text-[#A78BFA]" />
+                                    <MapPin size={18} className="text-[#bd00ff]" />
                                     Algorithm: find_spatial_parallels
                                 </h3>
                                 <ol className="list-decimal pl-5 space-y-4 text-gray-400 text-sm">
@@ -60,13 +60,22 @@ export default function MLPage() {
                                         <div className="text-sm text-gray-500">Vector Similarity</div>
                                     </div>
                                 </div>
-                                {/* Floating Dots representing PINs */}
-                                {[...Array(8)].map((_, i) => (
+                                {/* Floating Dots representing PINs - static positions to avoid hydration mismatch */}
+                                {[
+                                    { top: 50, left: 90, opacity: 0.8 },
+                                    { top: 83, left: 83, opacity: 0.6 },
+                                    { top: 90, left: 50, opacity: 0.9 },
+                                    { top: 83, left: 17, opacity: 0.7 },
+                                    { top: 50, left: 10, opacity: 0.5 },
+                                    { top: 17, left: 17, opacity: 0.8 },
+                                    { top: 10, left: 50, opacity: 0.6 },
+                                    { top: 17, left: 83, opacity: 0.7 },
+                                ].map((pos, i) => (
                                     <div key={i} className="absolute w-2 h-2 bg-white rounded-full"
                                         style={{
-                                            top: `${50 + 40 * Math.sin(i)}%`,
-                                            left: `${50 + 40 * Math.cos(i)}%`,
-                                            opacity: 0.5 + Math.abs(Math.sin(i * 100)) * 0.5
+                                            top: `${pos.top}%`,
+                                            left: `${pos.left}%`,
+                                            opacity: pos.opacity
                                         }}
                                     />
                                 ))}
@@ -121,8 +130,8 @@ export default function MLPage() {
                             </p>
 
                             <div className="space-y-6">
-                                <div className={`${styles.vectorCard} border-l-4 border-l-[#F43F5E]`}>
-                                    <h4 className="font-bold text-[#F43F5E] mb-2 flex items-center gap-2"><MessageSquare size={16} /> Intent Parsing</h4>
+                                <div className={`${styles.vectorCard} border-l-4 border-l-[#ff0055]`}>
+                                    <h4 className="font-bold text-[#ff0055] mb-2 flex items-center gap-2"><MessageSquare size={16} /> Intent Parsing</h4>
                                     <p className="text-sm text-gray-400 mb-2">
                                         Uses regex/LLM to extract structured intents from natural language.
                                     </p>
@@ -131,8 +140,8 @@ export default function MLPage() {
                                     </code>
                                 </div>
 
-                                <div className={`${styles.vectorCard} border-l-4 border-l-[#3B82F6]`}>
-                                    <h4 className="font-bold text-[#3B82F6] mb-2 flex items-center gap-2"><Zap size={16} /> Context Injection</h4>
+                                <div className={`${styles.vectorCard} border-l-4 border-l-[#4285f4]`}>
+                                    <h4 className="font-bold text-[#4285f4] mb-2 flex items-center gap-2"><Zap size={16} /> Context Injection</h4>
                                     <p className="text-sm text-gray-400 mb-2">
                                         The <code>ContextEngine</code> injects seasonality drivers into the LLM prompt.
                                     </p>

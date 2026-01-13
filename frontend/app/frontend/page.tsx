@@ -10,7 +10,7 @@ export default function FrontendPage() {
         <PageLayout showParticles={true} showAurora={false}>
             <SubPageHero
                 title="The Interface Layer"
-                subtitle={<>Engineered with <span className="text-[#A78BFA]">TissueDeck</span> design tokens. 60fps animations. Zero layout shift.</>}
+                subtitle={<>Engineered with <span className="text-[#bd00ff]">premium design tokens</span>. 60fps animations. Zero layout shift.</>}
                 badge="USER EXPERIENCE"
                 icon={Palette}
             />

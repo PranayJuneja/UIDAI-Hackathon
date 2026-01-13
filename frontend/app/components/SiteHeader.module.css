@@ -5,9 +5,9 @@
     width: 100%;
     z-index: 1000;
     padding: 1rem 0;
-    backdrop-filter: blur(10px);
-    background: rgba(28, 27, 31, 0.4);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    background: var(--navbar-bg);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .container {
@@ -23,26 +23,26 @@
     display: flex;
     align-items: center;
     text-decoration: none;
-    color: #fff;
-    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
-    font-size: 1.25rem;
+    color: var(--text-primary);
+    font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
     letter-spacing: -0.5px;
 }
 
 .brandPrefix {
-    color: #4DB6AC;
-    margin-right: 4px;
+    color: #00f0ff;
+    margin-right: 2px;
     font-weight: 500;
 }
 
 .logoText {
     font-weight: 500;
-    color: #FFFFFF;
+    color: var(--text-primary);
 }
 
 .cursor {
     display: inline-block;
-    color: #FFE082;
+    color: #00ff9d;
     margin-left: 2px;
     font-weight: 500;
     animation: blink 1s step-end infinite;
@@ -60,14 +60,11 @@
     }
 }
 
+/* Simple nav like Pranay's Website - plain text links */
 .nav {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 0.3rem;
-    border-radius: 99px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 2.5rem;
 }
 
 .navLink {
@@ -75,42 +72,56 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-secondary);
     text-decoration: none;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 500;
-    border-radius: 99px;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
 }
 
 .navLink:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
 }
 
 .navLink.active {
-    color: #fff;
+    color: var(--text-primary);
 }
 
+/* Underline indicator for active link */
+.navIndicator {
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #4285f4, #a855f7);
+    border-radius: 2px;
+}
+
+/* Special "App" button with gradient */
 .special {
-    background: var(--gradient-brand);
+    background: linear-gradient(135deg, #4285f4, #a855f7);
     color: white !important;
     font-weight: 600;
-    box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(66, 133, 244, 0.3);
 }
 
 .special:hover {
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.5);
-    background: var(--gradient-brand) !important;
+    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.5);
 }
 
-.navIndicator {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 99px;
-    z-index: -1;
+/* Right side actions */
+.navActions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Hide icons on desktop, simpler look */
+.navLink svg {
+    display: none;
 }
 
 @media (max-width: 768px) {
@@ -118,7 +129,15 @@
         display: none;
     }
 
+    .navLink svg {
+        display: block;
+    }
+
+    .nav {
+        gap: 1rem;
+    }
+
     .navLink {
-        padding: 0.6rem;
+        padding: 0.5rem;
     }
 }

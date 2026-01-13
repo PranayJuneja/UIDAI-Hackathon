@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Terminal, Code2, Database, BrainCircuit, Box, Activity } from "lucide-react";
 import styles from "./SiteHeader.module.css";
+import ThemeToggle from "./UI/ThemeToggle";
 
 export default function SiteHeader() {
     const pathname = usePathname();
@@ -59,7 +60,12 @@ export default function SiteHeader() {
                         );
                     })}
                 </nav>
+
+                <div className={styles.navActions}>
+                    <ThemeToggle />
+                </div>
             </div>
         </motion.header>
     );
 }
+

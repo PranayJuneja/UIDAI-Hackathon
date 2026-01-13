@@ -22,11 +22,11 @@ export default function BackendPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-24">
                         <motion.div className={styles.contentCard} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <div className="flex items-center gap-3 mb-6">
-                                <Database className="text-[#4DB6AC]" size={28} />
+                                <Database className="text-[#00f0ff]" size={28} />
                                 <h2 className="text-3xl font-bold">Singleton Data Engine</h2>
                             </div>
                             <p className="text-gray-400 text-lg mb-8 leading-relaxed">
-                                The <span className="text-[#4DB6AC] font-mono">ChronosDataEngine</span> class (api_server.py:236) uses a Singleton pattern to maintain the aggregated state in memory. By leveraging <strong>Polars' Lazy API</strong>, we optimize query plans before execution, ensuring sub-millisecond aggregation times even on millions of rows.
+                                The <span className="text-[#00f0ff] font-mono">ChronosDataEngine</span> class (api_server.py:236) uses a Singleton pattern to maintain the aggregated state in memory. By leveraging <strong>Polars' Lazy API</strong>, we optimize query plans before execution, ensuring sub-millisecond aggregation times even on millions of rows.
                             </p>
 
                             <ul className="space-y-6">
@@ -118,23 +118,23 @@ export default function BackendPage() {
 
                         <motion.div className={styles.contentCard} initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
                             <div className="flex items-center gap-3 mb-6">
-                                <FileCode className="text-[#A78BFA]" size={28} />
+                                <FileCode className="text-[#bd00ff]" size={28} />
                                 <h2 className="text-3xl font-bold">The AI Forecaster</h2>
                             </div>
                             <p className="text-gray-400 text-lg mb-8 leading-relaxed">
-                                The <span className="text-[#A78BFA] font-mono">AIForecaster</span> class (src/ai_forecaster.py:56) wraps the <strong>Amazon Chronos T5</strong> foundation model. Since Chronos is pre-trained on millions of time series, it can perform <em>Zero-Shot Forecasting</em> even with our limited 2-month hackathon dataset.
+                                The <span className="text-[#bd00ff] font-mono">AIForecaster</span> class (src/ai_forecaster.py:56) wraps the <strong>Amazon Chronos T5</strong> foundation model. Since Chronos is pre-trained on millions of time series, it can perform <em>Zero-Shot Forecasting</em> even with our limited 2-month hackathon dataset.
                             </p>
                             <ul className="space-y-4 text-sm text-gray-500 font-mono">
                                 <li className="flex items-center gap-3">
-                                    <span className="text-[#A78BFA] font-bold">Input:</span>
+                                    <span className="text-[#bd00ff] font-bold">Input:</span>
                                     torch.tensor([Nov_val, Dec_val])
                                 </li>
                                 <li className="flex items-center gap-3">
-                                    <span className="text-[#A78BFA] font-bold">Output:</span>
+                                    <span className="text-[#bd00ff] font-bold">Output:</span>
                                     Quantiles [0.1, 0.5, 0.9] for uncertainty bounds
                                 </li>
                                 <li className="flex items-center gap-3">
-                                    <span className="text-[#A78BFA] font-bold">Horizon:</span>
+                                    <span className="text-[#bd00ff] font-bold">Horizon:</span>
                                     Flexible (tuned to 6 months)
                                 </li>
                             </ul>

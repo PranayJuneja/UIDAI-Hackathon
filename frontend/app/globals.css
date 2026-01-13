@@ -6,133 +6,118 @@
 */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   GOOGLE FONTS
+   GOOGLE FONTS - Pranay's Website Design Language
    ═══════════════════════════════════════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Inter+Tight:wght@500;600;700;800&family=Fira+Code:wght@300;400;500;600&display=swap');
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CSS CUSTOM PROPERTIES (Design Tokens) - DARK THEME
+   CSS CUSTOM PROPERTIES (Design Tokens) - PRANAY'S WEBSITE DARK THEME
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root {
   /* ─────────────────────────────────────────────────────────────────────────────
-     COLORS - TissueDeck Material 3 Dark Theme (Exact Palette)
+     COLORS - Pranay's Website Premium Dark Theme
      ───────────────────────────────────────────────────────────────────────────── */
 
-  /* Background Layers - TissueDeck Dark */
-  --bg-base: #1C1B1F;
-  /* Material 3 dark surface */
-  --bg-surface: rgba(28, 27, 31, 0.8);
-  --bg-elevated: #2B2930;
-  /* Elevated dark */
-  --bg-muted: #1E1E22;
-  /* Deep dark muted */
+  /* Background Layers - Ultra Dark */
+  --bg-base: #0a0a0f;
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a25;
+  --bg-surface: rgba(10, 10, 15, 0.8);
+  --bg-elevated: #1a1a25;
+  --bg-muted: #12121a;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
 
-  /* TissueDeck Material 3 Color Tokens */
-  --md-sys-color-primary: #D0BCFF;
-  /* Lavender Purple */
-  --md-sys-color-on-primary: #381E72;
-  --md-sys-color-primary-container: #4F378B;
-  --md-sys-color-on-primary-container: #EADDFF;
-  --md-sys-color-secondary: #CCC2DC;
-  /* Light Purple */
-  --md-sys-color-on-secondary: #332D41;
-  --md-sys-color-secondary-container: #4A4458;
-  --md-sys-color-on-secondary-container: #E8DEF8;
-  --md-sys-color-tertiary: #EFB8C8;
-  /* Pink */
-  --md-sys-color-on-tertiary: #492532;
-  --md-sys-color-tertiary-container: #633B48;
-  --md-sys-color-on-tertiary-container: #FFD8E4;
-  --md-sys-color-background: #1C1B1F;
-  --md-sys-color-surface: #1C1B1F;
-  --md-sys-color-on-surface: #E6E1E5;
-  --md-sys-color-surface-variant: #49454F;
-  --md-sys-color-on-surface-variant: #CAC4D0;
-  --md-sys-color-outline: #938F99;
+  /* Neon Accent Colors - Hero Glow */
+  --neon-cyan: #00f0ff;
+  --neon-purple: #bd00ff;
+  --neon-green: #00ff9d;
+  --neon-pink: #ff0055;
 
-  /* Dark Surface Variants */
-  --bg-dark: #14141A;
-  /* TissueDeck ultra dark */
-  --bg-dark-surface: #1E1E24;
-  /* Dark card surface */
-  --bg-dark-elevated: #28282E;
-  /* Dark elevated */
+  /* Google-Inspired Accent Colors */
+  --accent-blue: #4285f4;
+  --accent-blue-dim: rgba(66, 133, 244, 0.15);
+  --accent-green: #34a853;
+  --accent-green-dim: rgba(52, 168, 83, 0.15);
+  --accent-yellow: #fbbc04;
+  --accent-yellow-dim: rgba(251, 188, 4, 0.15);
+  --accent-red: #ea4335;
+  --accent-red-dim: rgba(234, 67, 53, 0.15);
+  --accent-purple: #a855f7;
+  --accent-purple-dim: rgba(168, 85, 247, 0.15);
 
-  /* Brand Colors - TissueDeck Palette */
-  --brand-primary: #D0BCFF;
-  /* Lavender Purple (TissueDeck primary) */
-  --brand-secondary: #4DB6AC;
-  /* Teal (TissueDeck accent) */
-  --brand-accent: #EFB8C8;
-  /* Pink (TissueDeck tertiary) */
-  --brand-teal: #4DB6AC;
-  /* TissueDeck teal accent */
-  --brand-yellow: #FFE082;
-  /* TissueDeck yellow cursor */
+  /* Legacy Compatibility - Brand Colors */
+  --brand-primary: #00f0ff;
+  --brand-secondary: #bd00ff;
+  --brand-accent: #00ff9d;
+  --brand-teal: #00f0ff;
+  --brand-yellow: #fbbc04;
 
-  /* Signal Colors - TissueDeck Inspired */
-  --signal-growth: #4DB6AC;
-  /* Teal */
-  --signal-flow: #D0BCFF;
-  /* Lavender */
-  --signal-labor: #FFE082;
-  /* Yellow */
+  /* Signal Colors - Updated to Neon */
+  --signal-growth: #00f0ff;
+  --signal-flow: #bd00ff;
+  --signal-labor: #fbbc04;
 
   /* Hotspot Intensities */
-  --hotspot-low: #8AB4F8;
-  /* Soft Blue */
-  --hotspot-medium: #FFE082;
-  /* Yellow */
-  --hotspot-high: #EFB8C8;
-  /* Pink */
+  --hotspot-low: #4285f4;
+  --hotspot-medium: #fbbc04;
+  --hotspot-high: #ff0055;
 
-  /* Gradient Presets - TissueDeck Style */
-  --gradient-growth: linear-gradient(135deg, #4DB6AC 0%, #80CBC4 100%);
-  --gradient-flow: linear-gradient(135deg, #D0BCFF 0%, #EADDFF 100%);
-  --gradient-labor: linear-gradient(135deg, #FFE082 0%, #FFECB3 100%);
-  --gradient-brand: linear-gradient(135deg, #4DB6AC 0%, #D0BCFF 100%);
-  --gradient-dark: linear-gradient(180deg, #14141A 0%, #1C1B1F 100%);
-  --gradient-aurora: radial-gradient(50% 50% at 50% 50%, rgba(208, 188, 255, 0.35) 0%, rgba(77, 182, 172, 0.15) 40%, transparent 80%);
+  /* Gradient Presets - Neon Style */
+  --gradient-growth: linear-gradient(135deg, #00f0ff 0%, #00ff9d 100%);
+  --gradient-flow: linear-gradient(135deg, #bd00ff 0%, #a855f7 100%);
+  --gradient-labor: linear-gradient(135deg, #fbbc04 0%, #f59e0b 100%);
+  --gradient-brand: linear-gradient(135deg, #4285f4 0%, #a855f7 50%, #34a853 100%);
+  --gradient-dark: linear-gradient(180deg, #0a0a0f 0%, #12121a 100%);
+  --gradient-aurora: radial-gradient(50% 50% at 50% 50%, rgba(0, 240, 255, 0.2) 0%, rgba(189, 0, 255, 0.1) 40%, transparent 80%);
 
-  /* Text Colors - Light on Dark */
-  --text-primary: #E6E1E5;
-  /* Off-white */
-  --text-secondary: #CAC4D0;
-  /* Muted white */
-  --text-muted: #938F99;
-  /* Gray */
-  --text-on-dark: #F9FAFB;
-  /* Pure white */
-  --text-on-dark-muted: #9CA3AF;
-  /* Muted on dark */
+  /* Text Colors - Crisp White on Dark */
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0b0;
+  --text-tertiary: #6b6b7b;
+  --text-muted: #6b6b7b;
+  --text-on-dark: #ffffff;
+  --text-on-dark-muted: #a0a0b0;
 
   /* Border Colors - Subtle Glass Edges */
   --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.10);
+  --border-default: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.15);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color-hover: rgba(255, 255, 255, 0.15);
   --border-on-dark: rgba(255, 255, 255, 0.08);
 
-  /* Shadow System - Deep Dark Shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 30px rgba(139, 92, 246, 0.3);
-  --shadow-glow-blue: 0 0 30px rgba(59, 130, 246, 0.3);
+  /* Shadow System - Deep Dark with Neon Glow */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.8);
+  --shadow-glow: 0 0 30px rgba(0, 240, 255, 0.3);
+  --shadow-glow-purple: 0 0 30px rgba(189, 0, 255, 0.3);
+  --shadow-glow-blue: 0 0 30px rgba(66, 133, 244, 0.3);
 
   /* Glassmorphism - Premium Dark Glass */
+  --glass-bg: rgba(255, 255, 255, 0.03);
   --glass-bg-light: rgba(255, 255, 255, 0.03);
-  --glass-bg-dark: rgba(10, 15, 26, 0.85);
+  --glass-bg-dark: rgba(10, 10, 15, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --glass-blur: 20px;
   --glass-saturate: 150%;
 
+  /* Navbar specific */
+  --navbar-bg: rgba(10, 10, 15, 0.8);
+  --navbar-scrolled-bg: rgba(10, 10, 15, 0.95);
+
   /* ─────────────────────────────────────────────────────────────────────────────
-     TYPOGRAPHY - Using DM Sans (Google Sans Alternative)
+     TYPOGRAPHY - Inter & Fira Code (Pranay's Website)
      ───────────────────────────────────────────────────────────────────────────── */
-  --font-display: var(--font-google-sans), 'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-body: var(--font-google-sans), 'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', monospace;
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Inter Tight', 'Inter', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Fira Code', 'Roboto Mono', monospace;
 
   /* Font Sizes */
   --text-xs: 0.75rem;
@@ -224,6 +209,182 @@
   --z-modal: 300;
   --z-toast: 400;
   --z-max: 999;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LIGHT MODE - Pranay's Website Design Language
+   ═══════════════════════════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  /* Background Colors - Light Mode */
+  --bg-base: #f8fafc;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-surface: rgba(255, 255, 255, 0.9);
+  --bg-elevated: #ffffff;
+  --bg-muted: #f1f5f9;
+  --bg-card: rgba(0, 0, 0, 0.02);
+  --bg-card-hover: rgba(0, 0, 0, 0.04);
+
+  /* Text Colors - Light Mode */
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --text-muted: #94a3b8;
+  --text-on-dark: #1e293b;
+  --text-on-dark-muted: #64748b;
+
+  /* Border Colors - Light Mode */
+  --border-subtle: rgba(0, 0, 0, 0.04);
+  --border-default: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-color-hover: rgba(0, 0, 0, 0.15);
+  --border-on-dark: rgba(0, 0, 0, 0.06);
+
+  /* Glassmorphism - Light Mode */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-light: rgba(255, 255, 255, 0.8);
+  --glass-bg-dark: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+  /* Navbar - Light Mode */
+  --navbar-bg: rgba(248, 250, 252, 0.85);
+  --navbar-scrolled-bg: rgba(248, 250, 252, 0.95);
+
+  /* Shadows - Light Mode */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 30px rgba(66, 133, 244, 0.2);
+  --shadow-glow-purple: 0 0 30px rgba(147, 51, 234, 0.2);
+  --shadow-glow-blue: 0 0 30px rgba(66, 133, 244, 0.2);
+
+  /* Accent Colors - Adjusted for light */
+  --accent-purple: #9333ea;
+  --accent-purple-dim: rgba(147, 51, 234, 0.12);
+  --accent-yellow: #f59e0b;
+  --accent-yellow-dim: rgba(245, 158, 11, 0.12);
+
+  /* Signal colors need to stay visible */
+  --signal-growth: #00ff9d;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TERMINAL DARK MODE PRESERVATION - Terminals ALWAYS stay dark
+   ═══════════════════════════════════════════════════════════════════════════════ */
+[data-theme="light"] .terminalBoot,
+[data-theme="light"] .terminal-container,
+[data-theme="light"] [class*="terminal"],
+[data-theme="light"] pre,
+[data-theme="light"] code {
+  --bg-base: #0a0a0f;
+  --bg-surface: rgba(10, 10, 15, 0.95);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --glass-bg-light: rgba(255, 255, 255, 0.03);
+  --glass-bg-dark: rgba(10, 10, 15, 0.85);
+  background: #0a0a0f !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] pre code,
+[data-theme="light"] .terminalBody {
+  background: transparent !important;
+  color: #00ff9d !important;
+}
+
+/* Light mode content card fixes - ONLY for homepage, NOT dashboard */
+[data-theme="light"] .contentCard,
+[data-theme="light"] .vectorCard {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .contentCard h2,
+[data-theme="light"] .contentCard h3,
+[data-theme="light"] .contentCard h4,
+[data-theme="light"] .vectorCard h3,
+[data-theme="light"] .vectorCard h4 {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .contentCard p,
+[data-theme="light"] .vectorCard p,
+[data-theme="light"] .contentCard li {
+  color: #475569 !important;
+}
+
+/* Hero section light mode */
+[data-theme="light"] .heroTitle,
+[data-theme="light"] .gradientText {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .heroSubtitle {
+  color: #64748b !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DASHBOARD DARK MODE PRESERVATION - Dashboard page ALWAYS stays dark
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Target the main dashboard container and ALL its children - force dark theme */
+[data-theme="light"] main[class*="dashboard"] {
+  --bg-base: #0f1419 !important;
+  --bg-surface: rgba(10, 15, 26, 0.95) !important;
+  --bg-primary: #14141A !important;
+  --text-primary: #ffffff !important;
+  --text-secondary: rgba(255, 255, 255, 0.7) !important;
+  --text-muted: rgba(255, 255, 255, 0.5) !important;
+  --border-subtle: rgba(255, 255, 255, 0.06) !important;
+  --border-default: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dashboard sidebar cards - always dark glassmorphism */
+[data-theme="light"] main[class*="dashboard"] aside,
+[data-theme="light"] main[class*="dashboard"] [class*="statsCard"],
+[data-theme="light"] main[class*="dashboard"] [class*="hotspotsCard"],
+[data-theme="light"] main[class*="dashboard"] [class*="sidebar"] {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.01) 100%), rgba(10, 15, 26, 0.75) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Dashboard text colors */
+[data-theme="light"] main[class*="dashboard"] [class*="cardTitle"],
+[data-theme="light"] main[class*="dashboard"] [class*="overviewValue"],
+[data-theme="light"] main[class*="dashboard"] [class*="hotspotName"] {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] main[class*="dashboard"] [class*="overviewLabel"],
+[data-theme="light"] main[class*="dashboard"] [class*="hint"],
+[data-theme="light"] main[class*="dashboard"] [class*="monthLabel"] {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Map component dark mode preservation */
+[data-theme="light"] main[class*="dashboard"] [class*="mapContainer"],
+[data-theme="light"] main[class*="dashboard"] [class*="backButton"],
+[data-theme="light"] main[class*="dashboard"] [class*="breadcrumb"],
+[data-theme="light"] main[class*="dashboard"] [class*="legend"] {
+  background: rgba(10, 15, 26, 0.85) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] main[class*="dashboard"] [class*="breadcrumbItem"] {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-theme="light"] main[class*="dashboard"] [class*="breadcrumbItem"][class*="active"] {
+  color: #ffffff !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -720,6 +881,117 @@ body {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 ::selection {
-  background: var(--brand-primary);
+  background: var(--accent-blue);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   NEON GLOW TEXT EFFECTS - Pranay's Website
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.glow-text-cyan {
+  color: var(--text-primary);
+  text-shadow: 0 0 40px rgba(0, 240, 255, 0.5);
+}
+
+.glow-text-purple {
+  color: var(--text-primary);
+  text-shadow: 0 0 40px rgba(189, 0, 255, 0.5);
+}
+
+.glow-text-green {
+  color: var(--text-primary);
+  text-shadow: 0 0 40px rgba(0, 255, 157, 0.5);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   GLASS CARD - Pranay's Website Premium Glassmorphism
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.glass-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-color-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   NEON BUTTONS - Pranay's Website
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.btn-neon-cyan {
+  background: var(--accent-blue);
   color: white;
+  padding: 12px 28px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.btn-neon-cyan:hover {
+  background: #5a9bff;
+  box-shadow: 0 0 20px rgba(66, 133, 244, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-neon-purple {
+  background: transparent;
+  border: 1px solid var(--border-color-hover);
+  color: var(--text-primary);
+  padding: 12px 28px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.btn-neon-purple:hover {
+  border-color: var(--text-primary);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   GLOW UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.glow-cyan {
+  box-shadow: 0 0 60px rgba(0, 240, 255, 0.3);
+}
+
+.glow-purple {
+  box-shadow: 0 0 60px rgba(189, 0, 255, 0.3);
+}
+
+.glow-blue {
+  box-shadow: 0 0 60px rgba(66, 133, 244, 0.3);
 }

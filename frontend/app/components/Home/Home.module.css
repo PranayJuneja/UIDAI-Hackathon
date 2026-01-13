@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
-   Homepage Component Styles - TissueDeck Aesthetic
-   Using global design tokens from globals.css
+   Homepage Component Styles - Pranay's Website Design Language
+   Using global design tokens from globals.css (neon cyan/purple/green accents)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* Hero Section */
@@ -160,7 +160,6 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-8);
-    border-top: 1px solid var(--border-subtle);
     padding-top: var(--space-10);
 }
 

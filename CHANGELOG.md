@@ -1,6 +1,87 @@
 # Changelog
 
 
+## [3.0.0] - 2026-01-13 - THE DESIGN LANGUAGE OVERHAUL ✨
+> *"Premium aesthetics. Dual themes. Dashboard preserved."*
+
+### 🔥 Headline Features
+
+#### 1. Pranay's Website Design Migration
+> *A complete visual transformation.*
+- **New Color Palette**: Migrated from Material 3 (lavender/teal) to neon accents (cyan/purple/green)
+- **Darker Base**: Background changed from `#1C1B1F` to `#0a0a0f` for deeper contrast
+- **Google-Inspired Accents**: Blue (`#4285f4`), Purple (`#a855f7`), Green (`#00ff9d`), Cyan (`#00f0ff`)
+- **Typography Upgrade**: Inter + Fira Code fonts for modern, clean aesthetics
+
+#### 2. Interactive Particle Background
+> *Canvas-based visual magic.*
+- **60 Floating Particles**: Google palette colors with subtle glow
+- **Mouse Repulsion Effect**: Particles scatter from cursor within 100px radius
+- **Connection Lines**: Dynamic lines between nearby particles (75px threshold)
+- **Smooth Animation**: 60fps canvas rendering with requestAnimationFrame
+
+#### 3. Light Mode Support
+> *Theme toggle with smart preservation.*
+- **ThemeToggle Component**: Animated sun/moon icons with spring physics
+- **localStorage Persistence**: Theme preference saved across sessions
+- **Light Mode Variables**: Full color palette override for backgrounds, text, borders
+
+#### 4. Dashboard Dark Preservation 🛡️
+> *The dashboard NEVER goes light.*
+- **CSS Isolation**: Dashboard components force dark theme via `!important` overrides
+- **Protected Elements**: Stats cards, hotspots, map container, breadcrumb, legend
+- **Terminal Preservation**: All code blocks stay dark even in light mode
+
+#### 5. Navbar Redesign
+> *Simple. Clean. Like Pranay's Website.*
+- **Plain Text Links**: Removed pill backgrounds from navigation
+- **Gradient Underline**: Active link indicator with blue-purple gradient
+- **Hidden Icons**: Desktop shows text only, mobile shows icons
+- **Theme Toggle Integration**: Sun/moon switcher in header actions
+
+### Design System Changes
+
+| Token | Old Value | New Value |
+|-------|-----------|-----------|
+| `--bg-base` | `#1C1B1F` | `#0a0a0f` |
+| `--brand-primary` | `#D0BCFF` (lavender) | `#00f0ff` (cyan) |
+| `--brand-secondary` | `#4DB6AC` (teal) | `#bd00ff` (purple) |
+| `--signal-growth` | - | `#00ff9d` (neon green) |
+| `--font-body` | system default | `Inter` |
+| `--font-mono` | - | `Fira Code` |
+
+### Added
+| File | Purpose |
+|------|---------|
+| `ParticleBackground.tsx` | Interactive canvas particle system |
+| `ThemeToggle.tsx` | Animated theme switcher component |
+| `ThemeToggle.module.css` | Theme toggle styling |
+
+### Changed
+| File | Changes |
+|------|---------|
+| `globals.css` | Complete design token overhaul, light mode variables, dashboard/terminal dark preservation |
+| `SiteHeader.module.css` | Simplified navbar - plain text links, no pills |
+| `SiteHeader.tsx` | Integrated ThemeToggle component |
+| `PageLayout.tsx` | Added ParticleBackground component |
+| `HeroSection.tsx` | Neon glow text classes, new button styles |
+| `Home.module.css` | Removed border-top from stats grid |
+| `ml/page.tsx` | Fixed React hydration error with static particle positions |
+| All subpages | Updated accent colors to new neon palette |
+
+### Fixed
+- **React Hydration Error**: Replaced `Math.random()` positions with pre-calculated static values in ML page
+- **Light Mode Terminals**: Code blocks now force dark background in light mode
+- **Dashboard Contrast**: All dashboard panels maintain dark glassmorphism regardless of theme
+- **Map Controls**: Back button and breadcrumb stay dark in light mode
+
+### Migration Notes
+- **Breaking**: This is a major visual overhaul - the entire color palette has changed
+- **Theme Toggle**: Users can now switch between dark (default) and light mode
+- **Dashboard Exempt**: The `/app` dashboard page is intentionally excluded from light mode theming
+
+---
+
 ## [2.10.0] - 2026-01-10 - THE CHRONOS FORECAST TIMELINE INTEGRATION
 > *"The future, cached. The predictions, live."*
 

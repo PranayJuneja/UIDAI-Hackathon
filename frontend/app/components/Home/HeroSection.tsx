@@ -60,9 +60,9 @@ export default function HeroSection() {
                     </div>
 
                     <h1 className={styles.heroTitle}>
-                        <span className={styles.glitchText} data-text="TEMPORAL">TEMPORAL</span>
+                        <span className="glow-text-cyan">TEMPORAL</span>
                         <br />
-                        <span className={styles.gradientText}>SPATIAL INTELLIGENCE</span>
+                        <span className="glow-text-purple">SPATIAL INTELLIGENCE</span>
                     </h1>
 
                     <p className={styles.heroSubtitle}>
@@ -93,41 +93,16 @@ export default function HeroSection() {
                         ))}
                     </div>
 
-                    <div className={styles.heroActions} style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '3rem' }}>
+                    <div className={styles.heroActions} style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', marginTop: '3rem' }}>
                         <button
-                            className={styles.btn}
-                            style={{
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                padding: '1rem 2rem',
-                                borderRadius: '8px',
-                                color: 'white',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                transition: 'all 0.2s'
-                            }}
+                            className="btn-neon-purple"
                             onClick={() => window.location.href = '/backend'}
                         >
                             <Database size={16} />
                             System Architecture
                         </button>
                         <button
-                            className={styles.btn}
-                            style={{
-                                background: 'var(--brand-primary)',
-                                color: 'black',
-                                border: 'none',
-                                padding: '1rem 2rem',
-                                borderRadius: '8px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                transition: 'all 0.2s'
-                            }}
+                            className="btn-neon-cyan"
                             onClick={() => window.location.href = '/dashboard'}
                         >
                             <ShieldCheck size={16} />
