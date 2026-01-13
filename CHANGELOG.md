@@ -1,12 +1,55 @@
 # Changelog
 
 
+## [3.1.0] - 2026-01-13 - THE COMPARE DASHBOARD INTELLIGENCE UPDATE
+> *"Terminal recommendations. Signal tooltips. No more hardcoded data."*
+
+### 🔥 Headline Features
+
+#### 1. AI-Powered Comparison Recommendations
+> *From rules to intelligence.*
+- **Terminal-Style Analysis**: Replaced hardcoded UIDAI recommendations with an AI-powered "CHRONOS ANALYSIS" section
+- **WebSocket Streaming**: Connects to `/ws/compare` for real-time streaming recommendations
+- **Fallback Logic**: HTTP endpoint fallback, then rule-based fallback for reliability
+- **Visual Design**: Matches district terminal view with green phosphor text, scanlines, and blinking cursor
+
+#### 2. Signal Info Tooltips  
+> *Hover for understanding.*
+- **Arrow Tooltips**: Hovering over the → trend arrows now shows detailed explanations:
+  - **Growth**: "Measures new Aadhaar enrollments in the 0-5 age group..."
+  - **Flow**: "Tracks demographic address updates and migrations..."
+  - **Labor**: "Reflects biometric update frequency among working-age population..."
+- **Smart Positioning**: Tooltips utilize directional logic to prevent clipping:
+  - **Left Column**: Tooltips open to the **RIGHT** (towards center)
+  - **Right Column**: Tooltips open to the **LEFT** (towards center)
+- **Visuals**: Glassmorphic styling with `z-index` boost on hover to overlay adjacent cards
+
+#### 3. UI Cleanup
+> *Less clutter. More clarity.*
+- **Removed Swap Button**: The ⇄ button between Location 1 and Location 2 has been removed
+- **Removed Redundant Card Tooltip**: The "Growth Signal / Current Value" card hover tooltip removed (info already visible in card)
+
+### Changed
+| File | Changes |
+|------|---------|
+| `ComparisonPanel.tsx` | AI recommendation with WebSocket/HTTP/fallback, removed swap button |
+| `ComparisonPanel.module.css` | Terminal section styles (header, body, cursor, content) |
+| `SignalCard.tsx` | Removed card tooltip, added `infoText` to TrendArrow, added `info` to SIGNAL_CONFIG |
+| `SignalCard.module.css` | `trendArrowWrapper`, `infoTooltip` positioned to left, removed tooltip overflow issues |
+
+### Technical Details
+- **WebSocket Protocol**: `compare_request` message with location1/location2 signals and hotspot data
+- **Streaming Format**: `stream` (tokens) → `stream_end` (final content)
+- **Fallback Chain**: WebSocket → HTTP `/api/compare/recommend` → rule-based calculation
+
+---
+
 ## [3.0.0] - 2026-01-13 - THE DESIGN LANGUAGE OVERHAUL ✨
 > *"Premium aesthetics. Dual themes. Dashboard preserved."*
 
 ### 🔥 Headline Features
 
-#### 1. Pranay's Website Design Migration
+#### 1 Website Design Migration
 > *A complete visual transformation.*
 - **New Color Palette**: Migrated from Material 3 (lavender/teal) to neon accents (cyan/purple/green)
 - **Darker Base**: Background changed from `#1C1B1F` to `#0a0a0f` for deeper contrast

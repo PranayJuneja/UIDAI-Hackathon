@@ -176,6 +176,7 @@
         rgba(28, 27, 31, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: var(--radius-xl);
+    overflow: visible;
 }
 
 .locationHeader {
@@ -366,4 +367,118 @@
     .comparisonGrid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Terminal Section Styles */
+.terminalSection {
+    margin-top: var(--space-4);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #0a0a0f;
+    border: 1px solid rgba(0, 255, 136, 0.15);
+    box-shadow:
+        0 0 20px rgba(0, 255, 136, 0.05),
+        inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.terminalHeader {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.terminalDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.terminalDot:nth-child(1) {
+    background: #ff5f56;
+}
+
+.terminalDot:nth-child(2) {
+    background: #ffbd2e;
+}
+
+.terminalDot:nth-child(3) {
+    background: #27ca40;
+}
+
+.terminalTitle {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: rgba(0, 255, 136, 0.7);
+    text-transform: uppercase;
+}
+
+.terminalBody {
+    padding: var(--space-4);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.85);
+    min-height: 80px;
+}
+
+.terminalLine {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.terminalPrefix {
+    color: rgba(0, 255, 136, 0.8);
+    flex-shrink: 0;
+}
+
+.terminalCursor {
+    display: inline-block;
+    animation: blink 1s steps(1) infinite;
+    color: rgba(0, 255, 136, 0.8);
+    margin-left: 4px;
+}
+
+@keyframes blink {
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0;
+    }
+}
+
+.terminalError {
+    color: #ff6b6b;
+}
+
+.terminalLabel {
+    color: rgba(0, 255, 136, 0.9);
+    font-weight: 600;
+}
+
+.terminalRecommendation {
+    margin-top: var(--space-2);
+}
+
+.terminalContent {
+    padding: var(--space-3);
+    margin-top: var(--space-2);
+    background: rgba(0, 255, 136, 0.03);
+    border-left: 2px solid rgba(0, 255, 136, 0.3);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.7;
 }

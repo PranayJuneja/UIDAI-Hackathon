@@ -13,12 +13,14 @@ export interface SignalCardProps {
     loading?: boolean;
     lastUpdated?: Date | string;
     nationalAverage?: number;
+    tooltipPosition?: 'left' | 'right' | 'top' | 'bottom';
 }
 
 const SIGNAL_CONFIG = {
     growth: {
         label: 'Growth',
         description: 'New settlements (0-5 age)',
+        info: 'Measures new Aadhaar enrollments in the 0-5 age group, indicating new settlements and birth registrations. Higher values suggest growing populations requiring more enrolment centres.',
         color: 'var(--signal-growth)',
         colorRaw: '#4DB6AC',
         gradient: 'var(--gradient-growth)',
@@ -26,6 +28,7 @@ const SIGNAL_CONFIG = {
     flow: {
         label: 'Flow',
         description: 'Migration patterns',
+        info: 'Tracks demographic address updates and migrations. High flow indicates significant population movement (in/out migration), suggesting need for mobile enrolment camps at transit hubs.',
         color: 'var(--signal-flow)',
         colorRaw: '#D0BCFF',
         gradient: 'var(--gradient-flow)',
@@ -33,6 +36,7 @@ const SIGNAL_CONFIG = {
     labor: {
         label: 'Labor',
         description: 'Workforce intensity',
+        info: 'Reflects biometric update frequency among working-age population (18-60). High labor intensity suggests industrial/commercial zones requiring extended operating hours and weekend services.',
         color: 'var(--signal-labor)',
         colorRaw: '#FFE082',
         gradient: 'var(--gradient-labor)',
@@ -114,34 +118,60 @@ function calculatePercentChange(current: number, previous: number | null | undef
 
 const TrendArrow = memo(function TrendArrow({
     trend,
-    ariaLabel
+    ariaLabel,
+    infoText,
+    tooltipPosition = 'left'
 }: {
     trend: 'rising' | 'falling' | 'stable';
     ariaLabel: string;
+    infoText?: string;
+    tooltipPosition?: 'left' | 'right' | 'top' | 'bottom';
 }) {
-    if (trend === 'stable') {
-        return (
-            <span
-                className={`${styles.trendArrow} ${styles.stable}`}
-                role="img"
-                aria-label={ariaLabel}
-            >
-                →
-            </span>
-        );
-    }
+    const [showInfo, setShowInfo] = useState(false);
+
+    const arrowContent = trend === 'stable' ? '→' : trend === 'rising' ? '↑' : '↓';
 
     return (
-        <motion.span
-            className={`${styles.trendArrow} ${styles[trend]}`}
-            initial={{ y: trend === 'rising' ? 5 : -5, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            role="img"
-            aria-label={ariaLabel}
+        <div
+            className={styles.trendArrowWrapper}
+            onMouseEnter={() => setShowInfo(true)}
+            onMouseLeave={() => setShowInfo(false)}
         >
-            {trend === 'rising' ? '↑' : '↓'}
-        </motion.span>
+            {trend === 'stable' ? (
+                <span
+                    className={`${styles.trendArrow} ${styles.stable}`}
+                    role="img"
+                    aria-label={ariaLabel}
+                >
+                    {arrowContent}
+                </span>
+            ) : (
+                <motion.span
+                    className={`${styles.trendArrow} ${styles[trend]}`}
+                    initial={{ y: trend === 'rising' ? 5 : -5, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    role="img"
+                    aria-label={ariaLabel}
+                >
+                    {arrowContent}
+                </motion.span>
+            )}
+
+            <AnimatePresence>
+                {showInfo && infoText && (
+                    <motion.div
+                        className={`${styles.infoTooltip} ${styles[tooltipPosition]}`}
+                        initial={{ opacity: 0, x: tooltipPosition === 'left' ? -5 : tooltipPosition === 'right' ? 5 : 0, y: tooltipPosition === 'top' ? 5 : tooltipPosition === 'bottom' ? -5 : 0 }}
+                        animate={{ opacity: 1, x: 0, y: 0 }}
+                        exit={{ opacity: 0, x: tooltipPosition === 'left' ? -5 : tooltipPosition === 'right' ? 5 : 0, y: tooltipPosition === 'top' ? 5 : tooltipPosition === 'bottom' ? -5 : 0 }}
+                        transition={{ duration: 0.15 }}
+                    >
+                        {infoText}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 });
 
@@ -281,9 +311,9 @@ const SignalCard = memo(function SignalCard({
     loading = false,
     lastUpdated,
     nationalAverage,
+    tooltipPosition = 'left',
 }: SignalCardProps) {
     const config = SIGNAL_CONFIG[type];
-    const [showTooltip, setShowTooltip] = useState(false);
 
     // Normalize and validate the value
     const normalizedValue = useMemo(() => normalizeValue(value), [value]);
@@ -340,10 +370,6 @@ const SignalCard = memo(function SignalCard({
             }}
             role="article"
             aria-label={ariaLabel}
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-            onFocus={() => setShowTooltip(true)}
-            onBlur={() => setShowTooltip(false)}
             tabIndex={0}
         >
             {/* Glow effect */}
@@ -388,6 +414,8 @@ const SignalCard = memo(function SignalCard({
                     <TrendArrow
                         trend={calculatedTrend}
                         ariaLabel={`Trend: ${calculatedTrend}`}
+                        infoText={config.info}
+                        tooltipPosition={tooltipPosition}
                     />
                 )}
 
@@ -403,25 +431,7 @@ const SignalCard = memo(function SignalCard({
                 </div>
             )}
 
-            {/* Tooltip on hover */}
-            <AnimatePresence>
-                {showTooltip && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 5 }}
-                        transition={{ duration: 0.15 }}
-                    >
-                        <Tooltip
-                            config={config}
-                            value={normalizedValue}
-                            percentChange={percentChange}
-                            nationalAverage={nationalAverage}
-                            isStale={isStale}
-                        />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+
         </motion.div>
     );
 });

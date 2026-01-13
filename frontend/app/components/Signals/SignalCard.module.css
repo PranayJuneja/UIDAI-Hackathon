@@ -10,7 +10,7 @@
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-xl);
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
 }
@@ -21,6 +21,7 @@
         0 8px 32px rgba(0, 0, 0, 0.35),
         0 0 40px rgba(208, 188, 255, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    z-index: 50;
 }
 
 /* Focus state for accessibility */
@@ -134,12 +135,19 @@
 }
 
 /* Trend Arrows */
+.trendArrowWrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
 .trendArrow {
     font-size: var(--text-lg);
     font-weight: 700;
     padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-md);
     transition: all 0.2s ease;
+    cursor: help;
 }
 
 .trendArrow.rising {
@@ -155,6 +163,54 @@
 .trendArrow.stable {
     color: var(--text-muted);
     background: rgba(147, 143, 153, 0.15);
+}
+
+/* Info Tooltip for Signal Explanation */
+.infoTooltip {
+    position: absolute;
+    padding: var(--space-3);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%),
+        rgba(10, 15, 26, 0.98);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    width: 220px;
+    z-index: 200;
+    pointer-events: none;
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.left {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: var(--space-2);
+}
+
+.right {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: var(--space-2);
+}
+
+.top {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: var(--space-2);
+}
+
+.bottom {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: var(--space-2);
 }
 
 /* Percent Change Badge */

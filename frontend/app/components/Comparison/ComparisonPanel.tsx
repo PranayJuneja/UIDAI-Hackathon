@@ -4,7 +4,7 @@ import React, { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LocationSelector, { LocationResult } from './LocationSelector';
 import { SignalBreakdown } from '../Signals';
-import { API_BASE } from '../../lib/config';
+import { API_BASE, WS_BASE } from '../../lib/config';
 import styles from './ComparisonPanel.module.css';
 
 interface ComparisonData {
@@ -47,12 +47,11 @@ const ComparisonPanel = memo(function ComparisonPanel({
     // AbortController for request cancellation
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Swap locations handler
-    const handleSwapLocations = useCallback(() => {
-        const temp = location1;
-        setLocation1(location2);
-        setLocation2(temp);
-    }, [location1, location2]);
+    // AI Recommendation state
+    const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiError, setAiError] = useState<string | null>(null);
+    const wsRef = useRef<WebSocket | null>(null);
 
     // Fetch with retry logic
     const fetchWithRetry = useCallback(async (
@@ -156,20 +155,155 @@ const ComparisonPanel = memo(function ComparisonPanel({
 
         return () => {
             abortControllerRef.current?.abort();
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
         };
     }, [location1, location2, fetchWithRetry]);
 
-    // Calculate difference between two values
-    const getDifference = useCallback((val1: number, val2: number) => {
-        const diff = val1 - val2;
-        const percentage = val2 !== 0 ? ((diff / val2) * 100).toFixed(1) : 'N/A';
-        return {
-            value: diff,
-            percentage,
-            isPositive: diff > 0,
-            isNegative: diff < 0,
+    // Fetch AI Recommendation when comparison data is ready
+    useEffect(() => {
+        if (!comparisonData?.location1 || !comparisonData?.location2 || !location1 || !location2) {
+            setAiRecommendation(null);
+            return;
+        }
+
+        // Clean up previous WebSocket
+        if (wsRef.current) {
+            wsRef.current.close();
+        }
+
+        const fetchAIRecommendation = async () => {
+            setAiLoading(true);
+            setAiError(null);
+            setAiRecommendation('');
+
+            try {
+                // Connect to WebSocket for streaming recommendation
+                const wsUrl = `${WS_BASE}/ws/compare`;
+                const ws = new WebSocket(wsUrl);
+                wsRef.current = ws;
+
+                ws.onopen = () => {
+                    // Send comparison context
+                    ws.send(JSON.stringify({
+                        type: 'compare_request',
+                        location1: {
+                            name: location1.name,
+                            type: location1.type,
+                            signals: comparisonData.location1!.signals,
+                            hotspot: comparisonData.location1!.hotspot
+                        },
+                        location2: {
+                            name: location2.name,
+                            type: location2.type,
+                            signals: comparisonData.location2!.signals,
+                            hotspot: comparisonData.location2!.hotspot
+                        }
+                    }));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'stream') {
+                            setAiRecommendation(prev => (prev || '') + (data.content || ''));
+                        } else if (data.type === 'stream_end') {
+                            setAiLoading(false);
+                            if (data.content) {
+                                setAiRecommendation(data.content);
+                            }
+                        } else if (data.type === 'error') {
+                            setAiError(data.message || 'Failed to generate recommendation');
+                            setAiLoading(false);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse WebSocket message:', e);
+                    }
+                };
+
+                ws.onerror = () => {
+                    // Fall back to HTTP endpoint
+                    ws.close();
+                    fetchHTTPRecommendation();
+                };
+
+                ws.onclose = () => {
+                    // Cleanup
+                    if (wsRef.current === ws) {
+                        wsRef.current = null;
+                    }
+                };
+            } catch {
+                // Fall back to HTTP
+                fetchHTTPRecommendation();
+            }
         };
-    }, []);
+
+        const fetchHTTPRecommendation = async () => {
+            try {
+                const response = await fetch(`${API_BASE}/api/compare/recommend`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location1: {
+                            name: location1!.name,
+                            type: location1!.type,
+                            signals: comparisonData!.location1!.signals,
+                            hotspot: comparisonData!.location1!.hotspot
+                        },
+                        location2: {
+                            name: location2!.name,
+                            type: location2!.type,
+                            signals: comparisonData!.location2!.signals,
+                            hotspot: comparisonData!.location2!.hotspot
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setAiRecommendation(data.recommendation || 'No recommendation available.');
+                } else {
+                    // Use fallback rule-based recommendation
+                    generateFallbackRecommendation();
+                }
+            } catch {
+                generateFallbackRecommendation();
+            } finally {
+                setAiLoading(false);
+            }
+        };
+
+        const generateFallbackRecommendation = () => {
+            const signals1 = comparisonData!.location1!.signals;
+            const signals2 = comparisonData!.location2!.signals;
+            const avg1 = (signals1.growth + signals1.flow + signals1.labor) / 3;
+            const avg2 = (signals2.growth + signals2.flow + signals2.labor) / 3;
+            const loc1Higher = avg1 > avg2;
+            const higherLoc = loc1Higher ? location1!.name : location2!.name;
+            const lowerLoc = loc1Higher ? location2!.name : location1!.name;
+            const totalDiff = Math.abs(signals1.growth - signals2.growth) +
+                Math.abs(signals1.flow - signals2.flow) +
+                Math.abs(signals1.labor - signals2.labor);
+
+            if (totalDiff < 0.5) {
+                setAiRecommendation(`Both locations show similar demand patterns. Maintain current resource allocation.`);
+            } else if (totalDiff < 1.5) {
+                setAiRecommendation(`${higherLoc} shows moderately higher demand. Consider mobile camp deployment during peak hours.`);
+            } else {
+                setAiRecommendation(`PRIORITY: ${higherLoc}. Deploy additional permanent centres and extend operating hours. ${lowerLoc} can share resources.`);
+            }
+        };
+
+        fetchAIRecommendation();
+
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        };
+    }, [comparisonData, location1, location2]);
 
     // Handle escape key
     useEffect(() => {
@@ -228,16 +362,6 @@ const ComparisonPanel = memo(function ComparisonPanel({
                             />
 
                             <div className={styles.selectorControls}>
-                                <button
-                                    className={styles.swapButton}
-                                    onClick={handleSwapLocations}
-                                    disabled={!location1 || !location2}
-                                    type="button"
-                                    aria-label="Swap locations"
-                                    title="Swap locations"
-                                >
-                                    ⇄
-                                </button>
                                 <div className={styles.vsIndicator}>VS</div>
                             </div>
 
@@ -280,6 +404,7 @@ const ComparisonPanel = memo(function ComparisonPanel({
                                             <SignalBreakdown
                                                 signals={comparisonData.location1.signals}
                                                 compact
+                                                tooltipPosition="right"
                                             />
                                         )}
                                     </div>
@@ -296,71 +421,72 @@ const ComparisonPanel = memo(function ComparisonPanel({
                                             <SignalBreakdown
                                                 signals={comparisonData.location2.signals}
                                                 compact
+                                                tooltipPosition="left"
                                             />
                                         )}
                                     </div>
                                 </div>
 
-                                {/* UIDAI Action Recommendation */}
-                                {comparisonData.location1 && comparisonData.location2 && (() => {
-                                    // Calculate overall priority based on signal differences
-                                    const signals1 = comparisonData.location1.signals;
-                                    const signals2 = comparisonData.location2.signals;
-
-                                    // Calculate average signal magnitude for each location
-                                    const avg1 = (signals1.growth + signals1.flow + signals1.labor) / 3;
-                                    const avg2 = (signals2.growth + signals2.flow + signals2.labor) / 3;
-
-                                    // Calculate individual differences
-                                    const growthDiff = Math.abs(signals1.growth - signals2.growth);
-                                    const flowDiff = Math.abs(signals1.flow - signals2.flow);
-                                    const laborDiff = Math.abs(signals1.labor - signals2.labor);
-                                    const totalDiff = growthDiff + flowDiff + laborDiff;
-
-                                    // Determine which location has higher demand
-                                    const loc1Higher = avg1 > avg2;
-                                    const higherLoc = loc1Higher ? location1?.name : location2?.name;
-                                    const lowerLoc = loc1Higher ? location2?.name : location1?.name;
-
-                                    // Determine significant signal differences
-                                    const significantSignals: string[] = [];
-                                    if (growthDiff > 0.3) significantSignals.push('Growth');
-                                    if (flowDiff > 0.3) significantSignals.push('Flow');
-                                    if (laborDiff > 0.3) significantSignals.push('Labor');
-
-                                    let recommendation: string;
-                                    let urgency: 'low' | 'medium' | 'high';
-
-                                    if (totalDiff < 0.5) {
-                                        // Both locations similar - no action needed
-                                        urgency = 'low';
-                                        recommendation = `Both ${location1?.name} and ${location2?.name} show similar demand patterns. No resource reallocation required. Maintain current enrolment capacity at both locations.`;
-                                    } else if (totalDiff < 1.5) {
-                                        // Moderate difference
-                                        urgency = 'medium';
-                                        recommendation = `${higherLoc} shows moderately higher demand${significantSignals.length > 0 ? ` in ${significantSignals.join(', ')}` : ''}. Consider allocating additional mobile camps to ${higherLoc} during peak hours while maintaining existing setup at ${lowerLoc}.`;
-                                    } else {
-                                        // Significant difference - action required
-                                        urgency = 'high';
-                                        recommendation = `PRIORITIZE ${higherLoc?.toUpperCase()}. Significantly higher demand detected${significantSignals.length > 0 ? ` in ${significantSignals.join(', ')}` : ''}. Recommend deploying additional permanent centres and extending operating hours. ${lowerLoc} can operate with reduced capacity or share resources with ${higherLoc}.`;
-                                    }
-
-                                    return (
-                                        <div className={styles.differenceSection}>
-                                            <h4 className={styles.differenceTitle}>
-                                                UIDAI Action Recommendation
-                                            </h4>
-                                            <div className={`${styles.actionCard} ${styles[`urgency${urgency.charAt(0).toUpperCase() + urgency.slice(1)}`]}`}>
-                                                <div className={styles.urgencyBadge} data-urgency={urgency}>
-                                                    {urgency === 'low' ? '✓' : urgency === 'medium' ? '!' : '⚠'} {urgency.toUpperCase()} PRIORITY
-                                                </div>
-                                                <p className={styles.recommendationText}>
-                                                    {recommendation}
-                                                </p>
-                                            </div>
+                                {/* AI-Powered Terminal Recommendation */}
+                                {comparisonData.location1 && comparisonData.location2 && (
+                                    <div className={styles.terminalSection}>
+                                        <div className={styles.terminalHeader}>
+                                            <span className={styles.terminalDot} />
+                                            <span className={styles.terminalDot} />
+                                            <span className={styles.terminalDot} />
+                                            <span className={styles.terminalTitle}>CHRONOS ANALYSIS</span>
                                         </div>
-                                    );
-                                })()}
+                                        <div className={styles.terminalBody}>
+                                            <div className={styles.terminalLine}>
+                                                <span className={styles.terminalPrefix}>▸</span>
+                                                <span>COMPARATIVE ANALYSIS: {location1?.name} vs {location2?.name}</span>
+                                            </div>
+                                            <div className={styles.terminalLine}>
+                                                <span className={styles.terminalPrefix}>▸</span>
+                                                <span>═══════════════════════════════════════</span>
+                                            </div>
+
+                                            {aiLoading && (
+                                                <div className={styles.terminalLine}>
+                                                    <span className={styles.terminalPrefix}>▸</span>
+                                                    <span>GENERATING RECOMMENDATION</span>
+                                                    <span className={styles.terminalCursor}>█</span>
+                                                </div>
+                                            )}
+
+                                            {aiError && (
+                                                <div className={styles.terminalLine}>
+                                                    <span className={styles.terminalPrefix}>!</span>
+                                                    <span className={styles.terminalError}>{aiError}</span>
+                                                </div>
+                                            )}
+
+                                            {aiRecommendation && (
+                                                <motion.div
+                                                    className={styles.terminalRecommendation}
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                >
+                                                    <div className={styles.terminalLine}>
+                                                        <span className={styles.terminalPrefix}>▸</span>
+                                                        <span className={styles.terminalLabel}>RECOMMENDATION:</span>
+                                                    </div>
+                                                    <div className={styles.terminalContent}>
+                                                        {aiRecommendation}
+                                                        {aiLoading && <span className={styles.terminalCursor}>█</span>}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {!aiLoading && !aiError && !aiRecommendation && (
+                                                <div className={styles.terminalLine}>
+                                                    <span className={styles.terminalPrefix}>▸</span>
+                                                    <span>AWAITING ANALYSIS...</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

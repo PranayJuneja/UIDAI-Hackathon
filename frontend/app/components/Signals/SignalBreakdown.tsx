@@ -21,6 +21,7 @@ export interface SignalBreakdownProps {
     nationalAverages?: SignalData;
     lastUpdated?: Date | string;
     showComposite?: boolean;
+    tooltipPosition?: 'left' | 'right' | 'top' | 'bottom';
 }
 
 /**
@@ -119,6 +120,7 @@ const SignalBreakdown = memo(function SignalBreakdown({
     nationalAverages,
     lastUpdated,
     showComposite = false,
+    tooltipPosition = 'left',
 }: SignalBreakdownProps) {
     // Handle undefined/null signals object
     const safeSignals = useMemo(() => {
@@ -211,6 +213,7 @@ const SignalBreakdown = memo(function SignalBreakdown({
                     loading={loading}
                     lastUpdated={lastUpdated}
                     nationalAverage={nationalAverages?.growth ?? undefined}
+                    tooltipPosition={tooltipPosition}
                 />
             </motion.div>
 
@@ -224,6 +227,7 @@ const SignalBreakdown = memo(function SignalBreakdown({
                     loading={loading}
                     lastUpdated={lastUpdated}
                     nationalAverage={nationalAverages?.flow ?? undefined}
+                    tooltipPosition={tooltipPosition}
                 />
             </motion.div>
 
@@ -237,6 +241,7 @@ const SignalBreakdown = memo(function SignalBreakdown({
                     loading={loading}
                     lastUpdated={lastUpdated}
                     nationalAverage={nationalAverages?.labor ?? undefined}
+                    tooltipPosition={tooltipPosition}
                 />
             </motion.div>
         </motion.div>
