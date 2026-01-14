@@ -39,6 +39,11 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+try:
+    from src.security_utils import sanitize_for_prompt
+except ImportError:
+    from security_utils import sanitize_for_prompt
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2053,6 +2058,9 @@ async def websocket_chat(websocket: WebSocket):
             if not user_content or not user_content.strip():
                 continue
             
+            # Sanitize user content
+            user_content = sanitize_for_prompt(user_content, max_length=2000)
+
             # Send typing indicator
             try:
                 await chat_manager.send_json(websocket, {
@@ -2202,6 +2210,9 @@ async def websocket_terminal_chat(websocket: WebSocket):
             if not user_content or not user_content.strip():
                 continue
             
+            # Sanitize user content
+            user_content = sanitize_for_prompt(user_content, max_length=2000)
+
             # Clear session if district changed
             if current_session_id is not None and current_session_id != session_id:
                 terminal_bot.clear_session(current_session_id)
@@ -2415,14 +2426,14 @@ async def websocket_compare(websocket: WebSocket):
             
             # Build the comparison prompt
             system_prompt = COMPARISON_SYSTEM_PROMPT.format(
-                loc1_name=loc1.get("name", "Location 1"),
-                loc1_type=loc1.get("type", "region"),
+                loc1_name=sanitize_for_prompt(str(loc1.get("name", "Location 1")), 50),
+                loc1_type=sanitize_for_prompt(str(loc1.get("type", "region")), 30),
                 loc1_growth=loc1_signals.get("growth", 0),
                 loc1_flow=loc1_signals.get("flow", 0),
                 loc1_labor=loc1_signals.get("labor", 0),
                 loc1_hotspot=loc1_hotspot.get("intensity", 0),
-                loc2_name=loc2.get("name", "Location 2"),
-                loc2_type=loc2.get("type", "region"),
+                loc2_name=sanitize_for_prompt(str(loc2.get("name", "Location 2")), 50),
+                loc2_type=sanitize_for_prompt(str(loc2.get("type", "region")), 30),
                 loc2_growth=loc2_signals.get("growth", 0),
                 loc2_flow=loc2_signals.get("flow", 0),
                 loc2_labor=loc2_signals.get("labor", 0),

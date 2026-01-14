@@ -16,6 +16,11 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
+try:
+    from src.security_utils import sanitize_for_prompt
+except ImportError:
+    from security_utils import sanitize_for_prompt
+
 # Internal engines
 try:
     from src.chronos_engine import ChronosX, ChronosDataEngine
@@ -148,15 +153,17 @@ class LangChainBot:
         Input: User text
         Output: { "text": "...", "client_action": { type: "...", payload: "..." } }
         """
+        clean_text = sanitize_for_prompt(user_text, max_length=1000)
+
         response = await self.agent_executor.ainvoke({
-            "input": user_text,
+            "input": clean_text,
             "chat_history": self.chat_history[-10:]  # Keep last 10 turns
         })
 
         output_text = response["output"]
         
         # Save to memory
-        self.chat_history.append(HumanMessage(content=user_text))
+        self.chat_history.append(HumanMessage(content=clean_text))
         self.chat_history.append(AIMessage(content=output_text))
 
         # Parse output for Map Actions
@@ -196,13 +203,14 @@ class LangChainBot:
             {"type": "token", "content": "..."} for each token
             {"type": "action", "client_action": {...}} at the end if applicable
         """
+        clean_text = sanitize_for_prompt(user_text, max_length=1000)
         accumulated_text = ""
         client_action = None
         
         try:
             # Use astream_events for streaming with tool tracking
             async for event in self.agent_executor.astream_events(
-                {"input": user_text, "chat_history": self.chat_history[-10:]},
+                {"input": clean_text, "chat_history": self.chat_history[-10:]},
                 version="v2"
             ):
                 kind = event.get("event")
@@ -234,7 +242,7 @@ class LangChainBot:
             
             # Save to memory
             if accumulated_text:
-                self.chat_history.append(HumanMessage(content=user_text))
+                self.chat_history.append(HumanMessage(content=clean_text))
                 self.chat_history.append(AIMessage(content=accumulated_text))
             
             # Yield final action if present

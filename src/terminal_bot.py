@@ -19,6 +19,11 @@ from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
+try:
+    from src.security_utils import sanitize_for_prompt
+except ImportError:
+    from security_utils import sanitize_for_prompt
+
 logger = logging.getLogger("TerminalBot")
 
 # Terminal-focused system prompt - comprehensive and impressive
@@ -250,9 +255,10 @@ class TerminalBot:
         
         try:
             # Build the system prompt with location context
-            location_name = context.get("location", "Unknown")
-            location_type = context.get("type", "district")
-            state_name = context.get("state", "Unknown")
+            # Sanitize inputs to prevent prompt injection via context
+            location_name = sanitize_for_prompt(str(context.get("location", "Unknown")), max_length=50)
+            location_type = sanitize_for_prompt(str(context.get("type", "district")), max_length=30)
+            state_name = sanitize_for_prompt(str(context.get("state", "Unknown")), max_length=50)
             signals = context.get("signals", {})
             
             # Extract signal values
@@ -315,7 +321,9 @@ class TerminalBot:
                 messages.append(msg)
             
             # Add current user message
-            messages.append(HumanMessage(content=message))
+            # Sanitize user message to prevent control character injection/DoS
+            clean_message = sanitize_for_prompt(message, max_length=1000)
+            messages.append(HumanMessage(content=clean_message))
             
             # Stream response directly from LLM - no AgentExecutor!
             accumulated_text = ""
@@ -326,7 +334,7 @@ class TerminalBot:
                     yield {"type": "token", "content": chunk.content}
             
             # Save to session history
-            history.append(HumanMessage(content=message))
+            history.append(HumanMessage(content=clean_message))
             history.append(AIMessage(content=accumulated_text))
             
             # Limit history size to prevent memory bloat
