@@ -2,6 +2,52 @@
 
 
 
+## [3.3.0] - 2026-01-15 - THE COPILOT INTELLIGENCE OVERHAUL
+> *"Ask anything. Get answers fast."*
+
+### 🔥 Headline Features
+
+#### 1. Unified Copilot Bot (5x Faster Responses)
+> *No more waiting. No more auto-navigation.*
+- **Removed LangChain Agent**: Replaced slow `langchain_bot.py` AgentExecutor with direct LLM streaming.
+- **~1 Second First Token**: vs 5-10 seconds with the old implementation.
+- **No Auto-Navigation**: Map stays where you put it. The Copilot answers, you navigate.
+
+#### 2. Comprehensive Query Support
+> *State. District. Pincode. Forecast. Compare.*
+- **Query Intent Detection**: Lightweight regex/keyword matching identifies what you're asking for.
+- **Dynamic Context Injection**: Before each response, fetches relevant data from ChronosDataEngine.
+- **Example Queries**:
+  - `"What's happening in Maharashtra?"` → State-level signals + hotspot
+  - `"Tell me about Pune district"` → District signals + similar districts
+  - `"Lookup pincode 411001"` → Pincode data + Chronos forecast
+  - `"Compare Bihar vs Jharkhand"` → Side-by-side signal comparison
+  - `"Show me top hotspot states"` → National ranking
+
+#### 3. New WebSocket Endpoint
+> *Dedicated, fast, reliable.*
+- **`/ws/copilot`**: New endpoint specifically for the enhanced Copilot.
+- **Separate Connection Pool**: `copilot_manager` with independent per-IP limits.
+- **Session Management**: Chat history scoped per connection, auto-cleared on disconnect.
+
+### Added
+| File | Purpose |
+|------|---------|
+| `src/copilot_bot.py` | New unified intelligence bot with intent detection and context injection |
+
+### Changed
+| File | Changes |
+|------|---------|
+| `api_server.py` | Added copilot import/init, `/ws/copilot` endpoint, `copilot_manager` |
+| `frontend/app/lib/config.ts` | Added `WS_COPILOT_URL` constant |
+| `frontend/app/components/Chatbot/Chatbot.tsx` | Switched to `/ws/copilot`, removed handleClientAction |
+
+### Removed
+- **Auto-Navigation Actions**: `handleClientAction` function removed from Chatbot component
+- **Map Store Dependency**: Chatbot no longer imports or uses `useMapStore`
+
+---
+
 ## [3.2.4] - 2026-01-15 - THE NEGATIVE SIGNAL INTELLIGENCE FIX
 > *"When demand drops, we don't build more."*
 

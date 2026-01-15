@@ -17,6 +17,9 @@ export const WS_CHAT_URL = `${WS_BASE.replace(/\/$/, '')}/ws/chat`;
 // WebSocket terminal chat endpoint (lightweight, for district view)
 export const WS_TERMINAL_URL = `${WS_BASE.replace(/\/$/, '')}/ws/terminal-chat`;
 
+// WebSocket copilot endpoint (comprehensive, fast global chat)
+export const WS_COPILOT_URL = `${WS_BASE.replace(/\/$/, '')}/ws/copilot`;
+
 // Request timeout in milliseconds
 export const REQUEST_TIMEOUT_MS = 10000;
 

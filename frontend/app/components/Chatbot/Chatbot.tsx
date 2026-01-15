@@ -4,8 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Sparkles, WifiOff, Loader2 } from 'lucide-react';
 import ChatBubble from './ChatBubble';
-import { useMapStore } from '../../stores/mapStore';
-import { WS_CHAT_URL } from '../../lib/config';
+import { WS_COPILOT_URL } from '../../lib/config';
 import styles from './Chatbot.module.css';
 
 interface Message {
@@ -35,10 +34,6 @@ const Chatbot = () => {
     const messageQueueRef = useRef<string[]>([]);
     const streamingMessageIdRef = useRef<string | null>(null);  // Track current streaming message
 
-    // Map Store Actions
-    const drillIntoState = useMapStore(state => state.drillIntoState);
-    const drillBackToIndia = useMapStore(state => state.drillBackToIndia);
-
     // Scroll to bottom when messages change
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,48 +43,6 @@ const Chatbot = () => {
         scrollToBottom();
     }, [messages, isThinking, scrollToBottom]);
 
-    // Handle actions from the AI
-    const handleClientAction = useCallback((action: { type: string; payload?: string | null }) => {
-        if (!action || !action.type) return;
-
-        // Debug logging only in development
-        if (process.env.NODE_ENV === 'development') {
-            console.log("Executing Action:", action);
-        }
-
-        switch (action.type) {
-            case 'FLY_TO':
-            case 'ZOOM':
-            case 'highlight': {
-                const target = action.payload || "India";
-                const states = useMapStore.getState().states;
-                const state = states.find(s =>
-                    s.name.toLowerCase().includes(target.toString().toLowerCase())
-                );
-
-                if (state) {
-                    drillIntoState(state.state_id, state.name);
-                } else if (target.toString().toLowerCase().includes('india')) {
-                    drillBackToIndia();
-                }
-                break;
-            }
-
-            case 'COMPARE': {
-                if (action.payload && typeof action.payload === 'string') {
-                    const parts = action.payload.split(/\s+vs\s+/i);
-                    if (parts.length >= 2) {
-                        // Future: trigger comparison mode in dashboard
-                    }
-                }
-                break;
-            }
-
-            case 'RESET':
-                drillBackToIndia();
-                break;
-        }
-    }, [drillIntoState, drillBackToIndia]);
 
     // WebSocket connection logic
     const connect = useCallback(() => {
@@ -112,7 +65,7 @@ const Chatbot = () => {
         setConnectionStatus('connecting');
 
         try {
-            const ws = new WebSocket(WS_CHAT_URL);
+            const ws = new WebSocket(WS_COPILOT_URL);
 
             ws.onopen = () => {
                 setConnectionStatus('connected');
@@ -189,10 +142,6 @@ const Chatbot = () => {
                                 ));
                                 streamingMessageIdRef.current = null;
                             }
-                            // Handle any action from the AI
-                            if (data.action) {
-                                handleClientAction(data.action);
-                            }
                             break;
 
                         case 'response':
@@ -204,9 +153,6 @@ const Chatbot = () => {
                                     isUser: false
                                 }]);
                             }
-                            if (data.action) {
-                                handleClientAction(data.action);
-                            }
                             break;
 
                         default:
@@ -217,9 +163,6 @@ const Chatbot = () => {
                                     text: data.text,
                                     isUser: false
                                 }]);
-                                if (data.client_action) {
-                                    handleClientAction(data.client_action);
-                                }
                             }
                     }
                 } catch (e) {
@@ -253,7 +196,7 @@ const Chatbot = () => {
             console.error('Failed to create WebSocket', e);
             setConnectionStatus('error');
         }
-    }, [handleClientAction]);
+    }, []);
 
     useEffect(() => {
         if (isOpen) {

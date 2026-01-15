@@ -1355,6 +1355,15 @@ except ImportError as e:
     TERMINAL_BOT_AVAILABLE = False
     terminal_bot = None
 
+# Copilot bot for comprehensive global chat (replaces slow LangChain agent)
+try:
+    from copilot_bot import copilot_bot
+    COPILOT_BOT_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Copilot bot not available: {e}")
+    COPILOT_BOT_AVAILABLE = False
+    copilot_bot = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan - initialize on startup."""
@@ -1378,6 +1387,15 @@ async def lifespan(app: FastAPI):
             logger.info("Terminal bot initialized successfully")
         except Exception as e:
             logger.warning(f"Terminal bot initialization skipped: {e}")
+    
+    # Initialize copilot bot (comprehensive global chat)
+    if COPILOT_BOT_AVAILABLE and copilot_bot:
+        try:
+            copilot_bot.set_data_engine(data_engine)  # Inject data engine for context
+            copilot_bot.initialize()
+            logger.info("Copilot bot initialized successfully")
+        except Exception as e:
+            logger.warning(f"Copilot bot initialization skipped: {e}")
     
     yield
     
@@ -2025,6 +2043,7 @@ class ConnectionManager:
 chat_manager = ConnectionManager(max_per_ip=MAX_WS_CONNECTIONS_PER_IP)
 terminal_manager = ConnectionManager(max_per_ip=MAX_WS_CONNECTIONS_PER_IP)
 compare_manager = ConnectionManager(max_per_ip=MAX_WS_CONNECTIONS_PER_IP)
+copilot_manager = ConnectionManager(max_per_ip=MAX_WS_CONNECTIONS_PER_IP)
 
 @app.websocket("/ws/chat")
 async def websocket_chat(websocket: WebSocket):
@@ -2150,6 +2169,151 @@ async def websocket_chat(websocket: WebSocket):
         logger.error(f"WebSocket error: {e}")
     finally:
         chat_manager.disconnect(websocket)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COPILOT WEBSOCKET (Comprehensive, Fast Global Chat)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.websocket("/ws/copilot")
+async def websocket_copilot(websocket: WebSocket):
+    """
+    WebSocket endpoint for the enhanced Chronos Copilot.
+    Fast, comprehensive chat with NO auto-navigation.
+    
+    Handles:
+    - State queries
+    - District queries
+    - Pincode queries
+    - Forecast queries
+    - Comparison queries
+    - Spatial similarity
+    
+    Message format (from client):
+    {
+        "type": "message",
+        "content": "What's happening in Maharashtra?"
+    }
+    
+    Response format (to client):
+    {
+        "type": "stream_start" | "stream" | "stream_end",
+        "content": "...",
+        "timestamp": "..."
+    }
+    """
+    # Check connection limit
+    if not await copilot_manager.connect(websocket):
+        return
+    
+    # Check copilot availability
+    if not COPILOT_BOT_AVAILABLE or copilot_bot is None:
+        try:
+            await copilot_manager.send_json(websocket, {
+                "type": "system",
+                "content": "Copilot is not available. Please check server configuration.",
+                "timestamp": datetime.now().isoformat()
+            })
+        except Exception:
+            pass
+        copilot_manager.disconnect(websocket)
+        return
+    
+    # Send welcome message
+    try:
+        await copilot_manager.send_json(websocket, {
+            "type": "system",
+            "content": "Connected to Chronos-X AI. Ask me anything about migration patterns, forecasts, or regional analysis!",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Copilot: Failed to send welcome: {e}")
+        copilot_manager.disconnect(websocket)
+        return
+    
+    session_id = f"copilot_{id(websocket)}"
+    
+    try:
+        while True:
+            # Receive message with timeout
+            try:
+                raw_data = await copilot_manager.receive_text_with_timeout(websocket)
+            except asyncio.TimeoutError:
+                logger.info("Copilot WebSocket timed out - closing connection")
+                await copilot_manager.send_json(websocket, {
+                    "type": "system",
+                    "content": "Connection timed out due to inactivity.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                break
+            
+            # Check message size
+            if len(raw_data) > MAX_WS_MESSAGE_SIZE:
+                await copilot_manager.send_json(websocket, {
+                    "type": "error",
+                    "content": f"Message too large. Max size is {MAX_WS_MESSAGE_SIZE // 1024}KB.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                continue
+            
+            # Parse message
+            try:
+                message_data = json.loads(raw_data)
+                user_content = message_data.get("content", "")
+            except json.JSONDecodeError:
+                user_content = raw_data
+            
+            # Skip empty messages
+            if not user_content or not user_content.strip():
+                continue
+            
+            # Send typing indicator
+            try:
+                await copilot_manager.send_json(websocket, {
+                    "type": "typing",
+                    "timestamp": datetime.now().isoformat()
+                })
+            except Exception:
+                pass
+            
+            # Stream response from copilot bot
+            try:
+                await copilot_manager.send_json(websocket, {
+                    "type": "stream_start",
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                async for chunk in copilot_bot.stream_response(
+                    message=user_content,
+                    session_id=session_id
+                ):
+                    if chunk.get("type") == "token":
+                        await copilot_manager.send_json(websocket, {
+                            "type": "stream",
+                            "content": chunk.get("content", "")
+                        })
+                    elif chunk.get("type") == "complete":
+                        await copilot_manager.send_json(websocket, {
+                            "type": "stream_end",
+                            "content": chunk.get("content", ""),
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+            except Exception as e:
+                logger.error(f"Copilot streaming error: {e}")
+                await copilot_manager.send_json(websocket, {
+                    "type": "response",
+                    "content": "I encountered an error. Please try again.",
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+    except WebSocketDisconnect:
+        logger.info("Client disconnected from Copilot")
+    except Exception as e:
+        logger.error(f"Copilot WebSocket error: {e}")
+    finally:
+        if copilot_bot:
+            copilot_bot.clear_session(session_id)
+        copilot_manager.disconnect(websocket)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TERMINAL CHAT WEBSOCKET (Lightweight, District-specific)
