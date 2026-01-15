@@ -749,6 +749,30 @@ class ChronosDataEngine:
         else:
             latest = df["month"].max()
             df = df.filter(pl.col("month") == latest)
+        
+        # Special case: Delhi - treat as single district since GeoJSON only has 1 feature
+        if state_normalized == "Delhi":
+            all_pincodes = [pin for pins in districts.values() for pin in pins]
+            state_df = df.filter(pl.col("pincode").cast(str).is_in(all_pincodes))
+            
+            if state_df.height == 0:
+                return []
+            
+            signals = SignalData(
+                growth=round(state_df["growth_norm"].mean(), 3),
+                flow=round(state_df["flow_norm"].mean(), 3),
+                labor=round(state_df["labor_norm"].mean(), 3)
+            )
+            
+            return [DistrictAggregation(
+                district_id="DL_DELHI",
+                district_name="Delhi",
+                state_name="Delhi",
+                signals=signals,
+                hotspot=self._calculate_hotspot(signals),
+                pin_count=state_df.height,
+                pincodes=all_pincodes[:20]
+            )]
             
         results = []
         for district_name, pincodes in districts.items():
@@ -830,6 +854,30 @@ class ChronosDataEngine:
             pl.col("forecast_flow").map_elements(lambda x: extract_month_value(x, month_idx), return_dtype=pl.Float64).alias("flow_val"),
             pl.col("forecast_labor").map_elements(lambda x: extract_month_value(x, month_idx), return_dtype=pl.Float64).alias("labor_val"),
         ])
+        
+        # Special case: Delhi - treat as single district since GeoJSON only has 1 feature
+        if state_normalized == "Delhi":
+            all_pincodes = [pin for pins in districts.values() for pin in pins]
+            delhi_df = state_df.filter(pl.col("pincode").cast(str).is_in(all_pincodes))
+            
+            if delhi_df.height == 0:
+                return []
+            
+            signals = SignalData(
+                growth=round(delhi_df["growth_val"].mean() or 0.0, 3),
+                flow=round(delhi_df["flow_val"].mean() or 0.0, 3),
+                labor=round(delhi_df["labor_val"].mean() or 0.0, 3)
+            )
+            
+            return [DistrictAggregation(
+                district_id="DL_DELHI",
+                district_name="Delhi",
+                state_name="Delhi",
+                signals=signals,
+                hotspot=self._calculate_hotspot(signals),
+                pin_count=delhi_df.height,
+                pincodes=all_pincodes[:20]
+            )]
         
         results = []
         for district_name, pincodes in districts.items():

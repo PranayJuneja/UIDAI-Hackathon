@@ -2,6 +2,46 @@
 
 
 
+## [3.2.4] - 2026-01-15 - THE NEGATIVE SIGNAL INTELLIGENCE FIX
+> *"When demand drops, we don't build more."*
+
+### 🐛 Logic Fixes
+
+#### 1. Negative Signal Handling (Terminal View)
+> *Declining signals now mean 'Sufficient Capacity'.*
+- **Problem**: The frontend logic used `Math.max(1, ...)` without checking for negative signal values, causing the system to recommend "Add +1 station" even when signals were negative (e.g., Growth -0.51).
+- **Fix**: Added explicit checks for `allNegative` signals (declining demand).
+- **New Behavior**:
+  - When signals are negative: Shows **"CAPACITY [SUFFICIENT]"** and "Demand signals declining".
+  - **Estimated Volumes**: Now correctly displays negative values (e.g., "Est. -208 biometric updates") instead of broken `+-` formatting.
+  - **Intervention**: Recommends reallocation instead of expansion for declining regions.
+
+### Changed
+| File | Changes |
+|------|---------|
+| `TerminalInfoDisplay.tsx` | Fixed `generateDistrictActions` to handle negative signals, updated intervention logic to support declining demand scenarios |
+
+---
+
+## [3.2.4] - 2026-01-15 - THE DELHI FIX & INTELLIGENCE CALIBRATION
+> *"One capital. Smarter bots."*
+
+### Fixed
+- **Delhi Map Display**: Fixed an issue where the map showed only one district shape for Delhi while the API returned 13 districts, causing a disconnect.
+  - **Backend Consolidation**: Modified `api_server.py` to aggregate all 13 administrative districts of Delhi into a single "Delhi" district entry matches the available GeoJSON.
+  - **Single Click Access**: Clicking Delhi now opens a unified terminal view for the entire NCT region.
+- **Terminal Bot Logic**: Calibrated the `terminal_bot.py` intervention framework to correctly handle negative or low-intensity signals.
+  - **Context**: Previously, the bot sometimes recommended "increasing stations" even for negative growth.
+  - **Fix**: Updated system prompt to strictly enforce "Maintain current" or "Adequate" recommendations for LOW (<0.4) intensity signals.
+
+### Changed
+| File | Changes |
+|------|---------|
+| `api_server.py` | Added special aggregation logic for "Delhi" state in `aggregate_by_district` and `aggregate_forecast_by_district` |
+| `src/terminal_bot.py` | Refined intervention look-up table and signal decomposition instructions |
+
+---
+
 ## [3.2.3] - 2026-01-13 - THE BACKEND STABILITY UPDATE
 > *"Leaks plugged. Timeouts set. Isolation confirmed."*
 

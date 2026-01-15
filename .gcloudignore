@@ -1,0 +1,16 @@
+.gcloudignore
+.git
+.gitignore
+.dockerignore
+venv/
+frontend/
+node_modules/
+__pycache__/
+*.pyc
+*.ipynb
+.env
+.env.*
+local.env
+Verification_Scripts/
+docs/
+scripts/

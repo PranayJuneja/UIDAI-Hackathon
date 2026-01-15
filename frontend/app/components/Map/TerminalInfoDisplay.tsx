@@ -205,11 +205,16 @@ function generateDistrictActions(signals: SignalData, hotspot: HotspotData): str
     const laborPct = Math.round(signals.labor * 100);
 
     // Estimate monthly enrollments based on signal (scaled for district size)
+    // Use Math.round which handles negatives correctly
     const estEnrollments = Math.round(signals.growth * 1000);
     const estUpdates = Math.round(signals.labor * 800);
     const estMigration = Math.round(signals.flow * 500);
 
-    // Identify primary signal
+    // Check if all signals are negative (declining demand)
+    const allNegative = signals.growth < 0 && signals.flow < 0 && signals.labor < 0;
+    const averageSignal = (signals.growth + signals.flow + signals.labor) / 3;
+
+    // Identify primary signal (for negative values, we want the LEAST negative = highest value)
     const signalValues = [
         { name: 'GROWTH', value: signals.growth, pct: growthPct, est: estEnrollments, unit: 'enrollments' },
         { name: 'FLOW', value: signals.flow, pct: flowPct, est: estMigration, unit: 'migrations' },
@@ -224,32 +229,54 @@ function generateDistrictActions(signals: SignalData, hotspot: HotspotData): str
     actions.push('══════ INTERVENTION ANALYSIS ══════');
     actions.push('');
 
-    // Primary signal with detailed breakdown
+    // Primary signal with detailed breakdown - handle negative values
     actions.push(`PRIMARY SIGNAL: ${primary.name} @ ${primary.value.toFixed(2)}`);
     actions.push('┌─────────────────────────────────┐');
 
-    if (primary.name === 'GROWTH') {
-        actions.push('│ Child Enrolment Surge Detected │');
-        actions.push(`│ Est. +${primary.est} new enrolments/mo  │`);
-    } else if (primary.name === 'FLOW') {
-        actions.push('│ Migration Corridor Active      │');
-        actions.push(`│ Est. +${primary.est} address updates/mo │`);
+    if (allNegative || averageSignal < 0) {
+        // All signals declining - show appropriate messaging
+        if (primary.name === 'GROWTH') {
+            actions.push('│ Child Enrolment Declining      │');
+            actions.push(`│ Est. ${primary.est} enrolments/mo     │`);
+        } else if (primary.name === 'FLOW') {
+            actions.push('│ Migration Activity Declining   │');
+            actions.push(`│ Est. ${primary.est} address updates/mo│`);
+        } else {
+            actions.push('│ Workforce Update Activity      │');
+            actions.push(`│ Est. ${primary.est} biometric updates  │`);
+        }
     } else {
-        actions.push('│ Workforce Update Activity      │');
-        actions.push(`│ Est. +${primary.est} biometric updates  │`);
+        if (primary.name === 'GROWTH') {
+            actions.push('│ Child Enrolment Surge Detected │');
+            actions.push(`│ Est. +${primary.est} new enrolments/mo  │`);
+        } else if (primary.name === 'FLOW') {
+            actions.push('│ Migration Corridor Active      │');
+            actions.push(`│ Est. +${primary.est} address updates/mo │`);
+        } else {
+            actions.push('│ Workforce Update Activity      │');
+            actions.push(`│ Est. +${primary.est} biometric updates  │`);
+        }
     }
     actions.push('└─────────────────────────────────┘');
     actions.push('');
 
     // Calculate required interventions based on intensity
-    const stationsNeeded = Math.max(1, Math.round(hotspot.intensity * 4));
-    const staffNeeded = Math.max(1, Math.round(hotspot.intensity * 5));
+    // Only calculate positive stations if intensity is actually positive and demand is growing
+    const effectiveIntensity = allNegative ? 0 : Math.max(0, hotspot.intensity);
+    const stationsNeeded = Math.max(1, Math.round(effectiveIntensity * 4));
+    const staffNeeded = Math.max(1, Math.round(effectiveIntensity * 5));
 
     actions.push('REQUIRED ACTIONS (by priority):');
     actions.push('');
 
-    // Priority 1: Capacity
-    if (hotspot.intensity >= 0.7) {
+    // Priority 1: Capacity - CHECK FOR NEGATIVE/DECLINING SIGNALS FIRST
+    if (allNegative || averageSignal < 0) {
+        // Declining demand - don't recommend adding stations!
+        actions.push('1. CAPACITY [SUFFICIENT]');
+        actions.push('   → Demand signals declining');
+        actions.push('   → Current infrastructure adequate');
+        actions.push('   → Consider reallocation to high-demand areas');
+    } else if (hotspot.intensity >= 0.7) {
         actions.push('1. CAPACITY [CRITICAL]');
         actions.push(`   → Add +${stationsNeeded} enrolment stations`);
         if (primary.name === 'GROWTH') {

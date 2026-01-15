@@ -1,6 +1,7 @@
 # Chronos-X Deployment Guide
 
 **Stack:** FastAPI (Python 3.10) + Next.js 16 | **Deploy:** GCP Cloud Run + Vercel
+**Live Backend:** https://chronos-api-454599936198.asia-south1.run.app
 
 ---
 
@@ -234,7 +235,7 @@ WS   wss://your-backend.run.app/ws/chat               → WebSocket handshake
 | Issue | Fix |
 |-------|-----|
 | **502/503 errors** | Increase `--memory` to 4Gi |
-| **CORS errors** | Update `ALLOWED_ORIGINS` with exact Vercel URL |
+| **CORS errors** | *Fix:* In `api_server.py`, update `ALLOWED_ORIGINS` to include your Vercel domain or set it to `["*"]` for testing.<br>    *   **Production Lock-down:** `gcloud run services update chronos-api --region asia-south1 --set-env-vars "ALLOWED_ORIGINS=https://chronos.cognexis.in"` |
 | **Cold start slow (10s+)** | Set `--min-instances 1` (~$15/month) |
 | **WebSocket disconnects** | Check `--timeout 300` is set |
 | **AI not responding** | Verify `AI_GATEWAY_API_KEY` is correct |
