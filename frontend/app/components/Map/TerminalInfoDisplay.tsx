@@ -568,7 +568,7 @@ export default function TerminalInfoDisplay({
                 setShowFinalLine(true);
                 setAnimationPhase('complete');
                 setIsComplete(true);
-            }, 1000);
+            }, 3000);
             return () => clearTimeout(timer);
         }
     }, [animationPhase, insightLineIndex, insightLines, finalLine, type]);
