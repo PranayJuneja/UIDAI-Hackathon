@@ -39,6 +39,13 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+try:
+    from security_utils import sanitize_for_prompt
+except ImportError:
+    # Fallback if import fails
+    def sanitize_for_prompt(text: str) -> str:
+        return text.strip()
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -996,8 +1003,8 @@ class ChronosDataEngine:
         """Search for locations matching query. Input is sanitized for safety."""
         results = []
         
-        # Input sanitization - limit length and clean
-        query = query[:100].strip()  # Limit to 100 chars
+        # Input sanitization
+        query = sanitize_for_prompt(query)[:100]  # Sanitize and limit length
         if not query:
             return []
         query_lower = query.lower()
@@ -1639,20 +1646,19 @@ async def compare_locations(
 ):
     """Compare two locations side by side."""
     
-    # Sanitize location IDs - prevent injection and limit length
-    def sanitize_location_id(loc: str) -> str:
-        # Strip whitespace and limit length
-        loc = loc.strip()[:50]
+    # Sanitize location IDs
+    loc1 = sanitize_for_prompt(loc1)
+    loc2 = sanitize_for_prompt(loc2)
+
+    # Additional validation for location IDs
+    def validate_location_id(loc: str) -> bool:
+        if not loc:
+            return False
         # Only allow alphanumeric, underscore, and ampersand (for state names like "Jammu & Kashmir")
         import re
-        if not re.match(r'^[a-zA-Z0-9_&\s]+$', loc):
-            return ""
-        return loc
-    
-    loc1 = sanitize_location_id(loc1)
-    loc2 = sanitize_location_id(loc2)
-    
-    if not loc1 or not loc2:
+        return bool(re.match(r'^[a-zA-Z0-9_&\s]+$', loc))
+
+    if not validate_location_id(loc1) or not validate_location_id(loc2):
         raise HTTPException(status_code=400, detail="Invalid location ID format")
     
     def get_location_data(loc: str):
@@ -2116,8 +2122,11 @@ async def websocket_chat(websocket: WebSocket):
                 # Plain text fallback
                 user_content = raw_data
             
+            # Sanitize user content
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Send typing indicator
@@ -2262,8 +2271,11 @@ async def websocket_copilot(websocket: WebSocket):
             except json.JSONDecodeError:
                 user_content = raw_data
             
+            # Sanitize user content
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Send typing indicator
@@ -2410,8 +2422,11 @@ async def websocket_terminal_chat(websocket: WebSocket):
                 session_id = "default"
                 context = {}
             
+            # Sanitize user content
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Clear session if district changed

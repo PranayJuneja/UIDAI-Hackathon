@@ -53,38 +53,18 @@ class Style:
 # Ensure src is in path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+try:
+    from security_utils import sanitize_for_prompt
+except ImportError:
+    # Fallback if import fails
+    def sanitize_for_prompt(text: str) -> str:
+        return text.strip()
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECURITY CONSTANTS & INPUT SANITIZATION
 # ═══════════════════════════════════════════════════════════════════════════════
 MAX_INPUT_LENGTH = 1000
 MAX_HISTORY_LENGTH = 50  # Prevent unbounded history growth
-
-def sanitize_input(text: str) -> str:
-    """
-    Sanitize user input to prevent issues.
-    
-    Handles:
-    - Control characters (except newlines)
-    - Unicode normalization (fancy quotes → regular quotes)
-    - Multiple spaces collapsed
-    - Leading/trailing whitespace
-    """
-    import unicodedata
-    
-    if not text:
-        return ""
-    
-    # Remove control characters (except newlines and tabs)
-    text = ''.join(c for c in text if c.isprintable() or c in '\n\t')
-    
-    # Normalize unicode (handle fancy quotes, etc.)
-    text = unicodedata.normalize('NFKC', text)
-    
-    # Collapse multiple spaces into one
-    text = ' '.join(text.split())
-    
-    return text.strip()
-
 
 # Load environment variables from local.env
 def load_env(filename="local.env"):
@@ -329,7 +309,7 @@ class ChronosChatbot:
         self.query_count += 1
         
         # Security: Sanitize input
-        user_input = sanitize_input(user_input)
+        user_input = sanitize_for_prompt(user_input)
         
         # Security: Prevent DoS/Resource Exhaustion
         if len(user_input) > MAX_INPUT_LENGTH:
