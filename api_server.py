@@ -30,6 +30,7 @@ from pathlib import Path
 import time
 from typing import Any, Dict, List, Optional
 
+from src.security_utils import sanitize_for_prompt
 import polars as pl
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -2624,17 +2625,23 @@ async def websocket_compare(websocket: WebSocket):
             loc2_signals = loc2.get("signals", {})
             loc1_hotspot = loc1.get("hotspot", {})
             loc2_hotspot = loc2.get("hotspot", {})
+
+            # Sanitize inputs for prompt injection
+            loc1_name = sanitize_for_prompt(loc1.get("name", "Location 1"))
+            loc1_type = sanitize_for_prompt(loc1.get("type", "region"))
+            loc2_name = sanitize_for_prompt(loc2.get("name", "Location 2"))
+            loc2_type = sanitize_for_prompt(loc2.get("type", "region"))
             
             # Build the comparison prompt
             system_prompt = COMPARISON_SYSTEM_PROMPT.format(
-                loc1_name=loc1.get("name", "Location 1"),
-                loc1_type=loc1.get("type", "region"),
+                loc1_name=loc1_name,
+                loc1_type=loc1_type,
                 loc1_growth=loc1_signals.get("growth", 0),
                 loc1_flow=loc1_signals.get("flow", 0),
                 loc1_labor=loc1_signals.get("labor", 0),
                 loc1_hotspot=loc1_hotspot.get("intensity", 0),
-                loc2_name=loc2.get("name", "Location 2"),
-                loc2_type=loc2.get("type", "region"),
+                loc2_name=loc2_name,
+                loc2_type=loc2_type,
                 loc2_growth=loc2_signals.get("growth", 0),
                 loc2_flow=loc2_signals.get("flow", 0),
                 loc2_labor=loc2_signals.get("labor", 0),
@@ -2647,7 +2654,7 @@ async def websocket_compare(websocket: WebSocket):
                 
                 messages = [
                     SystemMessage(content=system_prompt),
-                    HumanMessage(content=f"Compare {loc1.get('name', 'Location 1')} with {loc2.get('name', 'Location 2')} and provide your recommendation.")
+                    HumanMessage(content=f"Compare {loc1_name} with {loc2_name} and provide your recommendation.")
                 ]
                 
                 # Stream the response
