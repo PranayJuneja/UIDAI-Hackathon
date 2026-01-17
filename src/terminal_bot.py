@@ -19,6 +19,11 @@ from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
+try:
+    from src.security_utils import sanitize_for_prompt
+except ImportError:
+    from security_utils import sanitize_for_prompt
+
 logger = logging.getLogger("TerminalBot")
 
 # Terminal-focused system prompt - comprehensive and impressive
@@ -242,6 +247,9 @@ class TerminalBot:
             {"type": "token", "content": "..."} for each token
             {"type": "complete", "content": "full text"} at the end
         """
+        # Sanitize input
+        message = sanitize_for_prompt(message)
+
         if not self._initialized or self.llm is None:
             error_msg = f"TerminalBot not available. {self._init_error or 'Not initialized.'}"
             yield {"type": "token", "content": error_msg}

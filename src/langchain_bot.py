@@ -20,10 +20,12 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 try:
     from src.chronos_engine import ChronosX, ChronosDataEngine
     from src.attestation import Attestor
+    from src.security_utils import sanitize_for_prompt
 except ImportError:
     # Fallback for relative imports
     from chronos_engine import ChronosX, ChronosDataEngine
     from attestation import Attestor
+    from security_utils import sanitize_for_prompt
 
 logger = logging.getLogger("ChronosBot")
 
@@ -148,6 +150,9 @@ class LangChainBot:
         Input: User text
         Output: { "text": "...", "client_action": { type: "...", payload: "..." } }
         """
+        # Sanitize input to prevent injection attacks
+        user_text = sanitize_for_prompt(user_text)
+
         response = await self.agent_executor.ainvoke({
             "input": user_text,
             "chat_history": self.chat_history[-10:]  # Keep last 10 turns
@@ -196,6 +201,9 @@ class LangChainBot:
             {"type": "token", "content": "..."} for each token
             {"type": "action", "client_action": {...}} at the end if applicable
         """
+        # Sanitize input to prevent injection attacks
+        user_text = sanitize_for_prompt(user_text)
+
         accumulated_text = ""
         client_action = None
         
