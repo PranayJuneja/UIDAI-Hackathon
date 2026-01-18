@@ -39,6 +39,8 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from src.security_utils import sanitize_for_prompt
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1077,7 +1079,7 @@ class ChronosDataEngine:
         results = []
         
         # Input sanitization - limit length and clean
-        query = query[:100].strip()  # Limit to 100 chars
+        query = sanitize_for_prompt(query)
         if not query:
             return []
         query_lower = query.lower()
@@ -1719,18 +1721,8 @@ async def compare_locations(
 ):
     """Compare two locations side by side."""
     
-    # Sanitize location IDs - prevent injection and limit length
-    def sanitize_location_id(loc: str) -> str:
-        # Strip whitespace and limit length
-        loc = loc.strip()[:50]
-        # Only allow alphanumeric, underscore, and ampersand (for state names like "Jammu & Kashmir")
-        import re
-        if not re.match(r'^[a-zA-Z0-9_&\s]+$', loc):
-            return ""
-        return loc
-    
-    loc1 = sanitize_location_id(loc1)
-    loc2 = sanitize_location_id(loc2)
+    loc1 = sanitize_for_prompt(loc1)
+    loc2 = sanitize_for_prompt(loc2)
     
     if not loc1 or not loc2:
         raise HTTPException(status_code=400, detail="Invalid location ID format")
@@ -2226,8 +2218,11 @@ async def websocket_chat(websocket: WebSocket):
                 # Plain text fallback
                 user_content = raw_data
             
+            # Sanitize user content
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Send typing indicator
@@ -2520,8 +2515,11 @@ async def websocket_terminal_chat(websocket: WebSocket):
                 session_id = "default"
                 context = {}
             
+            # Sanitize user content
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Clear session if district changed
@@ -2737,14 +2735,14 @@ async def websocket_compare(websocket: WebSocket):
             
             # Build the comparison prompt
             system_prompt = COMPARISON_SYSTEM_PROMPT.format(
-                loc1_name=loc1.get("name", "Location 1"),
-                loc1_type=loc1.get("type", "region"),
+                loc1_name=sanitize_for_prompt(loc1.get("name", "Location 1")),
+                loc1_type=sanitize_for_prompt(loc1.get("type", "region")),
                 loc1_growth=loc1_signals.get("growth", 0),
                 loc1_flow=loc1_signals.get("flow", 0),
                 loc1_labor=loc1_signals.get("labor", 0),
                 loc1_hotspot=loc1_hotspot.get("intensity", 0),
-                loc2_name=loc2.get("name", "Location 2"),
-                loc2_type=loc2.get("type", "region"),
+                loc2_name=sanitize_for_prompt(loc2.get("name", "Location 2")),
+                loc2_type=sanitize_for_prompt(loc2.get("type", "region")),
                 loc2_growth=loc2_signals.get("growth", 0),
                 loc2_flow=loc2_signals.get("flow", 0),
                 loc2_labor=loc2_signals.get("labor", 0),

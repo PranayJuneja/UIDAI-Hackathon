@@ -23,6 +23,8 @@ from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
+from src.security_utils import sanitize_for_prompt
+
 logger = logging.getLogger("CopilotBot")
 
 # Comprehensive system prompt for the Copilot
@@ -102,34 +104,6 @@ class CopilotBot:
     def set_data_engine(self, engine):
         """Set the data engine for context injection."""
         self._data_engine = engine
-    
-    def _sanitize_input(self, text: str) -> str:
-        """
-        Sanitize user input to prevent issues.
-        - Strips control characters
-        - Normalizes unicode
-        - Limits length
-        """
-        if not text:
-            return ""
-        
-        # Limit length
-        text = text[:self.MAX_INPUT_LENGTH]
-        
-        # Remove control characters except newlines
-        import unicodedata
-        text = ''.join(
-            char for char in text 
-            if unicodedata.category(char) != 'Cc' or char in '\n\r\t'
-        )
-        
-        # Normalize unicode (fancy quotes → regular quotes)
-        text = unicodedata.normalize('NFKC', text)
-        
-        # Collapse multiple spaces
-        text = re.sub(r' +', ' ', text)
-        
-        return text.strip()
     
     def _cleanup_expired_sessions(self, force: bool = False):
         """
@@ -657,7 +631,7 @@ class CopilotBot:
         
         try:
             # Sanitize user input
-            message = self._sanitize_input(message)
+            message = sanitize_for_prompt(message)
             if not message:
                 yield {"type": "token", "content": "Please enter a valid question."}
                 yield {"type": "complete", "content": "Please enter a valid question."}
