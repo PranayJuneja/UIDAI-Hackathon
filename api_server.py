@@ -1667,11 +1667,41 @@ async def compare_locations(
         if "_" in loc:
             parts = loc.split("_", 1)  # Split only on first underscore
             if len(parts) >= 2:
-                # Find state and get district
+                state_code = parts[0].upper()
+                district_part = parts[1].upper()
+                
+                # Find state name from code
+                state_name = None
                 for name, sid in STATE_ID_MAP.items():
-                    if sid == parts[0].upper():
-                        districts = data_engine.aggregate_by_district(name, month)
-                        return next((d for d in districts if d.district_id == loc.upper()), None)
+                    if sid == state_code:
+                        state_name = name
+                        break
+                
+                if not state_name:
+                    return None
+                
+                # Get all districts for this state
+                districts = data_engine.aggregate_by_district(state_name, month)
+                
+                # Direct match first
+                exact = next((d for d in districts if d.district_id == loc.upper()), None)
+                if exact:
+                    return exact
+                
+                # DELHI SPECIAL CASE: Any DL_* district maps to DL_DELHI data
+                # since GeoJSON only has 1 Delhi feature, but search returns individual districts
+                if state_code == "DL" and districts:
+                    delhi_data = districts[0]  # Should be DL_DELHI
+                    # Return with original district name for better UX
+                    return DistrictAggregation(
+                        district_id=loc.upper(),
+                        district_name=district_part.replace("_", " ").title(),
+                        state_name="Delhi",
+                        signals=delhi_data.signals,
+                        hotspot=delhi_data.hotspot,
+                        pin_count=delhi_data.pin_count,
+                        pincodes=delhi_data.pincodes
+                    )
         return None
         
     data1 = get_location_data(loc1)

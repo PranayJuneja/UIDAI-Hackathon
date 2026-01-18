@@ -1,0 +1,283 @@
+/* Device Gate - Terminal-Styled Blocking Screen */
+
+.gateContainer {
+    position: fixed;
+    inset: 0;
+    background: #0a0a0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    z-index: 99999;
+    overflow: hidden;
+}
+
+/* Terminal Window */
+.terminal {
+    background: linear-gradient(145deg, rgba(20, 20, 30, 0.95), rgba(10, 10, 15, 0.98));
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow:
+        0 0 40px rgba(0, 240, 255, 0.15),
+        0 0 80px rgba(189, 0, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    animation: terminalFadeIn 0.5s ease-out;
+}
+
+@keyframes terminalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Terminal Header */
+.terminalHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.terminalButtons {
+    display: flex;
+    gap: 6px;
+}
+
+.terminalButtonRed,
+.terminalButtonYellow,
+.terminalButtonGreen {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.terminalButtonRed {
+    background: #ff5f56;
+    box-shadow: 0 0 6px rgba(255, 95, 86, 0.5);
+}
+
+.terminalButtonYellow {
+    background: #ffbd2e;
+    box-shadow: 0 0 6px rgba(255, 189, 46, 0.5);
+}
+
+.terminalButtonGreen {
+    background: #27ca3f;
+    box-shadow: 0 0 6px rgba(39, 202, 63, 0.5);
+}
+
+.terminalTitle {
+    font-family: 'Fira Code', 'Roboto Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-left: auto;
+}
+
+/* Terminal Body */
+.terminalBody {
+    padding: 1.25rem;
+    font-family: 'Fira Code', 'Roboto Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: #e0e0e0;
+}
+
+/* ASCII Art */
+.asciiArt {
+    color: #00f0ff;
+    font-size: 0.65rem;
+    line-height: 1.3;
+    text-align: center;
+    margin-bottom: 1rem;
+    white-space: pre;
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+/* Lines */
+.line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.prompt {
+    color: #00ff9d;
+    font-weight: 600;
+}
+
+.command {
+    color: #ffffff;
+}
+
+.cursor {
+    color: #00f0ff;
+    animation: blink 1s step-end infinite;
+}
+
+.blinkingCursor {
+    color: #00f0ff;
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+/* Output Messages */
+.output,
+.message,
+.suggestion {
+    padding-left: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.error {
+    color: #ff5555;
+    font-weight: 600;
+}
+
+.warning {
+    color: #ffbd2e;
+    font-weight: 600;
+}
+
+.info {
+    color: #00f0ff;
+    font-weight: 600;
+}
+
+.success {
+    color: #00ff9d;
+    font-weight: 600;
+}
+
+.highlight {
+    color: #bd00ff;
+    font-weight: 600;
+    text-shadow: 0 0 8px rgba(189, 0, 255, 0.5);
+}
+
+.lineBreak {
+    height: 0.75rem;
+}
+
+/* Rotate Icon Animation */
+.rotateIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.phoneIcon {
+    width: 30px;
+    height: 50px;
+    border: 2px solid #00f0ff;
+    border-radius: 4px;
+    position: relative;
+    animation: rotatePhone 2s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+.phoneScreen {
+    position: absolute;
+    inset: 4px;
+    background: rgba(0, 240, 255, 0.2);
+    border-radius: 2px;
+}
+
+@keyframes rotatePhone {
+
+    0%,
+    20% {
+        transform: rotate(0deg);
+    }
+
+    50%,
+    70% {
+        transform: rotate(90deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+.rotateArrow {
+    font-size: 2rem;
+    color: #00ff9d;
+    animation: pulse 1.5s ease-in-out infinite;
+    text-shadow: 0 0 15px rgba(0, 255, 157, 0.5);
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* Background Glow Orbs */
+.glowOrb {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(0, 240, 255, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    top: -100px;
+    right: -100px;
+    pointer-events: none;
+    animation: orbFloat 6s ease-in-out infinite;
+}
+
+.glowOrb2 {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(189, 0, 255, 0.12) 0%, transparent 70%);
+    border-radius: 50%;
+    bottom: -80px;
+    left: -80px;
+    pointer-events: none;
+    animation: orbFloat 8s ease-in-out infinite reverse;
+}
+
+@keyframes orbFloat {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    50% {
+        transform: translate(20px, 20px);
+    }
+}

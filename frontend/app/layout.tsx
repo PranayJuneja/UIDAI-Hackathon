@@ -3,6 +3,7 @@ import { DM_Sans } from "next/font/google";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { ToastProvider } from "./components/UI/ToastProvider";
+import DeviceGate from "./components/UI/DeviceGate";
 
 // Using DM Sans as the closest Google Sans alternative available on Google Fonts
 // It has similar clean, geometric characteristics
@@ -28,9 +29,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${GeistMono.variable}`}>
       <body className={dmSans.className}>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <DeviceGate>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </DeviceGate>
       </body>
     </html>
   );

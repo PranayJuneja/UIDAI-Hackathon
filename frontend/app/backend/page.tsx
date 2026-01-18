@@ -50,7 +50,6 @@ export default function BackendPage() {
 
                         <motion.div
                             className={styles.terminalBoot}
-                            style={{ width: '100%', height: 'fit-content' }}
                             initial={{ opacity: 0, x: 30 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
@@ -83,7 +82,6 @@ export default function BackendPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
                         <motion.div
                             className={styles.terminalBoot}
-                            style={{ width: '100%', height: 'fit-content' }}
                             initial={{ opacity: 0, x: -30 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}

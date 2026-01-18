@@ -71,7 +71,6 @@ export default function FrontendPage() {
                         {/* Swapped order for visual alternation: Terminal Left, Text Right */}
                         <motion.div
                             className={styles.terminalBoot}
-                            style={{ width: '100%', height: 'fit-content' }}
                             initial={{ opacity: 0, x: -30 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}

@@ -25,6 +25,12 @@
     box-shadow: var(--shadow-xl), var(--shadow-glow);
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+
+    /* Layout Fixes */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Force full height to match grid sibling */
 }
 
 .terminalHeader {
@@ -36,14 +42,18 @@
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-muted);
     font-size: var(--text-sm);
+    flex-shrink: 0;
+    /* Header shouldn't shrink */
 }
 
 .terminalBody {
-    padding: var(--space-5);
+    padding: var(--space-4) var(--space-5);
+    /* Slightly reduced vertical padding */
     color: var(--signal-growth);
     font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
-    min-height: auto;
+    flex-grow: 1;
+    /* Allow body to fill remaining space */
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--border-default) transparent;
@@ -64,7 +74,12 @@
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    height: fit-content;
+    height: 100%;
+    /* Force full height */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* Align content to top */
 }
 
 

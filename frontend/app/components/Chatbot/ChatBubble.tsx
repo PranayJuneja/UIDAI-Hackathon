@@ -18,34 +18,34 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isUser, isSystem, isEr
     const getBubbleStyles = () => {
         if (isError) {
             return {
-                background: 'rgba(239, 68, 68, 0.15)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 2px 12px rgba(239, 68, 68, 0.2)',
-                borderColor: 'rgba(239, 68, 68, 0.3)'
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(239, 68, 68, 0.12) 100%)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 4px 16px rgba(239, 68, 68, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.1)',
+                borderColor: 'rgba(239, 68, 68, 0.35)'
             };
         }
         if (isSystem) {
             return {
-                background: 'rgba(59, 130, 246, 0.1)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 2px 12px rgba(59, 130, 246, 0.1)',
-                borderColor: 'rgba(59, 130, 246, 0.2)'
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 4px 16px rgba(59, 130, 246, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.1)',
+                borderColor: 'rgba(59, 130, 246, 0.25)'
             };
         }
         if (isUser) {
             return {
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                backdropFilter: 'none',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                borderColor: 'transparent'
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 4px 16px rgba(139, 92, 246, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1)',
+                borderColor: 'rgba(139, 92, 246, 0.3)'
             };
         }
         // Default AI response
         return {
-            background: 'rgba(255, 255, 255, 0.08)',
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.15)',
-            borderColor: 'rgba(255, 255, 255, 0.1)'
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
+            borderColor: 'rgba(255, 255, 255, 0.12)'
         };
     };
 
@@ -54,8 +54,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isUser, isSystem, isEr
     const getLabel = () => {
         if (isError) return { text: 'Error', icon: <AlertCircle size={10} />, color: 'text-red-400' };
         if (isSystem) return { text: 'System', icon: <Info size={10} />, color: 'text-blue-400' };
-        if (!isUser) return { text: 'Chronos AI', icon: null, color: 'text-blue-300' };
-        return null;
+        if (isUser) return { text: 'You', icon: null, color: 'text-purple-300' };
+        return { text: 'Chronos AI', icon: null, color: 'text-blue-300' };
     };
 
     const label = getLabel();
@@ -67,10 +67,10 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isUser, isSystem, isEr
             className={`flex w-full mb-3 ${isUser ? 'justify-end' : 'justify-start'}`}
         >
             <div
-                className={`max-w-[85%] px-4 py-2.5 rounded-[12px] text-[0.85rem] leading-[1.45] shadow-sm relative border
+                className={`max-w-[85%] px-4 py-3 rounded-[14px] text-[0.85rem] leading-[1.5] relative border transition-all duration-200 hover:scale-[1.01]
                 ${isUser
-                        ? 'rounded-br-none text-white'
-                        : 'rounded-bl-none text-slate-100'
+                        ? 'rounded-br-[4px] text-white'
+                        : 'rounded-bl-[4px] text-slate-100'
                     }
                 ${isError ? 'text-red-200' : ''}
                 ${isSystem ? 'text-blue-200' : ''}

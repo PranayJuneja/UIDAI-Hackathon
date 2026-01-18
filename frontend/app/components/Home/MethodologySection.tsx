@@ -23,7 +23,6 @@ export default function MethodologySection() {
                     {/* Left: Code Window */}
                     <motion.div
                         className={styles.terminalBoot}
-                        style={{ width: '100%' }}
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -32,7 +31,7 @@ export default function MethodologySection() {
                             <Code size={14} />
                             <span>core/spatial_engine.py</span>
                         </div>
-                        <div className={styles.terminalBody} style={{ minHeight: 'auto', fontSize: '0.8rem' }}>
+                        <div className={styles.terminalBody}>
                             <pre style={{ margin: 0 }}>
                                 <code style={{ color: '#d4d4d4' }}>
                                     <span style={{ color: '#c586c0' }}>def</span> <span style={{ color: '#dcdcaa' }}>find_parallels</span>(target_pin):{"\n"}

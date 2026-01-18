@@ -2,6 +2,83 @@
 
 
 
+## [3.4.1] - 2026-01-18 - DELHI DISTRICT COMPARISON FIX
+> *"Compare any Delhi district. Get real results."*
+
+### Fixed
+- **Compare Regions 404 Error**: Fixed an issue where comparing Delhi districts (e.g., "North West Delhi" vs "North Delhi") returned HTTP 404.
+  - **Root Cause**: Search API returned individual Delhi district IDs (`DL_NORTH_WEST_DELHI`) but `aggregate_by_district` only returns `DL_DELHI`.
+  - **Fix**: Updated `get_location_data()` in `/api/compare` to detect Delhi district IDs and map them to the aggregated Delhi data while preserving original district names for display.
+
+### Changed
+| File | Changes |
+|------|---------|
+| `api_server.py` | Enhanced `get_location_data()` with Delhi special case handling in compare endpoint |
+
+---
+
+## [3.4.0] - 2026-01-16 - THE CHRONOS COPILOT UX POLISH
+> *"Premium glass. Interactive chips. Instant suggestions."*
+
+### 🔥 Headline Features
+
+#### 1. Interactive Suggestion Chips
+> *Don't blink. Just click.*
+- **Zero-State Suggestions**: Empty chat now displays intelligent starter chips:
+  - "Compare regions", "Forecast demand", "Analyze trends", "Get statistics".
+- **One-Click Activation**: Clicking a chip instantly populates the input field with a template message and focuses it for typing.
+- **Smart Logic**: Suggestions automatically disappear once the conversation starts (excluding system welcome messages).
+
+#### 2. Premium Glassmorphism UI
+> *Deep blur. Violet gradients. True depth.*
+- **Liquid Glass Container**: Enhanced `backdrop-filter` blur (80px) with rich, deep borders and shadows.
+- **Pulse Animations**: 
+  - **Toggle Button**: "Breathing" float animation when idle.
+  - **Header Icon**: Animated glow effect on the sparkle icon.
+  - **Input Focus**: Subtle violet glow ring when typing.
+- **Glass Message Bubbles**:
+  - **User Messages**: Migrated from flat gradient to translucent glass with violet tint (`rgba(139, 92, 246, 0.2)`).
+  - **System/AI Messages**: Varied glass hues for clear visual distinction.
+
+#### 3. Visual Polish
+- **Pill-Shaped Input**: Modern, fully rounded input field with animated placeholder text.
+- **Footer Branding**: "CHRONOS-X INTELLIGENCE ENGINE" footer with monospace styling and glow.
+- **User Labels**: Explicit "You" label above user messages for better readability.
+
+### Changed
+| File | Changes |
+|------|---------|
+| `Chatbot.tsx` | Added suggestions logic, input refs, footer branding, and suggestion render loop |
+| `Chatbot.module.css` | Added suggestion chip styles, keyframe animations, and enhanced glass container effects |
+| `ChatBubble.tsx` | Switched user messages to glassmorphism, added "You" label |
+
+---
+
+## [3.3.1] - 2026-01-16 - MOBILE DEVICE GATE
+> *"Desktop only. Landscape preferred. Terminal enforced."*
+
+### 🔥 Headline Features
+
+#### 1. Device & Orientation Gating
+> *A premium terminal experience requires screen real estate.*
+- **Mobile Blocking**: Detects devices with width < 768px and displays a "system access_denied" terminal screen.
+- **Tablet Rotation Prompt**: Detects tablets in portrait mode and displays an animated "Rotate Device" terminal prompt.
+- **Terminal Aesthetics**: Both blocking screens feature fully styled terminal interfaces with ASCII art, blinking cursors, and neon glow effects.
+- **Auto-Detection**: Listeners for `resize` and `orientationchange` events automatically unlock the app when the device is rotated or resized to supported dimensions.
+
+### Added
+| File | Purpose |
+|------|---------|
+| `components/UI/DeviceGate.tsx` | React component for device detection and terminal-styled gating UI |
+| `components/UI/DeviceGate.module.css` | Styles for the gate, including ASCII art, phone animations, and glow effects |
+
+### Changed
+| File | Changes |
+|------|---------|
+| `layout.tsx` | Wrapped application in `DeviceGate` component to enforce viewport constraints |
+
+---
+
 ## [3.3.0] - 2026-01-15 - THE COPILOT INTELLIGENCE OVERHAUL
 > *"Ask anything. Get answers fast."*
 

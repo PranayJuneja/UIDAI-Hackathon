@@ -2,10 +2,18 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Sparkles, WifiOff, Loader2 } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, WifiOff, Loader2, MapPin, TrendingUp, BarChart3, Users } from 'lucide-react';
 import ChatBubble from './ChatBubble';
 import { WS_COPILOT_URL } from '../../lib/config';
 import styles from './Chatbot.module.css';
+
+// Suggestion prompts for empty chat state
+const SUGGESTIONS = [
+    { icon: '🗺️', label: 'Compare regions', template: 'Compare saturation between ' },
+    { icon: '📈', label: 'Forecast demand', template: 'Forecast demand for ' },
+    { icon: '🔍', label: 'Analyze trends', template: 'Explain the migration trend in ' },
+    { icon: '📊', label: 'Get statistics', template: 'Show statistics for ' },
+];
 
 interface Message {
     id: string;
@@ -29,10 +37,18 @@ const Chatbot = () => {
 
     const wsRef = useRef<WebSocket | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const reconnectAttempts = useRef(0);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
     const messageQueueRef = useRef<string[]>([]);
     const streamingMessageIdRef = useRef<string | null>(null);  // Track current streaming message
+
+    // Handle suggestion chip click
+    const handleSuggestionClick = useCallback((template: string) => {
+        setInputValue(template);
+        // Focus the input after a short delay to ensure state is updated
+        setTimeout(() => inputRef.current?.focus(), 50);
+    }, []);
 
     // Scroll to bottom when messages change
     const scrollToBottom = useCallback(() => {
@@ -334,8 +350,8 @@ const Chatbot = () => {
                     >
                         <div className={styles.header}>
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)]">
-                                    <Sparkles size={18} />
+                                <div className={`p-2 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20 ${styles.headerIcon}`}>
+                                    <Sparkles size={20} />
                                 </div>
                                 <div>
                                     <h3
@@ -361,6 +377,28 @@ const Chatbot = () => {
                         </div>
 
                         <div className={styles.messagesArea}>
+                            {/* Show suggestions when no user messages yet */}
+                            {!messages.some(m => m.isUser) && !isThinking && (
+                                <div className={styles.suggestionsContainer}>
+                                    <p className={styles.suggestionsWelcome}>
+                                        Hi! I'm <span>Chronos</span>. How can I help?
+                                    </p>
+                                    <div className={styles.suggestionsGrid}>
+                                        {SUGGESTIONS.map((suggestion, index) => (
+                                            <button
+                                                key={index}
+                                                className={styles.suggestionChip}
+                                                onClick={() => handleSuggestionClick(suggestion.template)}
+                                            >
+                                                <span className={styles.suggestionIcon}>{suggestion.icon}</span>
+                                                {suggestion.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Always show messages */}
                             {messages.map((msg) => (
                                 <ChatBubble
                                     key={msg.id}
@@ -388,6 +426,7 @@ const Chatbot = () => {
                         <div className={styles.inputArea}>
                             <div className={styles.inputWrapper}>
                                 <input
+                                    ref={inputRef}
                                     type="text"
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
@@ -408,13 +447,13 @@ const Chatbot = () => {
                                     <Send size={18} strokeWidth={2.5} />
                                 </button>
                             </div>
-                            <div className="mt-2 text-[8px] text-center text-slate-700 font-mono tracking-widest opacity-50">
-                                CHRONOS-X INTELLIGENCE ENGINE
+                            <div className="mt-3 py-2 text-[10px] text-center text-slate-500 font-mono tracking-[0.2em] uppercase" style={{ textShadow: '0 0 10px rgba(100, 140, 255, 0.3)' }}>
+                                ✦ CHRONOS-X INTELLIGENCE ENGINE ✦
                             </div>
                         </div>
                     </motion.div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
         </>
     );
 };
