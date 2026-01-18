@@ -684,6 +684,86 @@ class ChronosDataEngine:
         logger.info(f"Served forecast data for {month} ({len(results)} states)")
         return results
     
+    def aggregate_by_district(self, state_name: str, month: Optional[str] = None) -> List[DistrictAggregation]:
+        """
+        Aggregate data at district level for a specific state.
+        
+        Uses the district_mapping and pulse_vectors to compute signals per district.
+        
+        Args:
+            state_name: Name of the state to get districts for
+            month: Optional month filter (YYYY-MM format)
+            
+        Returns:
+            List of DistrictAggregation objects sorted by hotspot intensity
+        """
+        if self.pulse_vectors is None:
+            return []
+        
+        # Normalize state name
+        normalized_state = self._normalize_state(state_name)
+        
+        # Check cache first
+        cache_key = f"district_agg_{normalized_state}_{month or 'latest'}"
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+        
+        # Get districts for this state from mapping
+        districts_info = self.district_mapping.get(normalized_state, {})
+        if not districts_info:
+            logger.warning(f"No district mapping found for state: {normalized_state}")
+            return []
+        
+        # Get the base dataframe
+        df = self.pulse_vectors
+        
+        # Filter by month if specified
+        if month:
+            month_val = self._parse_month_filter(month)
+            df = df.filter(pl.col("month") == month_val)
+        else:
+            # Use latest month
+            latest = df["month"].max()
+            df = df.filter(pl.col("month") == latest)
+        
+        if df.height == 0:
+            return []
+        
+        results = []
+        
+        for district_name, pincodes in districts_info.items():
+            # Filter pulse_vectors for this district's pincodes
+            district_df = df.filter(pl.col("pincode").cast(str).is_in([str(p) for p in pincodes]))
+            
+            if district_df.height == 0:
+                continue
+            
+            # Calculate average signals
+            signals = SignalData(
+                growth=round(district_df["growth_norm"].mean() or 0.0, 3),
+                flow=round(district_df["flow_norm"].mean() or 0.0, 3),
+                labor=round(district_df["labor_norm"].mean() or 0.0, 3)
+            )
+            
+            results.append(DistrictAggregation(
+                district_id=f"{normalized_state[:2]}_{district_name[:3]}".upper(),
+                district_name=district_name,
+                state_name=normalized_state,
+                signals=signals,
+                hotspot=self._calculate_hotspot(signals),
+                pin_count=district_df.height,
+                pincodes=pincodes[:10]  # Limit pincodes returned
+            ))
+        
+        # Sort by hotspot intensity (highest first)
+        results = sorted(results, key=lambda x: x.hotspot.intensity, reverse=True)
+        
+        # Cache results
+        self._set_cached(cache_key, results)
+        logger.info(f"Served district data for {normalized_state} ({len(results)} districts)")
+        return results
+    
     def _get_cached(self, key: str) -> Optional[Any]:
         """Get cached value if not expired."""
         if key in self._cache and key in self._cache_timestamps:

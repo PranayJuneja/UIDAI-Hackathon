@@ -2,6 +2,50 @@
 
 
 
+## [3.4.2] - 2026-01-18 - THE COPILOT INTELLIGENCE FIX
+> *"Ask about Mumbai. Get Mumbai data. Not questions."*
+
+### 🔥 Headline Features
+
+#### 1. City/District Recognition (50+ Major Cities)
+> *Mumbai, Chennai, Pune, Bangalore... now understood.*
+- **CITY_TO_STATE Mapping**: Added comprehensive mapping of 50+ major Indian cities to their parent states
+- **Smart Detection**: Queries like "Forecast demand for Mumbai" now correctly identify Maharashtra context
+- **Fixed Intent Detection**: Added 'demand', 'across india', 'all states' as hotspot keywords
+
+#### 2. District-Level Breakdown for State Queries
+> *Top 10 districts. Real signals. Sorted by demand.*
+- **New `aggregate_by_district()` Method**: Added to ChronosDataEngine for per-district signal computation
+- **Comprehensive State Analysis**: State queries now include:
+  - Current enrollment statistics (Growth/Flow/Labor with explanations)
+  - Top 10 districts by hotspot intensity with full signals
+  - 3-month forecast (Jan-Mar 2026)
+  - Auto-generated capacity recommendations based on signal levels
+
+#### 3. Session Cleanup & Input Sanitization
+> *Memory-safe. Input-safe.*
+- **Session TTL**: 30-minute expiry with periodic cleanup
+- **MAX_SESSIONS**: Hard cap of 100 concurrent sessions
+- **Input Sanitization**: Control characters stripped, unicode normalized, length limited (1000 chars)
+
+#### 4. Frontend Message History Limit
+> *No more memory bloat.*
+- **MAX_MESSAGES**: Frontend now caps message history at 100 messages
+- **Auto-Trimming**: useEffect trims older messages when limit exceeded
+
+### Added
+| File | Purpose |
+|------|---------|
+| `api_server.py` | `aggregate_by_district(state_name, month)` method (80 lines) |
+
+### Changed
+| File | Changes |
+|------|---------|
+| `src/copilot_bot.py` | CITY_TO_STATE mapping, STATE_ABBREV, enhanced `_detect_query_intent()`, comprehensive `_build_context()`, `_cleanup_expired_sessions()`, `_sanitize_input()` |
+| `frontend/app/components/Chatbot/Chatbot.tsx` | MAX_MESSAGES=100, auto-trimming useEffect |
+
+---
+
 ## [3.4.1] - 2026-01-18 - DELHI DISTRICT COMPARISON FIX
 > *"Compare any Delhi district. Get real results."*
 

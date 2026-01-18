@@ -27,6 +27,7 @@ type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_BASE_DELAY = 1000;
+const MAX_MESSAGES = 100;  // Limit message history to prevent memory bloat
 
 const Chatbot = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -58,6 +59,13 @@ const Chatbot = () => {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isThinking, scrollToBottom]);
+
+    // Trim message history when it exceeds the limit
+    useEffect(() => {
+        if (messages.length > MAX_MESSAGES) {
+            setMessages(prev => prev.slice(-MAX_MESSAGES));
+        }
+    }, [messages.length]);
 
 
     // WebSocket connection logic
