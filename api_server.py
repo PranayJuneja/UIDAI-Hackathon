@@ -39,6 +39,8 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from src.security_utils import sanitize_for_prompt, sanitize_context_data
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1077,7 +1079,7 @@ class ChronosDataEngine:
         results = []
         
         # Input sanitization - limit length and clean
-        query = query[:100].strip()  # Limit to 100 chars
+        query = sanitize_for_prompt(query, max_length=100)
         if not query:
             return []
         query_lower = query.lower()
@@ -2727,8 +2729,8 @@ async def websocket_compare(websocket: WebSocket):
                 continue
             
             # Extract location data
-            loc1 = message_data.get("location1", {})
-            loc2 = message_data.get("location2", {})
+            loc1 = sanitize_context_data(message_data.get("location1", {}))
+            loc2 = sanitize_context_data(message_data.get("location2", {}))
             
             loc1_signals = loc1.get("signals", {})
             loc2_signals = loc2.get("signals", {})
