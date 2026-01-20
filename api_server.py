@@ -39,6 +39,8 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from security_utils import sanitize_for_prompt, sanitize_context_data
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1076,8 +1078,8 @@ class ChronosDataEngine:
         """Search for locations matching query. Input is sanitized for safety."""
         results = []
         
-        # Input sanitization - limit length and clean
-        query = query[:100].strip()  # Limit to 100 chars
+        # Input sanitization
+        query = sanitize_for_prompt(query, max_length=100)
         if not query:
             return []
         query_lower = query.lower()
@@ -2226,8 +2228,11 @@ async def websocket_chat(websocket: WebSocket):
                 # Plain text fallback
                 user_content = raw_data
             
+            # Sanitize input
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Send typing indicator
@@ -2520,8 +2525,13 @@ async def websocket_terminal_chat(websocket: WebSocket):
                 session_id = "default"
                 context = {}
             
+            # Sanitize inputs
+            user_content = sanitize_for_prompt(user_content)
+            session_id = sanitize_for_prompt(session_id, max_length=100)
+            context = sanitize_context_data(context)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Clear session if district changed
@@ -2726,9 +2736,9 @@ async def websocket_compare(websocket: WebSocket):
             if message_data.get("type") != "compare_request":
                 continue
             
-            # Extract location data
-            loc1 = message_data.get("location1", {})
-            loc2 = message_data.get("location2", {})
+            # Extract and sanitize location data
+            loc1 = sanitize_context_data(message_data.get("location1", {}))
+            loc2 = sanitize_context_data(message_data.get("location2", {}))
             
             loc1_signals = loc1.get("signals", {})
             loc2_signals = loc2.get("signals", {})

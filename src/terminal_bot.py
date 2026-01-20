@@ -16,6 +16,7 @@ import time
 from typing import Dict, List, Any, Optional, AsyncGenerator
 from datetime import datetime
 
+from security_utils import sanitize_for_prompt
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
@@ -249,6 +250,13 @@ class TerminalBot:
             return
         
         try:
+            # Sanitize user input
+            message = sanitize_for_prompt(message)
+            if not message:
+                yield {"type": "token", "content": "Please enter a valid message."}
+                yield {"type": "complete", "content": "Please enter a valid message."}
+                return
+
             # Build the system prompt with location context
             location_name = context.get("location", "Unknown")
             location_type = context.get("type", "district")
