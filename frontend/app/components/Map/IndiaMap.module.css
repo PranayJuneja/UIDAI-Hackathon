@@ -614,3 +614,109 @@
             linear-gradient(180deg, rgba(74, 222, 128, 0.05) 0%, transparent 20%);
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TABLET PERFORMANCE OPTIMIZATIONS
+   Target: Touch devices with coarse pointer (tablets) in landscape mode
+   Uses hover:none + pointer:coarse to detect touch-only devices
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (hover: none) and (pointer: coarse) and (max-width: 1366px) {
+
+    /* Reduce heavy backdrop blur for tablet GPU */
+    .mapContainer {
+        backdrop-filter: blur(12px) saturate(120%);
+        -webkit-backdrop-filter: blur(12px) saturate(120%);
+    }
+
+    /* Simplify SVG path transitions - remove expensive filters */
+    .statePath,
+    .districtPath {
+        will-change: auto;
+        /* Disable GPU layer hints on tablets */
+        transition: fill 0.15s ease, stroke 0.15s ease;
+    }
+
+    .statePath:hover,
+    .districtPath:hover {
+        /* Remove drop-shadow - major performance improvement */
+        filter: brightness(1.15);
+        transform: none;
+        /* No scale transforms on tablets */
+    }
+
+    .statePath.hovered,
+    .districtPath.hovered {
+        filter: brightness(1.2);
+        transform: none;
+    }
+
+    .statePath.selected,
+    .districtPath.selected {
+        filter: brightness(1.25);
+        transform: none;
+    }
+
+    /* Reduce legend animation complexity */
+    .legend {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        animation: none;
+        /* Skip entrance animation */
+        opacity: 1;
+    }
+
+    /* Simplify back button blur */
+    .backButton {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    /* Reduce breadcrumb blur */
+    .breadcrumb {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    /* Reduce loading overlay blur */
+    .loadingOverlay {
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ACCESSIBILITY: Reduced Motion Support
+   Respects user preference for reduced animations
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .statePath,
+    .districtPath {
+        transition: none;
+        will-change: auto;
+    }
+
+    .statePath:hover,
+    .districtPath:hover,
+    .statePath.hovered,
+    .districtPath.hovered,
+    .statePath.selected,
+    .districtPath.selected {
+        filter: none;
+        transform: none;
+    }
+
+    .legend {
+        animation: none;
+    }
+
+    .blinkingDot {
+        animation: none;
+    }
+
+    .loadingPulse {
+        animation: none;
+    }
+}
