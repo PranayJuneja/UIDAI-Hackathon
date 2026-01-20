@@ -27,6 +27,7 @@ interface MapVisualsProps {
     districtGeoData: GeoJSON | null;
     selectedState: string | null;
     selectedDistrict: string | null;
+    isTouchDevice: boolean; // For tablet performance optimizations
     // Removed hoveredState/District to prevent re-renders
     onStateHover: (e: React.MouseEvent, feature: GeoFeature) => void;
     onStateLeave: () => void;
@@ -47,6 +48,7 @@ const MapVisuals = memo(function MapVisuals({
     districtGeoData,
     selectedState,
     selectedDistrict,
+    isTouchDevice,
     onStateHover,
     onStateLeave,
     onStateClick,
@@ -59,6 +61,12 @@ const MapVisuals = memo(function MapVisuals({
     getDistrictData,
     stateAbbreviations
 }: MapVisualsProps) {
+
+    // Tablet-optimized transitions: faster, no scale transforms
+    // Using array format for ease to ensure type consistency
+    const mapTransition = isTouchDevice
+        ? { duration: 0.2, ease: [0.25, 0.1, 0.25, 1] as const }  // easeOut equivalent
+        : { duration: 0.4, ease: [0.4, 0, 0.2, 1] as const };     // Custom cubic bezier
 
     // Memoize Projections
     const indiaProjection = useMemo(() => d3.geoMercator()
@@ -90,10 +98,10 @@ const MapVisuals = memo(function MapVisuals({
                     viewBox="0 0 800 780"
                     className={styles.mapSvg}
                     preserveAspectRatio="xMidYMid meet"
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    initial={{ opacity: 0, scale: isTouchDevice ? 1 : 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.1 }}
-                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    exit={{ opacity: 0, scale: isTouchDevice ? 1 : 1.1 }}
+                    transition={mapTransition}
                 >
                     <g className={styles.statesGroup}>
                         {geoData.features.map((feature, i) => {
@@ -148,10 +156,10 @@ const MapVisuals = memo(function MapVisuals({
                     viewBox="0 0 800 780"
                     className={styles.mapSvg}
                     preserveAspectRatio="xMidYMid meet"
-                    initial={{ opacity: 0, scale: 1.2 }}
+                    initial={{ opacity: 0, scale: isTouchDevice ? 1 : 1.2 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    exit={{ opacity: 0, scale: isTouchDevice ? 1 : 0.9 }}
+                    transition={mapTransition}
                 >
                     <g className={styles.districtsGroup}>
                         {districtGeoData.features.map((feature, i) => {
@@ -238,6 +246,22 @@ export default function IndiaMap() {
         state?: any;
         district?: any;
     } | null>(null);
+
+    // Touch device detection for tablet performance optimizations
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+    useEffect(() => {
+        const checkTouch = () => {
+            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const hasFineCursor = window.matchMedia('(pointer: fine)').matches;
+            // Touch device without a fine pointer = tablet/phone
+            setIsTouchDevice(hasTouch && !hasFineCursor);
+        };
+        checkTouch();
+        // Re-check on resize (in case of 2-in-1 devices switching modes)
+        window.addEventListener('resize', checkTouch);
+        return () => window.removeEventListener('resize', checkTouch);
+    }, []);
 
     const {
         hoveredState,
@@ -510,6 +534,7 @@ export default function IndiaMap() {
                         districtGeoData={districtGeoData}
                         selectedState={selectedState}
                         selectedDistrict={selectedDistrict}
+                        isTouchDevice={isTouchDevice}
                         onStateHover={handleStateMouseEnter}
                         onStateLeave={handleStateMouseLeave}
                         onStateClick={handleStateClick}
