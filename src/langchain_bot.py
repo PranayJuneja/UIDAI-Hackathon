@@ -10,6 +10,11 @@ import logging
 from typing import Dict, Any, List, Optional
 import os
 
+try:
+    from src.security_utils import sanitize_for_prompt
+except ImportError:
+    from security_utils import sanitize_for_prompt
+
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -148,6 +153,8 @@ class LangChainBot:
         Input: User text
         Output: { "text": "...", "client_action": { type: "...", payload: "..." } }
         """
+        user_text = sanitize_for_prompt(user_text)
+
         response = await self.agent_executor.ainvoke({
             "input": user_text,
             "chat_history": self.chat_history[-10:]  # Keep last 10 turns
@@ -196,6 +203,7 @@ class LangChainBot:
             {"type": "token", "content": "..."} for each token
             {"type": "action", "client_action": {...}} at the end if applicable
         """
+        user_text = sanitize_for_prompt(user_text)
         accumulated_text = ""
         client_action = None
         

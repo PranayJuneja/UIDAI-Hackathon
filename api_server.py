@@ -39,6 +39,11 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+try:
+    from src.security_utils import sanitize_for_prompt, sanitize_location_id, validate_pincode
+except ImportError:
+    from security_utils import sanitize_for_prompt, sanitize_location_id, validate_pincode
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1666,11 +1671,8 @@ async def get_district_detail(
 async def get_pin_data(pincode: str):
     """Get complete data for a specific PIN code."""
     # Validate format AND range (Indian PIN codes: 100000-999999)
-    if not pincode.isdigit() or len(pincode) != 6:
-        raise HTTPException(status_code=400, detail="Invalid PIN code format")
-    pin_int = int(pincode)
-    if pin_int < 100000 or pin_int > 999999:
-        raise HTTPException(status_code=400, detail="PIN code out of valid range (100000-999999)")
+    if not validate_pincode(pincode):
+        raise HTTPException(status_code=400, detail="Invalid PIN code format or range (100000-999999)")
         
     data = data_engine.get_pin_data(pincode)
     if not data:
@@ -1682,11 +1684,8 @@ async def get_pin_data(pincode: str):
 async def get_pin_timeseries(pincode: str):
     """Get historical time series for a PIN code."""
     # Validate format AND range
-    if not pincode.isdigit() or len(pincode) != 6:
-        raise HTTPException(status_code=400, detail="Invalid PIN code format")
-    pin_int = int(pincode)
-    if pin_int < 100000 or pin_int > 999999:
-        raise HTTPException(status_code=400, detail="PIN code out of valid range (100000-999999)")
+    if not validate_pincode(pincode):
+        raise HTTPException(status_code=400, detail="Invalid PIN code format or range (100000-999999)")
         
     series = data_engine.get_time_series(pincode)
     if not series:
@@ -1704,6 +1703,7 @@ async def search_locations(
     limit: int = Query(10, ge=1, le=50, description="Max results")
 ):
     """Search for states, districts, or PIN codes."""
+    q = sanitize_for_prompt(q)
     results = data_engine.search_locations(q, limit)
     return {"query": q, "results": results, "count": len(results)}
 
@@ -1719,16 +1719,7 @@ async def compare_locations(
 ):
     """Compare two locations side by side."""
     
-    # Sanitize location IDs - prevent injection and limit length
-    def sanitize_location_id(loc: str) -> str:
-        # Strip whitespace and limit length
-        loc = loc.strip()[:50]
-        # Only allow alphanumeric, underscore, and ampersand (for state names like "Jammu & Kashmir")
-        import re
-        if not re.match(r'^[a-zA-Z0-9_&\s]+$', loc):
-            return ""
-        return loc
-    
+    # Sanitize location IDs
     loc1 = sanitize_location_id(loc1)
     loc2 = sanitize_location_id(loc2)
     
@@ -1813,6 +1804,10 @@ async def get_trends(
     
     Returns historical data points for the specified location.
     """
+    location_id = sanitize_location_id(location_id)
+    if not location_id:
+        raise HTTPException(status_code=400, detail="Invalid location ID format")
+
     # Parse signals filter
     signal_list = None
     if signals:
@@ -2226,8 +2221,11 @@ async def websocket_chat(websocket: WebSocket):
                 # Plain text fallback
                 user_content = raw_data
             
+            # Sanitize input
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Send typing indicator
@@ -2372,8 +2370,11 @@ async def websocket_copilot(websocket: WebSocket):
             except json.JSONDecodeError:
                 user_content = raw_data
             
+            # Sanitize input
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Send typing indicator
@@ -2520,8 +2521,11 @@ async def websocket_terminal_chat(websocket: WebSocket):
                 session_id = "default"
                 context = {}
             
+            # Sanitize input
+            user_content = sanitize_for_prompt(user_content)
+
             # Skip empty messages
-            if not user_content or not user_content.strip():
+            if not user_content:
                 continue
             
             # Clear session if district changed

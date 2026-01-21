@@ -53,6 +53,11 @@ class Style:
 # Ensure src is in path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+try:
+    from src.security_utils import sanitize_for_prompt
+except ImportError:
+    from security_utils import sanitize_for_prompt
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECURITY CONSTANTS & INPUT SANITIZATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -62,28 +67,9 @@ MAX_HISTORY_LENGTH = 50  # Prevent unbounded history growth
 def sanitize_input(text: str) -> str:
     """
     Sanitize user input to prevent issues.
-    
-    Handles:
-    - Control characters (except newlines)
-    - Unicode normalization (fancy quotes → regular quotes)
-    - Multiple spaces collapsed
-    - Leading/trailing whitespace
+    Delegates to centralized security utility.
     """
-    import unicodedata
-    
-    if not text:
-        return ""
-    
-    # Remove control characters (except newlines and tabs)
-    text = ''.join(c for c in text if c.isprintable() or c in '\n\t')
-    
-    # Normalize unicode (handle fancy quotes, etc.)
-    text = unicodedata.normalize('NFKC', text)
-    
-    # Collapse multiple spaces into one
-    text = ' '.join(text.split())
-    
-    return text.strip()
+    return sanitize_for_prompt(text)
 
 
 # Load environment variables from local.env

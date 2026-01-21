@@ -20,6 +20,11 @@ import time
 from typing import Dict, List, Any, Optional, AsyncGenerator
 from datetime import datetime
 
+try:
+    from src.security_utils import sanitize_for_prompt
+except ImportError:
+    from security_utils import sanitize_for_prompt
+
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
@@ -106,30 +111,9 @@ class CopilotBot:
     def _sanitize_input(self, text: str) -> str:
         """
         Sanitize user input to prevent issues.
-        - Strips control characters
-        - Normalizes unicode
-        - Limits length
+        Delegates to centralized security utility.
         """
-        if not text:
-            return ""
-        
-        # Limit length
-        text = text[:self.MAX_INPUT_LENGTH]
-        
-        # Remove control characters except newlines
-        import unicodedata
-        text = ''.join(
-            char for char in text 
-            if unicodedata.category(char) != 'Cc' or char in '\n\r\t'
-        )
-        
-        # Normalize unicode (fancy quotes → regular quotes)
-        text = unicodedata.normalize('NFKC', text)
-        
-        # Collapse multiple spaces
-        text = re.sub(r' +', ' ', text)
-        
-        return text.strip()
+        return sanitize_for_prompt(text)
     
     def _cleanup_expired_sessions(self, force: bool = False):
         """
