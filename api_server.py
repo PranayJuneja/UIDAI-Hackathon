@@ -38,6 +38,7 @@ from pydantic import BaseModel, Field
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
+from security_utils import sanitize_for_prompt, sanitize_location_id
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING CONFIGURATION
@@ -1719,16 +1720,7 @@ async def compare_locations(
 ):
     """Compare two locations side by side."""
     
-    # Sanitize location IDs - prevent injection and limit length
-    def sanitize_location_id(loc: str) -> str:
-        # Strip whitespace and limit length
-        loc = loc.strip()[:50]
-        # Only allow alphanumeric, underscore, and ampersand (for state names like "Jammu & Kashmir")
-        import re
-        if not re.match(r'^[a-zA-Z0-9_&\s]+$', loc):
-            return ""
-        return loc
-    
+    # Use strict sanitization from security utils
     loc1 = sanitize_location_id(loc1)
     loc2 = sanitize_location_id(loc2)
     
@@ -2730,6 +2722,12 @@ async def websocket_compare(websocket: WebSocket):
             loc1 = message_data.get("location1", {})
             loc2 = message_data.get("location2", {})
             
+            # Sanitize inputs for prompt injection prevention
+            loc1_name = sanitize_for_prompt(str(loc1.get("name", "Location 1")))
+            loc1_type = sanitize_for_prompt(str(loc1.get("type", "region")))
+            loc2_name = sanitize_for_prompt(str(loc2.get("name", "Location 2")))
+            loc2_type = sanitize_for_prompt(str(loc2.get("type", "region")))
+
             loc1_signals = loc1.get("signals", {})
             loc2_signals = loc2.get("signals", {})
             loc1_hotspot = loc1.get("hotspot", {})
@@ -2737,14 +2735,14 @@ async def websocket_compare(websocket: WebSocket):
             
             # Build the comparison prompt
             system_prompt = COMPARISON_SYSTEM_PROMPT.format(
-                loc1_name=loc1.get("name", "Location 1"),
-                loc1_type=loc1.get("type", "region"),
+                loc1_name=loc1_name,
+                loc1_type=loc1_type,
                 loc1_growth=loc1_signals.get("growth", 0),
                 loc1_flow=loc1_signals.get("flow", 0),
                 loc1_labor=loc1_signals.get("labor", 0),
                 loc1_hotspot=loc1_hotspot.get("intensity", 0),
-                loc2_name=loc2.get("name", "Location 2"),
-                loc2_type=loc2.get("type", "region"),
+                loc2_name=loc2_name,
+                loc2_type=loc2_type,
                 loc2_growth=loc2_signals.get("growth", 0),
                 loc2_flow=loc2_signals.get("flow", 0),
                 loc2_labor=loc2_signals.get("labor", 0),
@@ -2757,7 +2755,7 @@ async def websocket_compare(websocket: WebSocket):
                 
                 messages = [
                     SystemMessage(content=system_prompt),
-                    HumanMessage(content=f"Compare {loc1.get('name', 'Location 1')} with {loc2.get('name', 'Location 2')} and provide your recommendation.")
+                    HumanMessage(content=f"Compare {loc1_name} with {loc2_name} and provide your recommendation.")
                 ]
                 
                 # Stream the response
